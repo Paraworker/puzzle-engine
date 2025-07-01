@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use in_game::InGamePlugin;
 use main_menu::MainMenuPlugin;
 
+mod checkerboard;
 mod in_game;
 mod main_menu;
 
