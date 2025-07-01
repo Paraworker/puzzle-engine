@@ -1,17 +1,12 @@
 use bevy::prelude::*;
-use in_game::InGamePlugin;
-use main_menu::MainMenuPlugin;
+
+use crate::states::{
+    GameState, loading::LoadingPlugin, menu::MenuPlugin, playing::PlayingPlugin,
+    startup::StartupPlugin,
+};
 
 mod checkerboard;
-mod in_game;
-mod main_menu;
-
-#[derive(States, Debug, Clone, Eq, PartialEq, Hash, Default)]
-enum AppState {
-    #[default]
-    MainMenu,
-    InGame,
-}
+mod states;
 
 fn new_window_plugin() -> WindowPlugin {
     const WINDOW_TITLE: &str = "Crazy Puzzle";
@@ -28,9 +23,11 @@ fn new_window_plugin() -> WindowPlugin {
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(new_window_plugin()))
-        .init_state::<AppState>()
+        .init_state::<GameState>()
         .add_plugins(MeshPickingPlugin)
-        .add_plugins(MainMenuPlugin)
-        .add_plugins(InGamePlugin)
+        .add_plugins(StartupPlugin)
+        .add_plugins(MenuPlugin)
+        .add_plugins(LoadingPlugin)
+        .add_plugins(PlayingPlugin)
         .run();
 }

@@ -4,19 +4,13 @@ pub struct TileId(u64);
 
 /// A tile on the checkerboard.
 pub struct Tile {
-    id: TileId,
     edges: Vec<Edge>,
 }
 
 impl Tile {
     /// Creates a new tile with the given id and edges.
-    pub fn new(id: TileId, edges: Vec<Edge>) -> Self {
-        Tile { id, edges }
-    }
-
-    /// Returns the id of the tile.
-    pub fn id(&self) -> TileId {
-        self.id
+    pub fn new(edges: Vec<Edge>) -> Self {
+        Tile { edges }
     }
 
     /// Returns the edge at the given index.
@@ -24,9 +18,9 @@ impl Tile {
         self.edges.get(index)
     }
 
-    /// Returns a mutable reference to the edge at the given index.
-    pub fn edge_mut(&mut self, index: usize) -> Option<&mut Edge> {
-        self.edges.get_mut(index)
+    /// Returns the number of edges of the tile.
+    pub fn edges_num(&self) -> usize {
+        self.edges.len()
     }
 
     /// Returns all neighbors of the tile.

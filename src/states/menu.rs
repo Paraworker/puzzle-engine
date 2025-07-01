@@ -1,33 +1,33 @@
+use crate::states::{GameState, loading::request_load_scene};
 use bevy::prelude::*;
 
-use crate::AppState;
+const SCENE_PATH: &str = "models/Soccer.glb#Scene0";
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.35, 0.35);
 
-pub struct MainMenuPlugin;
+pub struct MenuPlugin;
 
-impl Plugin for MainMenuPlugin {
+impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::MainMenu), setup)
-            .add_systems(Update, update.run_if(in_state(AppState::MainMenu)))
-            .add_systems(OnExit(AppState::MainMenu), cleanup);
+        app.add_systems(OnEnter(GameState::Menu), setup)
+            .add_systems(Update, update.run_if(in_state(GameState::Menu)))
+            .add_systems(OnExit(GameState::Menu), cleanup);
     }
 }
 
 #[derive(Component)]
-struct MainMenuCamera;
-
-#[derive(Component)]
-struct MainMenuUI;
+struct MenuMarker;
 
 fn update(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &mut BorderColor),
         (Changed<Interaction>, With<Button>),
     >,
-    mut next_state: ResMut<NextState<AppState>>,
+    mut next_state: ResMut<NextState<GameState>>,
 ) {
     for (interaction, mut color, mut border_color) in &mut interaction_query {
         match *interaction {
@@ -35,7 +35,7 @@ fn update(
                 *color = PRESSED_BUTTON.into();
                 border_color.0 = Color::WHITE;
 
-                next_state.set(AppState::InGame);
+                request_load_scene(&mut commands, &asset_server, &mut next_state, SCENE_PATH);
             }
             Interaction::Hovered => {
                 *color = HOVERED_BUTTON.into();
@@ -50,26 +50,20 @@ fn update(
 }
 
 fn setup(mut commands: Commands) {
-    // ui camera
-    commands.spawn((Camera2d, MainMenuCamera));
-    commands.spawn(button());
+    // camera
+    commands.spawn((Camera2d, MenuMarker));
+
+    // ui
+    commands.spawn((button("New Game"), MenuMarker));
 }
 
-fn cleanup(
-    mut commands: Commands,
-    cameras: Query<Entity, With<MainMenuCamera>>,
-    uis: Query<Entity, With<MainMenuUI>>,
-) {
-    for camera in cameras {
-        commands.entity(camera).despawn();
-    }
-
-    for ui in uis {
-        commands.entity(ui).despawn();
+fn cleanup(mut commands: Commands, entities: Query<Entity, With<MenuMarker>>) {
+    for entity in entities {
+        commands.entity(entity).despawn();
     }
 }
 
-fn button() -> impl Bundle + use<> {
+fn button(text: impl Into<String>) -> impl Bundle + 'static {
     (
         Node {
             width: Val::Percent(100.0),
@@ -78,7 +72,6 @@ fn button() -> impl Bundle + use<> {
             justify_content: JustifyContent::Center,
             ..default()
         },
-        MainMenuUI,
         children![(
             Button,
             Node {
@@ -92,16 +85,14 @@ fn button() -> impl Bundle + use<> {
             BorderColor(Color::BLACK),
             BorderRadius::all(Val::Px(12.0)),
             BackgroundColor(NORMAL_BUTTON),
-            MainMenuUI,
             children![(
-                Text::new("New Game"),
+                Text::new(text),
                 TextFont {
                     font_size: 22.0,
                     ..default()
                 },
                 TextColor(Color::srgb(0.9, 0.9, 0.9)),
                 TextShadow::default(),
-                MainMenuUI,
             )]
         )],
     )
