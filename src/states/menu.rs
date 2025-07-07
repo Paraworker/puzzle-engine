@@ -1,7 +1,7 @@
 use crate::states::{GameState, loading::request_load_scene};
 use bevy::prelude::*;
 
-const SCENE_PATH: &str = "models/Soccer.glb#Scene0";
+const SCENE_PATH: &str = "boards/soccer/scene.glb#Scene0";
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);

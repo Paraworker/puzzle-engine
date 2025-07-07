@@ -5,8 +5,8 @@ use crate::states::{
     startup::StartupPlugin,
 };
 
-mod checkerboard;
 mod states;
+mod tile;
 
 fn new_window_plugin() -> WindowPlugin {
     const WINDOW_TITLE: &str = "Crazy Puzzle";
