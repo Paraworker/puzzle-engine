@@ -1,12 +1,13 @@
-use bevy::prelude::*;
-
 use crate::states::{
     GameState, loading::LoadingPlugin, menu::MenuPlugin, playing::PlayingPlugin,
     startup::StartupPlugin,
 };
+use bevy::prelude::*;
 
+mod config;
 mod states;
 mod tile;
+mod utils;
 
 fn new_window_plugin() -> WindowPlugin {
     const WINDOW_TITLE: &str = "Crazy Puzzle";

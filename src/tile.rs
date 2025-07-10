@@ -1,7 +1,7 @@
-use anyhow::Result;
-use ron::de::from_reader;
 use serde::Deserialize;
-use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
+use std::{collections::HashMap, path::Path};
+
+use crate::utils::load_ron;
 
 /// Id of a tile.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
@@ -27,11 +27,11 @@ pub struct TileTopology {
 
 impl TileTopology {
     /// Load a new tile topology.
-    pub fn load<P>(path: P) -> Result<Self>
+    pub fn load<P>(path: P) -> anyhow::Result<Self>
     where
         P: AsRef<Path>,
     {
-        Ok(from_reader(BufReader::new(File::open(path)?))?)
+        load_ron(path)
     }
 
     /// Returns the tile with the given id.

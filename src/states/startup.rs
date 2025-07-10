@@ -1,4 +1,7 @@
-use crate::states::{GameState, TileHoverMaterial, TileNormalMaterial, TilePressedMaterial};
+use crate::{
+    config::Config,
+    states::{GameState, TileHoverMaterial, TileNormalMaterial, TilePressedMaterial},
+};
 use bevy::{
     app::{App, Plugin, Startup},
     asset::Assets,
@@ -24,7 +27,10 @@ fn on_startup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
-    // global materials
+    // Load config
+    commands.insert_resource(Config::load().expect("Unable to load config"));
+
+    // Ass global materials
     commands.insert_resource(TileNormalMaterial(materials.add(Color::WHITE)));
     commands.insert_resource(TileHoverMaterial(materials.add(Color::from(CYAN_300))));
     commands.insert_resource(TilePressedMaterial(materials.add(Color::from(YELLOW_300))));
