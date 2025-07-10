@@ -1,5 +1,6 @@
-use crate::states::{
-    ActiveBoard, GameState, TileHoverMaterial, TileNormalMaterial, TilePressedMaterial,
+use crate::{
+    session::GameSession,
+    states::{GameState, TileHoverMaterial, TileNormalMaterial, TilePressedMaterial},
 };
 use bevy::{
     color::palettes::tailwind::*, picking::pointer::PointerInteraction, prelude::*,
@@ -22,10 +23,10 @@ impl Plugin for PlayingPlugin {
     }
 }
 
-fn on_enter(mut commands: Commands, board: Res<ActiveBoard>) {
+fn on_enter(mut commands: Commands, session: Res<GameSession>) {
     // Scene
     commands
-        .spawn((SceneRoot(board.1.clone()), PlayingMarker))
+        .spawn((SceneRoot(session.scene().clone()), PlayingMarker))
         .observe(on_scene_spawned);
 
     // Light
@@ -56,7 +57,7 @@ fn on_exit(mut commands: Commands, entities: Query<Entity, With<PlayingMarker>>)
     }
 
     // Delete related resources
-    commands.remove_resource::<ActiveBoard>();
+    commands.remove_resource::<GameSession>();
 }
 
 /// Returns an observer that updates the entity's material to the one specified.

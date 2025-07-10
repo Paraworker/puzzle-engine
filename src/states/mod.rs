@@ -1,17 +1,10 @@
-use crate::{config::BoardName, tile::TileTopology};
-use bevy::{
-    asset::Handle, ecs::resource::Resource, pbr::StandardMaterial, scene::Scene,
-    state::state::States,
-};
+use bevy::{asset::Handle, ecs::resource::Resource, pbr::StandardMaterial, state::state::States};
 
 pub mod game_setup;
 pub mod loading;
 pub mod menu;
 pub mod playing;
 pub mod startup;
-
-#[derive(Resource)]
-pub struct ActiveBoard(BoardName, Handle<Scene>, TileTopology);
 
 #[derive(Resource)]
 pub struct TileNormalMaterial(Handle<StandardMaterial>);

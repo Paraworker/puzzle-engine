@@ -1,6 +1,7 @@
 use crate::{
     config::{BoardMeta, BoardName, Config},
-    states::{GameState, loading::load_board},
+    states::GameState,
+    utils::new_session,
 };
 use bevy::prelude::*;
 
@@ -58,7 +59,7 @@ fn update(
                 *color = PRESSED_BUTTON.into();
                 border_color.0 = Color::WHITE;
 
-                load_board(
+                new_session(
                     &mut commands,
                     &asset_server,
                     &mut next_state,

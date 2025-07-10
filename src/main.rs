@@ -5,6 +5,7 @@ use crate::states::{
 use bevy::prelude::*;
 
 mod config;
+mod session;
 mod states;
 mod tile;
 mod utils;
