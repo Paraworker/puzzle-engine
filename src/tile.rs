@@ -1,28 +1,44 @@
+use crate::utils::load_ron;
+use bevy::ecs::component::Component;
 use serde::Deserialize;
+use std::collections::{HashSet, VecDeque};
+use std::num::ParseIntError;
+use std::str::FromStr;
 use std::{collections::HashMap, path::Path};
 
-use crate::utils::load_ron;
-
 /// Id of a tile.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Component)]
 pub struct TileId(u64);
 
-impl TileId {
-    /// Creates a new tile id from a raw value.
-    pub fn from_raw(id: u64) -> Self {
-        TileId(id)
-    }
+impl FromStr for TileId {
+    type Err = ParseIntError;
 
-    /// Converts the tile id into a raw value.
-    pub fn into_raw(self) -> u64 {
-        self.0
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(TileId(s.parse()?))
+    }
+}
+
+impl From<u64> for TileId {
+    fn from(id: u64) -> Self {
+        Self(id)
+    }
+}
+
+impl From<TileId> for u64 {
+    fn from(id: TileId) -> Self {
+        id.0
     }
 }
 
 /// A tile topology.
 #[derive(Debug, Deserialize)]
 pub struct TileTopology {
+    /// The tiles in the topology.
     tiles: HashMap<TileId, Tile>,
+
+    /// (start tile, max_distance) → reachable set
+    #[serde(skip)]
+    distance_cache: HashMap<(TileId, usize), HashSet<TileId>>,
 }
 
 impl TileTopology {
@@ -37,6 +53,46 @@ impl TileTopology {
     /// Returns the tile with the given id.
     pub fn tile(&self, id: TileId) -> Option<&Tile> {
         self.tiles.get(&id)
+    }
+
+    /// Returns all tiles that are reachable from `start` within `max_distance` steps (inclusive).
+    pub fn tiles_within_distance(
+        &mut self,
+        start: TileId,
+        max_distance: usize,
+    ) -> &HashSet<TileId> {
+        // Query the distance cache first
+        self.distance_cache
+            .entry((start, max_distance))
+            .or_insert_with(|| Self::compute_reachable(&self.tiles, start, max_distance))
+    }
+
+    fn compute_reachable(
+        tiles: &HashMap<TileId, Tile>,
+        start: TileId,
+        max_distance: usize,
+    ) -> HashSet<TileId> {
+        let mut visited = HashSet::new();
+        let mut queue = VecDeque::new();
+
+        visited.insert(start);
+        queue.push_back((start, 0));
+
+        while let Some((current, depth)) = queue.pop_front() {
+            if depth >= max_distance {
+                continue;
+            }
+
+            if let Some(tile) = tiles.get(&current) {
+                for neighbor in tile.neighbors() {
+                    if visited.insert(neighbor) {
+                        queue.push_back((neighbor, depth + 1));
+                    }
+                }
+            }
+        }
+
+        visited
     }
 }
 

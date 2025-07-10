@@ -1,6 +1,7 @@
 use crate::{
     session::GameSession,
     states::{GameState, TileHoverMaterial, TileNormalMaterial, TilePressedMaterial},
+    tile::TileId,
 };
 use bevy::{
     color::palettes::tailwind::*, picking::pointer::PointerInteraction, prelude::*,
@@ -96,6 +97,7 @@ fn on_scene_spawned(
     trigger: Trigger<SceneInstanceReady>,
     meshes: Query<&Mesh3d>,
     children: Query<&Children>,
+    names: Query<&Name>,
     normal_mat: Res<TileNormalMaterial>,
     hover_mat: Res<TileHoverMaterial>,
     pressed_mat: Res<TilePressedMaterial>,
@@ -107,8 +109,16 @@ fn on_scene_spawned(
     // Mesh
     for child in children.iter_descendants(trigger.target()) {
         if meshes.contains(child) {
+            // Parse `TileId` from mesh name
+            let id: TileId = names
+                .get(child)
+                .expect("Unable to get mesh name")
+                .parse()
+                .expect("Unable to parse tile id");
+
             commands
                 .entity(child)
+                .insert(id)
                 .observe(update_material_on::<Pointer<Over>>(hover_mat.0.clone()))
                 .observe(update_material_on::<Pointer<Out>>(normal_mat.0.clone()))
                 .observe(update_material_on::<Pointer<Pressed>>(
