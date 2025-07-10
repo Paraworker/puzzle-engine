@@ -1,15 +1,17 @@
+use crate::{config::BoardName, tile::TileTopology};
 use bevy::{
     asset::Handle, ecs::resource::Resource, pbr::StandardMaterial, scene::Scene,
     state::state::States,
 };
 
+pub mod game_setup;
 pub mod loading;
 pub mod menu;
 pub mod playing;
 pub mod startup;
 
 #[derive(Resource)]
-pub struct ActiveScene(Handle<Scene>);
+pub struct ActiveBoard(BoardName, Handle<Scene>, TileTopology);
 
 #[derive(Resource)]
 pub struct TileNormalMaterial(Handle<StandardMaterial>);
@@ -25,6 +27,7 @@ pub enum GameState {
     #[default]
     Startup,
     Menu,
+    GameSetup,
     Loading,
     Playing,
 }

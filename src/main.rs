@@ -1,6 +1,6 @@
 use crate::states::{
-    GameState, loading::LoadingPlugin, menu::MenuPlugin, playing::PlayingPlugin,
-    startup::StartupPlugin,
+    GameState, game_setup::GameSetupPlugin, loading::LoadingPlugin, menu::MenuPlugin,
+    playing::PlayingPlugin, startup::StartupPlugin,
 };
 use bevy::prelude::*;
 
@@ -28,6 +28,7 @@ fn main() {
         .add_plugins(MeshPickingPlugin)
         .add_plugins(StartupPlugin)
         .add_plugins(MenuPlugin)
+        .add_plugins(GameSetupPlugin)
         .add_plugins(LoadingPlugin)
         .add_plugins(PlayingPlugin)
         .run();

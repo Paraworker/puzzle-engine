@@ -1,22 +1,43 @@
 use crate::utils::load_ron;
-use bevy::ecs::resource::Resource;
+use bevy::ecs::{component::Component, resource::Resource};
 use serde::Deserialize;
 use std::collections::HashMap;
 
 #[derive(Debug, Deserialize, Resource)]
 pub struct Config {
-    boards: HashMap<String, BoardMeta>,
+    boards: HashMap<BoardName, BoardMeta>,
 }
 
 impl Config {
-    const CONFIG_PATH: &str = "assets/config.ron";
+    const CONFIG_PATH: &'static str = "assets/config.ron";
 
     pub fn load() -> anyhow::Result<Self> {
         load_ron(Self::CONFIG_PATH)
     }
 
-    pub fn board_meta(&self, name: &str) -> Option<&BoardMeta> {
+    pub fn board(&self, name: &BoardName) -> Option<&BoardMeta> {
         self.boards.get(name)
+    }
+
+    pub fn boards(&self) -> impl Iterator<Item = (&BoardName, &BoardMeta)> {
+        self.boards.iter()
+    }
+
+    pub fn board_scene_path(name: &BoardName) -> String {
+        format!("boards/{}/scene.glb#Scene0", name.0)
+    }
+
+    pub fn board_topology_path(name: &BoardName) -> String {
+        format!("assets/boards/{}/topology.ron", name.0)
+    }
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Deserialize, Component)]
+pub struct BoardName(String);
+
+impl BoardName {
+    pub fn name(&self) -> &str {
+        &self.0
     }
 }
 

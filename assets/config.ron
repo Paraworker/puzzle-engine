@@ -1,6 +1,6 @@
 Config(
     boards: {
-        "soccer": (
+        BoardName("soccer"): (
             display_name: "Soccer Ball",
             description: "Play on a soccer ball.",
         ),

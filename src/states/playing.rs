@@ -1,5 +1,5 @@
 use crate::states::{
-    ActiveScene, GameState, TileHoverMaterial, TileNormalMaterial, TilePressedMaterial,
+    ActiveBoard, GameState, TileHoverMaterial, TileNormalMaterial, TilePressedMaterial,
 };
 use bevy::{
     color::palettes::tailwind::*, picking::pointer::PointerInteraction, prelude::*,
@@ -13,19 +13,19 @@ pub struct PlayingPlugin;
 
 impl Plugin for PlayingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Playing), setup)
+        app.add_systems(OnEnter(GameState::Playing), on_enter)
             .add_systems(
                 Update,
                 draw_mesh_intersections.run_if(in_state(GameState::Playing)),
             )
-            .add_systems(OnExit(GameState::Playing), cleanup);
+            .add_systems(OnExit(GameState::Playing), on_exit);
     }
 }
 
-fn setup(mut commands: Commands, scene: Res<ActiveScene>) {
+fn on_enter(mut commands: Commands, board: Res<ActiveBoard>) {
     // Scene
     commands
-        .spawn((SceneRoot(scene.0.clone()), PlayingMarker))
+        .spawn((SceneRoot(board.1.clone()), PlayingMarker))
         .observe(on_scene_spawned);
 
     // Light
@@ -49,14 +49,14 @@ fn setup(mut commands: Commands, scene: Res<ActiveScene>) {
     ));
 }
 
-fn cleanup(mut commands: Commands, entities: Query<Entity, With<PlayingMarker>>) {
+fn on_exit(mut commands: Commands, entities: Query<Entity, With<PlayingMarker>>) {
     // Delete entities
     for entity in entities {
         commands.entity(entity).despawn();
     }
 
     // Delete related resources
-    commands.remove_resource::<ActiveScene>();
+    commands.remove_resource::<ActiveBoard>();
 }
 
 /// Returns an observer that updates the entity's material to the one specified.
