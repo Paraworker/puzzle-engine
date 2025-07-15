@@ -10,6 +10,7 @@ const BUTTON_BORDER_HOVERED: Color = Color::srgba(1.0, 1.0, 1.0, 1.0);
 const BUTTON_BORDER_PRESSED: Color = Color::srgba(1.0, 1.0, 1.0, 1.0);
 
 const BG_PATH: &str = "textures/menu_bg.png";
+const LOGO_PATH: &str = "textures/logo.png";
 
 pub struct MenuPlugin;
 
@@ -61,17 +62,28 @@ fn on_enter(mut commands: Commands, asset_server: Res<AssetServer>) {
             Node {
                 width: Val::Percent(100.),
                 height: Val::Percent(100.),
-                align_items: AlignItems::Center,
                 justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
                 ..default()
             },
             MenuMarker,
         ))
         .with_children(|parent| {
-            // button
-            parent.spawn(button("New Game"));
+            // logo and button
+            parent
+                .spawn(Node {
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..default()
+                })
+                .with_children(|parent| {
+                    parent.spawn(logo(asset_server.load(LOGO_PATH)));
+                    parent.spawn(spacer(200.0));
+                    parent.spawn(button("New Game"));
+                });
 
-            // background image
+            // background
             parent.spawn(background(asset_server.load(BG_PATH)));
         });
 }
@@ -79,6 +91,27 @@ fn on_enter(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn on_exit(mut commands: Commands, entities: Query<Entity, With<MenuMarker>>) {
     for entity in entities {
         commands.entity(entity).despawn();
+    }
+}
+
+fn logo(image: Handle<Image>) -> impl Bundle + 'static {
+    (
+        Node {
+            width: Val::Px(500.0),
+            height: Val::Px(250.0),
+            align_items: AlignItems::Center,
+            justify_content: JustifyContent::Center,
+            ..default()
+        },
+        ImageNode { image, ..default() },
+    )
+}
+
+fn spacer(height: f32) -> impl Bundle + 'static {
+    Node {
+        width: Val::Px(0.0),
+        height: Val::Px(height),
+        ..default()
     }
 }
 
