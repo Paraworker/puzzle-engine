@@ -1,8 +1,3 @@
 Config(
-    boards: {
-        BoardName("soccer"): (
-            display_name: "Soccer Ball",
-            description: "Play on a soccer ball.",
-        ),
-    },
+    saved_rules: {},
 )

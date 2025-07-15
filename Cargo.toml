@@ -1,7 +1,8 @@
 [package]
-name = "puzzle"
+name = "crazy-puzzle"
 version = "0.1.0"
 edition = "2024"
+description = "A puzzle game engine"
 
 [dependencies]
 anyhow = "1.0"

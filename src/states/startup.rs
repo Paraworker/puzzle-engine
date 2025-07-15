@@ -1,16 +1,10 @@
-use crate::{
-    config::Config,
-    states::{GameState, TileHoverMaterial, TileNormalMaterial, TilePressedMaterial},
-};
+use crate::{assets::GameAssets, config::Config, states::GameState};
 use bevy::{
     app::{App, Plugin, Startup},
     asset::Assets,
-    color::{
-        Color,
-        palettes::tailwind::{CYAN_300, YELLOW_300},
-    },
     ecs::system::{Commands, ResMut},
     pbr::StandardMaterial,
+    render::mesh::Mesh,
     state::state::NextState,
 };
 
@@ -24,16 +18,15 @@ impl Plugin for StartupPlugin {
 
 fn on_startup(
     mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     // Load config
     commands.insert_resource(Config::load().expect("Unable to load config"));
 
-    // Ass global materials
-    commands.insert_resource(TileNormalMaterial(materials.add(Color::WHITE)));
-    commands.insert_resource(TileHoverMaterial(materials.add(Color::from(CYAN_300))));
-    commands.insert_resource(TilePressedMaterial(materials.add(Color::from(YELLOW_300))));
+    // Load assets
+    commands.insert_resource(GameAssets::new(&mut materials, &mut meshes));
 
     // Switch to the `Menu` state once the startup is complete
     next_state.set(GameState::Menu);

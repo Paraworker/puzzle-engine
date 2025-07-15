@@ -4,10 +4,11 @@ use crate::states::{
 };
 use bevy::prelude::*;
 
+mod assets;
 mod config;
+mod rules;
 mod session;
 mod states;
-mod tile;
 mod utils;
 
 fn new_window_plugin() -> WindowPlugin {

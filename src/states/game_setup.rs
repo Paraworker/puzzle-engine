@@ -1,7 +1,7 @@
 use crate::{
-    config::{BoardMeta, BoardName, Config},
+    rules::{GameRules, board::BoardGeometry},
+    session::GameSession,
     states::GameState,
-    utils::new_session,
 };
 use bevy::prelude::*;
 
@@ -22,15 +22,37 @@ impl Plugin for GameSetupPlugin {
 #[derive(Component)]
 struct GameSetupMarker;
 
-fn on_enter(mut commands: Commands, config: Res<Config>) {
+fn on_enter(mut commands: Commands) {
     // camera
     commands.spawn((Camera2d, GameSetupMarker));
 
-    // UI
-    // FIXME: Only spawn one button for now
-    if let Some((name, meta)) = config.boards().next() {
-        commands.spawn((board_button(name.clone(), meta), GameSetupMarker));
-    }
+    // ui
+    commands
+        .spawn((
+            Node {
+                width: Val::Percent(100.),
+                height: Val::Percent(100.),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            GameSetupMarker,
+        ))
+        .with_children(|parent| {
+            // logo and button
+            parent
+                .spawn(Node {
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    justify_content: JustifyContent::Center,
+                    ..default()
+                })
+                .with_children(|parent| {
+                    parent.spawn(label("Build Your Game", 50.0));
+                    parent.spawn(spacer(200.0));
+                    parent.spawn(button("Ready!"));
+                });
+        });
 }
 
 fn on_exit(mut commands: Commands, entities: Query<Entity, With<GameSetupMarker>>) {
@@ -41,30 +63,24 @@ fn on_exit(mut commands: Commands, entities: Query<Entity, With<GameSetupMarker>
 
 fn update(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     mut next_state: ResMut<NextState<GameState>>,
     mut interaction_query: Query<
-        (
-            &Interaction,
-            &mut BackgroundColor,
-            &mut BorderColor,
-            &BoardName,
-        ),
+        (&Interaction, &mut BackgroundColor, &mut BorderColor),
         (Changed<Interaction>, With<Button>),
     >,
 ) {
-    for (interaction, mut color, mut border_color, board_name) in &mut interaction_query {
+    for (interaction, mut color, mut border_color) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
                 *color = PRESSED_BUTTON.into();
                 border_color.0 = Color::WHITE;
 
-                new_session(
-                    &mut commands,
-                    &asset_server,
-                    &mut next_state,
-                    board_name.clone(),
-                );
+                // TODO: Build rules from ui
+                let rules = GameRules::new(BoardGeometry::with_rows_and_cols(8, 8));
+
+                commands.insert_resource(GameSession::new(rules));
+
+                next_state.set(GameState::Loading);
             }
             Interaction::Hovered => {
                 *color = HOVERED_BUTTON.into();
@@ -78,7 +94,35 @@ fn update(
     }
 }
 
-fn board_button(name: BoardName, meta: &BoardMeta) -> impl Bundle + 'static {
+fn label(text: impl Into<String>, font_size: f32) -> impl Bundle + 'static {
+    (
+        Node {
+            width: Val::Auto,
+            height: Val::Px(100.0),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        children![(
+            Text::new(text),
+            TextFont {
+                font_size,
+                ..default()
+            },
+            TextColor(Color::srgb(0.9, 0.9, 0.9)),
+        )],
+    )
+}
+
+fn spacer(height: f32) -> impl Bundle + 'static {
+    Node {
+        width: Val::Px(0.0),
+        height: Val::Px(height),
+        ..default()
+    }
+}
+
+fn button(text: impl Into<String>) -> impl Bundle + 'static {
     (
         Node {
             width: Val::Percent(100.0),
@@ -90,8 +134,8 @@ fn board_button(name: BoardName, meta: &BoardMeta) -> impl Bundle + 'static {
         children![(
             Button,
             Node {
-                width: Val::Px(360.0),
-                height: Val::Px(48.0),
+                width: Val::Px(200.0),
+                height: Val::Px(80.0),
                 border: UiRect::all(Val::Px(5.0)),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
@@ -101,15 +145,14 @@ fn board_button(name: BoardName, meta: &BoardMeta) -> impl Bundle + 'static {
             BorderRadius::all(Val::Px(12.0)),
             BackgroundColor(NORMAL_BUTTON),
             children![(
-                Text::new(meta.display_name()),
+                Text::new(text),
                 TextFont {
-                    font_size: 22.0,
+                    font_size: 28.0,
                     ..default()
                 },
                 TextColor(Color::srgb(0.9, 0.9, 0.9)),
                 TextShadow::default(),
             )],
-            name.clone(),
         )],
     )
 }

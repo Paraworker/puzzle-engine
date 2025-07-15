@@ -1,4 +1,4 @@
-use crate::{session::GameSession, states::GameState};
+use crate::states::GameState;
 use bevy::prelude::*;
 
 pub struct LoadingPlugin;
@@ -15,15 +15,11 @@ fn on_enter() {
     // no-op
 }
 
-fn update(
-    asset_server: Res<AssetServer>,
-    session: Res<GameSession>,
-    mut next_state: ResMut<NextState<GameState>>,
-) {
-    if asset_server.is_loaded(session.scene().id()) {
-        // Switch to the `Playing` state.
-        next_state.set(GameState::Playing);
-    }
+fn update(mut next_state: ResMut<NextState<GameState>>) {
+    // Nothing to do now
+
+    // Switch to the `Playing` state.
+    next_state.set(GameState::Playing);
 }
 
 fn on_exit() {

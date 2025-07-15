@@ -1,41 +1,21 @@
-use crate::{
-    config::{BoardName, Config},
-    tile::TileTopology,
-};
-use bevy::{
-    asset::{AssetServer, Handle},
-    ecs::resource::Resource,
-    scene::Scene,
-};
+use crate::{rules::GameRules, states::playing::Tile};
+use bevy::ecs::resource::Resource;
 
 #[derive(Debug, Resource)]
 pub struct GameSession {
-    board_name: BoardName,
-    scene: Handle<Scene>,
-    tile_topology: TileTopology,
+    rules: GameRules,
+    focused_tile: Option<Tile>,
 }
 
 impl GameSession {
-    pub fn new(board_name: BoardName, asset_server: &AssetServer) -> anyhow::Result<Self> {
-        let scene_path = Config::board_scene_path(&board_name);
-        let topology_path = Config::board_topology_path(&board_name);
-
-        Ok(Self {
-            board_name,
-            scene: asset_server.load(scene_path),
-            tile_topology: TileTopology::load(topology_path)?,
-        })
+    pub fn new(rules: GameRules) -> Self {
+        Self {
+            rules,
+            focused_tile: None,
+        }
     }
 
-    pub fn board_name(&self) -> &BoardName {
-        &self.board_name
-    }
-
-    pub fn scene(&self) -> &Handle<Scene> {
-        &self.scene
-    }
-
-    pub fn tile_topology(&self) -> &TileTopology {
-        &self.tile_topology
+    pub fn rules(&self) -> &GameRules {
+        &self.rules
     }
 }
