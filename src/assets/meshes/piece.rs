@@ -1,16 +1,10 @@
+use crate::piece::PieceModel;
 use bevy::{
     asset::{Assets, Handle},
     math::primitives::{Cuboid, Cylinder, Sphere},
     platform::collections::HashMap,
     render::mesh::Mesh,
 };
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum PieceModel {
-    Cube,
-    Sphere,
-    Cylinder,
-}
 
 #[derive(Debug)]
 pub struct PieceMeshes {

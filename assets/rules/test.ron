@@ -1,0 +1,38 @@
+(
+    board: (
+        rows: 8,
+        cols: 8,
+    ),
+    pieces: {
+        Cube: (count: Finite(2)),
+        Sphere: (count: Finite(3)),
+        Cylinder: (count: Infinite),
+    },
+    players: [
+        (
+            name: "Alice",
+            color: Black,
+        ),
+        (
+            name: "Bob",
+            color: White,
+        ),
+    ],
+    initial_layout: [
+        (
+            model: Cube,
+            color: Black,
+            pos: (0, 0),
+        ),
+        (
+            model: Sphere,
+            color: White,
+            pos: (0, 1),
+        ),
+        (
+            model: Cylinder,
+            color: Black,
+            pos: (1, 0),
+        ),
+    ],
+)

@@ -1,7 +1,4 @@
-use crate::{
-    rules::{GameRules, board::BoardGeometry},
-    states::{GameState, playing::session::GameSession},
-};
+use crate::{rules::GameRules, states::GameState};
 use bevy::prelude::*;
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
@@ -74,9 +71,8 @@ fn update(
                 *color = PRESSED_BUTTON.into();
                 border_color.0 = Color::WHITE;
 
-                // TODO: Build rules from ui
-                commands.insert_resource(GameRules::new(BoardGeometry::with_rows_and_cols(8, 8)));
-                commands.insert_resource(GameSession::new());
+                // TODO: Build rules from UI
+                commands.insert_resource(GameRules::load("assets/rules/test.ron").unwrap());
 
                 next_state.set(GameState::Loading);
             }

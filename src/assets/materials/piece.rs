@@ -1,15 +1,10 @@
+use crate::piece::PieceColor;
 use bevy::{
     asset::{Assets, Handle},
     color::Color,
     pbr::StandardMaterial,
 };
 use std::collections::HashMap;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum PieceColor {
-    White,
-    Black,
-}
 
 #[derive(Debug)]
 pub struct PieceMaterials {
