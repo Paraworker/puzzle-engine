@@ -7,7 +7,6 @@ use bevy::prelude::*;
 mod assets;
 mod config;
 mod rules;
-mod session;
 mod states;
 mod utils;
 

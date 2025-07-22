@@ -6,8 +6,8 @@ pub mod meshes;
 
 #[derive(Debug, Resource)]
 pub struct GameAssets {
-    materials: GameMaterials,
-    meshes: GameMeshes,
+    pub materials: GameMaterials,
+    pub meshes: GameMeshes,
 }
 
 impl GameAssets {
@@ -16,13 +16,5 @@ impl GameAssets {
             materials: GameMaterials::new(materials),
             meshes: GameMeshes::new(meshes),
         }
-    }
-
-    pub fn materials(&self) -> &GameMaterials {
-        &self.materials
-    }
-
-    pub fn meshes(&self) -> &GameMeshes {
-        &self.meshes
     }
 }

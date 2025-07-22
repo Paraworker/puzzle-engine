@@ -5,7 +5,7 @@ pub mod piece;
 
 #[derive(Debug)]
 pub struct GameMeshes {
-    piece: PieceMeshes,
+    pub piece: PieceMeshes,
 }
 
 impl GameMeshes {
@@ -13,9 +13,5 @@ impl GameMeshes {
         Self {
             piece: PieceMeshes::new(meshes),
         }
-    }
-
-    pub fn piece(&self) -> &PieceMeshes {
-        &self.piece
     }
 }

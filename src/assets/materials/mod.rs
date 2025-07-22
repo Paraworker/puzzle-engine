@@ -6,8 +6,8 @@ pub mod piece;
 
 #[derive(Debug)]
 pub struct GameMaterials {
-    common: CommonMaterials,
-    piece: PieceMaterials,
+    pub common: CommonMaterials,
+    pub piece: PieceMaterials,
 }
 
 impl GameMaterials {
@@ -16,13 +16,5 @@ impl GameMaterials {
             common: CommonMaterials::new(materials),
             piece: PieceMaterials::new(materials),
         }
-    }
-
-    pub fn common(&self) -> &CommonMaterials {
-        &self.common
-    }
-
-    pub fn piece(&self) -> &PieceMaterials {
-        &self.piece
     }
 }

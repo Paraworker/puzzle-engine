@@ -1,7 +1,6 @@
 use crate::{
     rules::{GameRules, board::BoardGeometry},
-    session::GameSession,
-    states::GameState,
+    states::{GameState, playing::session::GameSession},
 };
 use bevy::prelude::*;
 
@@ -76,9 +75,8 @@ fn update(
                 border_color.0 = Color::WHITE;
 
                 // TODO: Build rules from ui
-                let rules = GameRules::new(BoardGeometry::with_rows_and_cols(8, 8));
-
-                commands.insert_resource(GameSession::new(rules));
+                commands.insert_resource(GameRules::new(BoardGeometry::with_rows_and_cols(8, 8)));
+                commands.insert_resource(GameSession::new());
 
                 next_state.set(GameState::Loading);
             }

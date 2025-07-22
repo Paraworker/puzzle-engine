@@ -1,4 +1,5 @@
 use crate::rules::board::BoardGeometry;
+use bevy::ecs::resource::Resource;
 use serde::{Deserialize, Serialize};
 
 pub mod board;
@@ -7,7 +8,7 @@ pub mod direction;
 pub mod distance;
 pub mod piece;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Resource)]
 pub struct GameRules {
     board_geometry: BoardGeometry,
 }
