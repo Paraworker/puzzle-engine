@@ -21,18 +21,18 @@
     initial_layout: [
         (
             model: Cube,
-            color: Black,
+            color: White,
             pos: (0, 0),
         ),
         (
             model: Sphere,
-            color: White,
-            pos: (0, 1),
+            color: Black,
+            pos: (1, 1),
         ),
         (
             model: Cylinder,
-            color: Black,
-            pos: (1, 0),
+            color: White,
+            pos: (2, 2),
         ),
     ],
 )

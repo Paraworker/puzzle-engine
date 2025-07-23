@@ -186,14 +186,6 @@ fn spawn_board(
     assets: &GameAssets,
     board: &BoardRuleSet,
 ) {
-    fn tile_transform(pos: Pos, board: &BoardRuleSet) -> Transform {
-        Transform::from_translation(Vec3::new(
-            pos.col() as f32 * BoardRuleSet::tile_size() - board.half_width_col(),
-            -BoardRuleSet::tile_height() / 2.0,
-            pos.row() as f32 * BoardRuleSet::tile_size() - board.half_width_row(),
-        ))
-    }
-
     fn on_tile_hovered(
         trigger: Trigger<Pointer<Over>>,
         mut dragged_query: Query<(&mut Transform, &mut Piece)>,
@@ -255,7 +247,11 @@ fn spawn_board(
                         BoardRuleSet::tile_size(),
                     ))),
                     MeshMaterial3d(color.clone()),
-                    tile_transform(pos, board),
+                    Transform::from_translation(pos_to_world(
+                        pos,
+                        board,
+                        -BoardRuleSet::tile_height() / 2.0,
+                    )),
                     GlobalTransform::default(),
                     Tile::new(pos, color),
                     PlayingMarker,
@@ -266,13 +262,9 @@ fn spawn_board(
     }
 }
 
-/// Calculates the world translation for placing a piece to a specific tile position.
+/// Calculates the world translation for placing a piece to a specific position.
 fn place_piece(to: Pos, board: &BoardRuleSet) -> Vec3 {
-    Vec3::new(
-        to.col() as f32 * BoardRuleSet::tile_size() - board.half_width_col(),
-        BoardRuleSet::tile_size() / 4.0,
-        to.row() as f32 * BoardRuleSet::tile_size() - board.half_width_row(),
-    )
+    pos_to_world(to, board, BoardRuleSet::tile_size() / 4.0)
 }
 
 /// Spawns a piece on the board at the specified position with the given model and color.
@@ -338,4 +330,20 @@ fn spawn_piece(commands: &mut Commands, assets: &GameAssets, board: &BoardRuleSe
         .observe(on_piece_hovered)
         .observe(on_piece_out)
         .observe(on_piece_pressed);
+}
+
+/// Converts a logical board position to world space translation.
+///
+/// (0, 0) is the bottom-left tile on the board.
+/// `y` is the vertical translation and should be provided.
+fn pos_to_world(pos: Pos, board: &BoardRuleSet, y: f32) -> Vec3 {
+    const fn half_len(cols_or_rows: usize) -> f32 {
+        (cols_or_rows as f32 - 1.0) * BoardRuleSet::tile_size() / 2.0
+    }
+
+    Vec3::new(
+        pos.col() as f32 * BoardRuleSet::tile_size() - half_len(board.cols()),
+        y,
+        half_len(board.rows()) - pos.row() as f32 * BoardRuleSet::tile_size(),
+    )
 }

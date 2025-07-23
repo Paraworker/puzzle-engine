@@ -26,14 +26,4 @@ impl BoardRuleSet {
     pub const fn tile_height() -> f32 {
         0.2
     }
-
-    /// Returns half width of the column in the board.
-    pub const fn half_width_col(&self) -> f32 {
-        (self.cols as f32 - 1.0) * Self::tile_size() / 2.0
-    }
-
-    /// Returns half width of the row in the board.
-    pub const fn half_width_row(&self) -> f32 {
-        (self.rows as f32 - 1.0) * Self::tile_size() / 2.0
-    }
 }
