@@ -1,9 +1,11 @@
+use std::ops::DerefMut;
+
 use crate::{
     assets::GameAssets,
-    piece::Piece,
+    piece::{Dragged, PieceColor, PieceInfo, PieceModel, Placed},
     position::Pos,
     rules::{GameRules, board::BoardRuleSet},
-    session::{DragState, GameSession, PlayState},
+    session::{GameSession, PlayState},
     states::GameState,
     tile::Tile,
 };
@@ -78,11 +80,16 @@ fn on_enter(
     assets: Res<GameAssets>,
     rules: Res<GameRules>,
 ) {
-    // Create the game session
-    commands.insert_resource(GameSession::new());
+    let mut session = GameSession::new();
 
     // Board
-    spawn_board(&mut commands, &mut meshes, &assets, &rules.board);
+    spawn_board(
+        &mut commands,
+        &mut meshes,
+        &mut session,
+        &assets,
+        &rules.board,
+    );
 
     // Light
     commands.spawn((
@@ -103,8 +110,18 @@ fn on_enter(
 
     // Initial pieces
     for piece in rules.initial_layout.layout() {
-        spawn_piece(&mut commands, &assets, &rules.board, piece.clone());
+        spawn_piece(
+            &mut commands,
+            &assets,
+            &rules.board,
+            piece.model(),
+            piece.color(),
+            piece.pos(),
+        );
     }
+
+    // Insert the game session to resource
+    commands.insert_resource(session);
 }
 
 fn on_exit(mut commands: Commands, entities: Query<Entity, With<PlayingMarker>>) {
@@ -157,20 +174,38 @@ fn orbit(
 /// A system that finishes dragging a piece when the primary button is released.
 fn finish_dragging(
     mut released: EventReader<Pointer<Released>>,
-    mut query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Piece)>,
+    mut commands: Commands,
+    mut piece_query: Query<
+        (&mut MeshMaterial3d<StandardMaterial>, &PieceInfo, &Dragged),
+        Without<Tile>,
+    >,
+    mut tile_query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Tile)>,
     mut session: ResMut<GameSession>,
     assets: Res<GameAssets>,
 ) {
-    if let PlayState::Dragging(drag) = &mut session.state {
+    if let PlayState::Dragging(entity) = session.state {
         for event in released.read() {
             if event.button == PointerButton::Primary {
-                // Reset the dragged piece's material to its original color
-                if let Ok((mut material, piece)) = query.get_mut(drag.piece()) {
-                    material.0 = assets.materials.piece.get(piece.color()).clone();
-                }
+                if let Ok((mut piece_material, piece_info, dragged)) = piece_query.get_mut(entity) {
+                    // Reset the dragged piece's material to its original color
+                    piece_material.0 = assets.materials.piece.get(piece_info.color()).clone();
 
-                // Finish dragging state
-                session.state = PlayState::Navigating;
+                    // Restore the color of initial tile
+                    if let Ok((mut tile_material, tile)) =
+                        tile_query.get_mut(session.tiles.get(dragged.initial_pos()).unwrap())
+                    {
+                        tile_material.0 = tile.color().clone();
+                    }
+
+                    // Update component
+                    commands
+                        .entity(entity)
+                        .insert(Placed::new(dragged.dragged_pos()))
+                        .remove::<Dragged>();
+
+                    // Finish dragging state
+                    session.state = PlayState::Navigating;
+                }
 
                 // We only handle the first release event
                 break;
@@ -183,46 +218,26 @@ fn finish_dragging(
 fn spawn_board(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
+    session: &mut GameSession,
     assets: &GameAssets,
     board: &BoardRuleSet,
 ) {
     fn on_tile_hovered(
         trigger: Trigger<Pointer<Over>>,
-        mut dragged_query: Query<(&mut Transform, &mut Piece)>,
+        mut dragged_query: Query<(&mut Transform, &mut Dragged)>,
         mut tile_query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Tile)>,
-        assets: Res<GameAssets>,
         rules: Res<GameRules>,
         session: Res<GameSession>,
     ) {
-        match &session.state {
-            PlayState::Navigating => {
-                if let Ok((mut material, _)) = tile_query.get_mut(trigger.target()) {
-                    material.0 = assets.materials.common.tile_hover.clone();
-                }
-            }
-            PlayState::Dragging(drag) => {
-                if let Ok((_, tile)) = tile_query.get_mut(trigger.target()) {
-                    if let Ok((mut transform, mut piece)) = dragged_query.get_mut(drag.piece()) {
-                        // Update translation
-                        transform.translation = place_piece(tile.pos(), &rules.board);
+        if let PlayState::Dragging(entity) = session.state {
+            if let Ok((_, tile)) = tile_query.get_mut(trigger.target()) {
+                if let Ok((mut transform, mut dragged)) = dragged_query.get_mut(entity) {
+                    // Update translation
+                    transform.translation = place_piece(tile.pos(), &rules.board);
 
-                        // Update position
-                        piece.set_pos(tile.pos());
-                    }
+                    // Update dragged position
+                    dragged.update_pos(tile.pos());
                 }
-            }
-        }
-    }
-
-    fn on_tile_out(
-        trigger: Trigger<Pointer<Out>>,
-        mut query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Tile)>,
-        session: Res<GameSession>,
-    ) {
-        if let PlayState::Navigating = session.state {
-            if let Ok((mut material, tile)) = query.get_mut(trigger.target()) {
-                // Restore the tile's original color
-                material.0 = tile.color();
             }
         }
     }
@@ -239,7 +254,7 @@ fn spawn_board(
                 assets.materials.common.tile_black.clone()
             };
 
-            commands
+            let entity = commands
                 .spawn((
                     Mesh3d(meshes.add(Cuboid::new(
                         BoardRuleSet::tile_size(),
@@ -257,7 +272,10 @@ fn spawn_board(
                     PlayingMarker,
                 ))
                 .observe(on_tile_hovered)
-                .observe(on_tile_out);
+                .id();
+
+            // Add to tile index
+            session.tiles.add(pos, entity);
         }
     }
 }
@@ -268,37 +286,19 @@ fn place_piece(to: Pos, board: &BoardRuleSet) -> Vec3 {
 }
 
 /// Spawns a piece on the board at the specified position with the given model and color.
-fn spawn_piece(commands: &mut Commands, assets: &GameAssets, board: &BoardRuleSet, piece: Piece) {
-    fn on_piece_hovered(
-        trigger: Trigger<Pointer<Over>>,
-        mut query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Piece)>,
-        session: Res<GameSession>,
-        assets: Res<GameAssets>,
-    ) {
-        if let PlayState::Navigating = session.state {
-            if let Ok((mut material, _)) = query.get_mut(trigger.target()) {
-                material.0 = assets.materials.common.piece_hover.clone();
-            }
-        }
-    }
-
-    fn on_piece_out(
-        trigger: Trigger<Pointer<Out>>,
-        mut query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Piece)>,
-        session: Res<GameSession>,
-        assets: Res<GameAssets>,
-    ) {
-        if let PlayState::Navigating = session.state {
-            if let Ok((mut material, piece)) = query.get_mut(trigger.target()) {
-                // Restore the piece's original color
-                material.0 = assets.materials.piece.get(piece.color()).clone();
-            }
-        }
-    }
-
+fn spawn_piece(
+    commands: &mut Commands,
+    assets: &GameAssets,
+    board: &BoardRuleSet,
+    model: PieceModel,
+    color: PieceColor,
+    pos: Pos,
+) {
     fn on_piece_pressed(
         trigger: Trigger<Pointer<Pressed>>,
-        mut query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Piece)>,
+        mut commands: Commands,
+        mut piece_query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Placed), Without<Tile>>,
+        mut tile_query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Tile)>,
         mut session: ResMut<GameSession>,
         assets: Res<GameAssets>,
     ) {
@@ -307,28 +307,41 @@ fn spawn_piece(commands: &mut Commands, assets: &GameAssets, board: &BoardRuleSe
         }
 
         if let PlayState::Navigating = session.state {
-            if let Ok((mut material, _)) = query.get_mut(trigger.target()) {
-                material.0 = assets.materials.common.piece_dragged.clone();
+            if let Ok((mut piece_material, placed)) = piece_query.get_mut(trigger.target()) {
+                // Change the piece material to indicate dragging
+                piece_material.0 = assets.materials.common.piece_dragged.clone();
+
+                // Highlight the initial position tile
+                if let Ok((mut tile_material, _)) =
+                    tile_query.get_mut(session.tiles.get(placed.pos()).unwrap())
+                {
+                    tile_material.0 = assets.materials.common.tile_initial_hint.clone();
+                }
+
+                // Update component
+                commands
+                    .entity(trigger.target())
+                    .insert(Dragged::new(placed.pos()))
+                    .remove::<Placed>();
 
                 // Start dragging state
-                session.state = PlayState::Dragging(DragState::new(trigger.target()));
+                session.state = PlayState::Dragging(trigger.target());
             }
         }
     }
 
     commands
         .spawn((
-            Mesh3d(assets.meshes.piece.get(piece.model()).clone()),
-            MeshMaterial3d(assets.materials.piece.get(piece.color()).clone()),
+            Mesh3d(assets.meshes.piece.get(model).clone()),
+            MeshMaterial3d(assets.materials.piece.get(color).clone()),
             Transform {
-                translation: place_piece(piece.pos(), board),
+                translation: place_piece(pos, board),
                 scale: Vec3::splat(BoardRuleSet::tile_size() * 0.5),
                 ..default()
             },
-            piece,
+            PieceInfo::new(model, color),
+            Placed::new(pos),
         ))
-        .observe(on_piece_hovered)
-        .observe(on_piece_out)
         .observe(on_piece_pressed);
 }
 

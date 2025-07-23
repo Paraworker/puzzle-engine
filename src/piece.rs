@@ -15,17 +15,16 @@ pub enum PieceColor {
     Black,
 }
 
-#[derive(Debug, Clone, Component, Serialize, Deserialize)]
-pub struct Piece {
+#[derive(Debug, Clone, Component)]
+pub struct PieceInfo {
     model: PieceModel,
     color: PieceColor,
-    pos: Pos,
 }
 
-impl Piece {
-    /// Creates a new piece.
-    pub fn new(model: PieceModel, color: PieceColor, pos: Pos) -> Self {
-        Self { model, color, pos }
+impl PieceInfo {
+    /// Creates a new piece info.
+    pub fn new(model: PieceModel, color: PieceColor) -> Self {
+        Self { model, color }
     }
 
     /// Returns the model of the piece.
@@ -37,14 +36,62 @@ impl Piece {
     pub fn color(&self) -> PieceColor {
         self.color
     }
+}
 
-    /// Returns the position of the piece on the board.
+#[derive(Debug, Clone, Component)]
+pub struct Placed {
+    pos: Pos,
+}
+
+impl Placed {
+    /// Creates a new placed piece.
+    pub fn new(pos: Pos) -> Self {
+        Self { pos }
+    }
+
+    /// Returns the position of the placed piece.
     pub fn pos(&self) -> Pos {
         self.pos
     }
 
-    /// Sets the position of the piece on the board.
+    /// Sets the position of the placed piece.
     pub fn set_pos(&mut self, pos: Pos) {
         self.pos = pos;
+    }
+}
+
+#[derive(Debug, Clone, Component)]
+pub struct Dragged {
+    initial: Pos,
+    dragged: Pos,
+}
+
+impl Dragged {
+    /// Creates a new dragged piece.
+    pub fn new(initial: Pos) -> Self {
+        Self {
+            initial,
+            dragged: initial,
+        }
+    }
+
+    /// Checks if the piece has not been moved from its initial position.
+    pub fn unmoved(&self) -> bool {
+        self.initial == self.dragged
+    }
+
+    /// Returns the initial position.
+    pub fn initial_pos(&self) -> Pos {
+        self.initial
+    }
+
+    /// Returns the dragged position.
+    pub fn dragged_pos(&self) -> Pos {
+        self.dragged
+    }
+
+    /// Updates the dragged position.
+    pub fn update_pos(&mut self, pos: Pos) {
+        self.dragged = pos;
     }
 }
