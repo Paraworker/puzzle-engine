@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 pub mod board;
-pub mod condition;
+pub mod expr;
 pub mod initial_layout;
 pub mod piece;
 pub mod player;

@@ -9,3 +9,4 @@ anyhow = "1.0"
 bevy = "0.16"
 ron = "0.10"
 serde = { version = "1.0", features = ["derive"] }
+thiserror = "2.0"
