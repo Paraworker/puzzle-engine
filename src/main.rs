@@ -3,6 +3,7 @@ use crate::states::{
     playing::PlayingPlugin, startup::StartupPlugin,
 };
 use bevy::prelude::*;
+use thiserror::Error;
 
 mod assets;
 mod config;
@@ -13,6 +14,12 @@ mod session;
 mod states;
 mod tile;
 mod utils;
+
+#[derive(Debug, Error)]
+pub enum GameError {
+    #[error("expression evaluation error")]
+    ExprEval,
+}
 
 fn new_window_plugin() -> WindowPlugin {
     const WINDOW_TITLE: &str = "Crazy Puzzle";

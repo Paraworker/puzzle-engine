@@ -4,9 +4,36 @@
         cols: 8,
     ),
     pieces: {
-        Cube: (count: Finite(2)),
-        Sphere: (count: Finite(3)),
-        Cylinder: (count: Infinite),
+        Cube: (
+            count: Finite(2),
+            placement: Or(
+                Equal(TargetRow, SourceRow),
+                Equal(TargetCol, SourceCol),
+            ),
+        ),
+        Sphere: (
+            count: Finite(3),
+            placement: True,
+        ),
+        Cylinder: (
+            count: Infinite,
+            placement: Or(
+                And(
+                    Or(
+                        Equal(Sub(TargetRow, SourceRow), Const(1)),
+                        Equal(Sub(TargetRow, SourceRow), Const(-1)),
+                    ),
+                    Equal(TargetCol, SourceCol),
+                ),
+                And(
+                    Or(
+                        Equal(Sub(TargetCol, SourceCol), Const(1)),
+                        Equal(Sub(TargetCol, SourceCol), Const(-1)),
+                    ),
+                    Equal(TargetRow, SourceRow),
+                ),
+            ),
+        ),
     },
     players: [
         (

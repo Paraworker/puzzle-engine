@@ -1,11 +1,9 @@
-use std::ops::DerefMut;
-
 use crate::{
     assets::GameAssets,
-    piece::{Dragged, PieceColor, PieceInfo, PieceModel, Placed},
+    piece::{Dragged, PieceKind, Placed},
     position::Pos,
     rules::{GameRules, board::BoardRuleSet},
-    session::{GameSession, PlayState},
+    session::{GameSession, state::SessionState},
     states::GameState,
     tile::Tile,
 };
@@ -114,8 +112,7 @@ fn on_enter(
             &mut commands,
             &assets,
             &rules.board,
-            piece.model(),
-            piece.color(),
+            PieceKind::new(piece.model(), piece.color()),
             piece.pos(),
         );
     }
@@ -141,7 +138,7 @@ fn zoom(
     mut query: Query<(&mut Transform, &mut PlayingCamera)>,
     session: Res<GameSession>,
 ) {
-    if let PlayState::Navigating = session.state {
+    if let SessionState::Navigating = session.state {
         for ev in scroll_evr.read() {
             for (mut transform, mut camera) in &mut query {
                 camera.zoom(ev.y);
@@ -159,7 +156,7 @@ fn orbit(
     mut camera_query: Query<(&mut Transform, &mut PlayingCamera)>,
     session: Res<GameSession>,
 ) {
-    if let PlayState::Navigating = session.state {
+    if let SessionState::Navigating = session.state {
         for drag in drag_events.read() {
             for (mut transform, mut cam) in camera_query.iter_mut() {
                 cam.drag(drag.delta.x, drag.delta.y);
@@ -175,36 +172,42 @@ fn orbit(
 fn finish_dragging(
     mut released: EventReader<Pointer<Released>>,
     mut commands: Commands,
-    mut piece_query: Query<
-        (&mut MeshMaterial3d<StandardMaterial>, &PieceInfo, &Dragged),
-        Without<Tile>,
-    >,
+    mut piece_query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Dragged), Without<Tile>>,
     mut tile_query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Tile)>,
     mut session: ResMut<GameSession>,
     assets: Res<GameAssets>,
 ) {
-    if let PlayState::Dragging(entity) = session.state {
+    if let SessionState::Dragging(entity) = session.state {
         for event in released.read() {
             if event.button == PointerButton::Primary {
-                if let Ok((mut piece_material, piece_info, dragged)) = piece_query.get_mut(entity) {
+                if let Ok((mut piece_material, dragged)) = piece_query.get_mut(entity) {
                     // Reset the dragged piece's material to its original color
-                    piece_material.0 = assets.materials.piece.get(piece_info.color()).clone();
+                    piece_material.0 = assets.materials.piece.get(dragged.kind().color()).clone();
 
-                    // Restore the color of start tile
+                    // Restore the color of initial tile
                     if let Ok((mut tile_material, tile)) =
-                        tile_query.get_mut(session.tiles.get(dragged.start_pos()).unwrap())
+                        tile_query.get_mut(session.tiles.get(dragged.initial_pos()).unwrap())
                     {
                         tile_material.0 = tile.color().clone();
+                    }
+
+                    // Restore the color of placeable tiles
+                    for pos in dragged.placeable_tiles() {
+                        if let Ok((mut tile_material, tile)) =
+                            tile_query.get_mut(session.tiles.get(pos).unwrap())
+                        {
+                            tile_material.0 = tile.color().clone();
+                        }
                     }
 
                     // Update component
                     commands
                         .entity(entity)
-                        .insert(Placed::new(dragged.current_pos()))
+                        .insert(Placed::new(dragged.kind(), dragged.current_pos()))
                         .remove::<Dragged>();
 
                     // Finish dragging state
-                    session.state = PlayState::Navigating;
+                    session.state = SessionState::Navigating;
                 }
 
                 // We only handle the first release event
@@ -225,20 +228,26 @@ fn spawn_board(
     fn on_tile_hovered(
         trigger: Trigger<Pointer<Over>>,
         mut dragged_query: Query<(&mut Transform, &mut Dragged)>,
-        mut tile_query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Tile)>,
+        mut tile_query: Query<&Tile>,
         rules: Res<GameRules>,
         session: Res<GameSession>,
     ) {
-        if let PlayState::Dragging(entity) = session.state {
-            if let Ok((_, tile)) = tile_query.get_mut(trigger.target()) {
-                if let Ok((mut transform, mut dragged)) = dragged_query.get_mut(entity) {
-                    // Update translation
-                    transform.translation = place_piece(tile.pos(), &rules.board);
+        if let SessionState::Dragging(entity) = session.state {
+            let Ok(tile) = tile_query.get_mut(trigger.target()) else {
+                return;
+            };
 
-                    // Update dragged position
-                    dragged.update_pos(tile.pos());
-                }
+            let Ok((mut transform, mut dragged)) = dragged_query.get_mut(entity) else {
+                return;
+            };
+
+            // Attempt to place the piece
+            if !dragged.try_place_at(tile.pos()) {
+                return;
             }
+
+            // Update translation
+            transform.translation = place_piece(tile.pos(), &rules.board);
         }
     }
 
@@ -290,8 +299,7 @@ fn spawn_piece(
     commands: &mut Commands,
     assets: &GameAssets,
     board: &BoardRuleSet,
-    model: PieceModel,
-    color: PieceColor,
+    kind: PieceKind,
     pos: Pos,
 ) {
     fn on_piece_pressed(
@@ -300,47 +308,65 @@ fn spawn_piece(
         mut piece_query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Placed), Without<Tile>>,
         mut tile_query: Query<(&mut MeshMaterial3d<StandardMaterial>, &Tile)>,
         mut session: ResMut<GameSession>,
+        rules: Res<GameRules>,
         assets: Res<GameAssets>,
     ) {
         if trigger.button != PointerButton::Primary {
             return;
         }
 
-        if let PlayState::Navigating = session.state {
+        if let SessionState::Navigating = session.state {
             if let Ok((mut piece_material, placed)) = piece_query.get_mut(trigger.target()) {
-                // Change the piece material to indicate dragging
-                piece_material.0 = assets.materials.common.piece_dragged.clone();
+                let dragged = Dragged::new(
+                    placed.kind(),
+                    placed.pos(),
+                    rules.pieces.get(placed.kind().model()).unwrap().placement(),
+                    tile_query.iter().map(|(_, tile)| tile),
+                )
+                .unwrap();
 
-                // Highlight the tile where the drag started
+                // Highlight drag initial tile
                 if let Ok((mut tile_material, _)) =
                     tile_query.get_mut(session.tiles.get(placed.pos()).unwrap())
                 {
-                    tile_material.0 = assets.materials.common.tile_drag_start.clone();
+                    tile_material.0 = assets.materials.common.tile_drag_initial.clone();
                 }
+
+                // Highlight placeable tiles
+                for pos in dragged.placeable_tiles() {
+                    if let Ok((mut tile_material, _)) =
+                        tile_query.get_mut(session.tiles.get(pos).unwrap())
+                    {
+                        // Highlight placeable tile
+                        tile_material.0 = assets.materials.common.tile_placeable.clone();
+                    }
+                }
+
+                // Change the piece material to indicate dragging
+                piece_material.0 = assets.materials.common.piece_dragged.clone();
 
                 // Update component
                 commands
                     .entity(trigger.target())
-                    .insert(Dragged::new(placed.pos()))
+                    .insert(dragged)
                     .remove::<Placed>();
 
                 // Start dragging state
-                session.state = PlayState::Dragging(trigger.target());
+                session.state = SessionState::Dragging(trigger.target());
             }
         }
     }
 
     commands
         .spawn((
-            Mesh3d(assets.meshes.piece.get(model).clone()),
-            MeshMaterial3d(assets.materials.piece.get(color).clone()),
+            Mesh3d(assets.meshes.piece.get(kind.model()).clone()),
+            MeshMaterial3d(assets.materials.piece.get(kind.color()).clone()),
             Transform {
                 translation: place_piece(pos, board),
                 scale: Vec3::splat(BoardRuleSet::tile_size() * 0.5),
                 ..default()
             },
-            PieceInfo::new(model, color),
-            Placed::new(pos),
+            Placed::new(kind, pos),
         ))
         .observe(on_piece_pressed);
 }
@@ -350,7 +376,7 @@ fn spawn_piece(
 /// (0, 0) is the bottom-left tile on the board.
 /// `y` is the vertical translation and should be provided.
 fn pos_to_world(pos: Pos, board: &BoardRuleSet, y: f32) -> Vec3 {
-    const fn half_len(cols_or_rows: usize) -> f32 {
+    const fn half_len(cols_or_rows: i64) -> f32 {
         (cols_or_rows as f32 - 1.0) * BoardRuleSet::tile_size() / 2.0
     }
 

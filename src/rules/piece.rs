@@ -1,4 +1,4 @@
-use crate::piece::PieceModel;
+use crate::{piece::PieceModel, rules::expr::boolean::BoolExpr};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -11,17 +11,18 @@ pub enum Count {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PieceRules {
     count: Count,
+    placement: BoolExpr,
 }
 
 impl PieceRules {
-    /// Creates a new piece rules.
-    pub fn new(count: Count) -> Self {
-        Self { count }
-    }
-
     /// Returns the count of pieces.
     pub fn count(&self) -> &Count {
         &self.count
+    }
+
+    /// Returns the boolean expression used to determine valid placement tiles
+    pub fn placement(&self) -> &BoolExpr {
+        &self.placement
     }
 }
 

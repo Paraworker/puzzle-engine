@@ -1,68 +1,49 @@
-use crate::rules::expr::ExprError;
+use crate::{GameError, rules::expr::ExprContext};
+use serde::{Deserialize, Serialize};
 
 /// Arithmetic expression.
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum ArithExpr {
-    Const(i64),
+    /// Operator
     Add(Box<ArithExpr>, Box<ArithExpr>),
     Sub(Box<ArithExpr>, Box<ArithExpr>),
     Mul(Box<ArithExpr>, Box<ArithExpr>),
     Div(Box<ArithExpr>, Box<ArithExpr>),
+
+    /// Const number
+    Const(i64),
+
+    /// Variables
+    SourceCol,
+    SourceRow,
+    TargetCol,
+    TargetRow,
 }
 
 impl ArithExpr {
     /// Evaluates the arithmetic expression.
-    pub fn evaluate(&self) -> Result<i64, ExprError> {
+    pub fn evaluate(&self, ctx: &ExprContext) -> Result<i64, GameError> {
         match self {
+            ArithExpr::Add(lhs, rhs) => Ok(lhs.evaluate(ctx)? + rhs.evaluate(ctx)?),
+            ArithExpr::Sub(lhs, rhs) => Ok(lhs.evaluate(ctx)? - rhs.evaluate(ctx)?),
+            ArithExpr::Mul(lhs, rhs) => Ok(lhs.evaluate(ctx)? * rhs.evaluate(ctx)?),
+            ArithExpr::Div(lhs, rhs) => Self::div(lhs, rhs, ctx),
             ArithExpr::Const(n) => Ok(*n),
-            ArithExpr::Add(lhs, rhs) => Ok(lhs.evaluate()? + rhs.evaluate()?),
-            ArithExpr::Sub(lhs, rhs) => Ok(lhs.evaluate()? - rhs.evaluate()?),
-            ArithExpr::Mul(lhs, rhs) => Ok(lhs.evaluate()? * rhs.evaluate()?),
-            ArithExpr::Div(lhs, rhs) => {
-                let num = lhs.evaluate()?;
-                let denom = rhs.evaluate()?;
-
-                if denom == 0 {
-                    Err(ExprError::DivisionByZero)
-                } else {
-                    Ok(num / denom)
-                }
-            }
+            ArithExpr::SourceCol => Ok(ctx.source.col()),
+            ArithExpr::SourceRow => Ok(ctx.source.row()),
+            ArithExpr::TargetCol => Ok(ctx.target.col()),
+            ArithExpr::TargetRow => Ok(ctx.target.row()),
         }
     }
-}
 
-/// Arithmetic comparison operator.
-#[derive(Debug, Clone, Copy)]
-pub enum ArithCmpOp {
-    Equal,
-    NotEqual,
-    LessThan,
-    LessThanOrEqual,
-    GreaterThan,
-    GreaterThanOrEqual,
-}
+    fn div(lhs: &ArithExpr, rhs: &ArithExpr, ctx: &ExprContext) -> Result<i64, GameError> {
+        let num = lhs.evaluate(ctx)?;
+        let denom = rhs.evaluate(ctx)?;
 
-#[derive(Debug)]
-pub struct ArithCmpExpr {
-    lhs: ArithExpr,
-    cmp: ArithCmpOp,
-    rhs: ArithExpr,
-}
-
-impl ArithCmpExpr {
-    /// Evaluates the arithmetic comparison expression.
-    pub fn evaluate(&self) -> Result<bool, ExprError> {
-        let lhs = self.lhs.evaluate()?;
-        let rhs = self.rhs.evaluate()?;
-
-        Ok(match self.cmp {
-            ArithCmpOp::Equal => lhs == rhs,
-            ArithCmpOp::NotEqual => lhs != rhs,
-            ArithCmpOp::LessThan => lhs < rhs,
-            ArithCmpOp::LessThanOrEqual => lhs <= rhs,
-            ArithCmpOp::GreaterThan => lhs > rhs,
-            ArithCmpOp::GreaterThanOrEqual => lhs >= rhs,
-        })
+        if denom == 0 {
+            Err(GameError::ExprEval)
+        } else {
+            Ok(num / denom)
+        }
     }
 }

@@ -2,18 +2,18 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BoardRuleSet {
-    rows: usize,
-    cols: usize,
+    rows: i64,
+    cols: i64,
 }
 
 impl BoardRuleSet {
     /// Returns the number of rows in the board.
-    pub const fn rows(&self) -> usize {
+    pub const fn rows(&self) -> i64 {
         self.rows
     }
 
     /// Returns the number of columns in the board.
-    pub const fn cols(&self) -> usize {
+    pub const fn cols(&self) -> i64 {
         self.cols
     }
 
