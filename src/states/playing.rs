@@ -190,9 +190,9 @@ fn finish_dragging(
                     // Reset the dragged piece's material to its original color
                     piece_material.0 = assets.materials.piece.get(piece_info.color()).clone();
 
-                    // Restore the color of initial tile
+                    // Restore the color of start tile
                     if let Ok((mut tile_material, tile)) =
-                        tile_query.get_mut(session.tiles.get(dragged.initial_pos()).unwrap())
+                        tile_query.get_mut(session.tiles.get(dragged.start_pos()).unwrap())
                     {
                         tile_material.0 = tile.color().clone();
                     }
@@ -200,7 +200,7 @@ fn finish_dragging(
                     // Update component
                     commands
                         .entity(entity)
-                        .insert(Placed::new(dragged.dragged_pos()))
+                        .insert(Placed::new(dragged.current_pos()))
                         .remove::<Dragged>();
 
                     // Finish dragging state
@@ -311,11 +311,11 @@ fn spawn_piece(
                 // Change the piece material to indicate dragging
                 piece_material.0 = assets.materials.common.piece_dragged.clone();
 
-                // Highlight the initial position tile
+                // Highlight the tile where the drag started
                 if let Ok((mut tile_material, _)) =
                     tile_query.get_mut(session.tiles.get(placed.pos()).unwrap())
                 {
-                    tile_material.0 = assets.materials.common.tile_initial_hint.clone();
+                    tile_material.0 = assets.materials.common.tile_drag_start.clone();
                 }
 
                 // Update component

@@ -22,7 +22,7 @@ pub struct PieceInfo {
 }
 
 impl PieceInfo {
-    /// Creates a new piece info.
+    /// Creates new piece info.
     pub fn new(model: PieceModel, color: PieceColor) -> Self {
         Self { model, color }
     }
@@ -62,36 +62,36 @@ impl Placed {
 
 #[derive(Debug, Clone, Component)]
 pub struct Dragged {
-    initial: Pos,
-    dragged: Pos,
+    start: Pos,
+    current: Pos,
 }
 
 impl Dragged {
     /// Creates a new dragged piece.
-    pub fn new(initial: Pos) -> Self {
+    pub fn new(start: Pos) -> Self {
         Self {
-            initial,
-            dragged: initial,
+            start,
+            current: start,
         }
     }
 
     /// Checks if the piece has not been moved from its initial position.
     pub fn unmoved(&self) -> bool {
-        self.initial == self.dragged
+        self.start == self.current
     }
 
     /// Returns the initial position.
-    pub fn initial_pos(&self) -> Pos {
-        self.initial
+    pub fn start_pos(&self) -> Pos {
+        self.start
     }
 
-    /// Returns the dragged position.
-    pub fn dragged_pos(&self) -> Pos {
-        self.dragged
+    /// Returns the current position.
+    pub fn current_pos(&self) -> Pos {
+        self.current
     }
 
-    /// Updates the dragged position.
+    /// Updates the current dragged position.
     pub fn update_pos(&mut self, pos: Pos) {
-        self.dragged = pos;
+        self.current = pos;
     }
 }

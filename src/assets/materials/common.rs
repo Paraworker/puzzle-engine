@@ -11,7 +11,7 @@ use bevy::{
 pub struct CommonMaterials {
     pub tile_black: Handle<StandardMaterial>,
     pub tile_white: Handle<StandardMaterial>,
-    pub tile_initial_hint: Handle<StandardMaterial>,
+    pub tile_drag_start: Handle<StandardMaterial>,
     pub piece_dragged: Handle<StandardMaterial>,
 }
 
@@ -20,7 +20,7 @@ impl CommonMaterials {
         CommonMaterials {
             tile_black: materials.add(Color::srgb(0.2, 0.2, 0.2)),
             tile_white: materials.add(Color::srgb(0.8, 0.8, 0.8)),
-            tile_initial_hint: materials.add(Color::from(CYAN_300)),
+            tile_drag_start: materials.add(Color::from(CYAN_300)),
             piece_dragged: materials.add(Color::from(ROSE_400)),
         }
     }
