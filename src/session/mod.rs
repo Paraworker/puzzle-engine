@@ -1,6 +1,7 @@
-use crate::session::{state::SessionState, tiles::TileIndex};
+use crate::session::{pieces::PlacedPieceIndex, state::SessionState, tiles::TileIndex};
 use bevy::prelude::*;
 
+pub mod pieces;
 pub mod state;
 pub mod tiles;
 
@@ -8,6 +9,7 @@ pub mod tiles;
 pub struct GameSession {
     pub state: SessionState,
     pub tiles: TileIndex,
+    pub placed_pieces: PlacedPieceIndex,
 }
 
 impl GameSession {
@@ -15,6 +17,7 @@ impl GameSession {
         Self {
             state: SessionState::Navigating,
             tiles: TileIndex::new(),
+            placed_pieces: PlacedPieceIndex::new(),
         }
     }
 }

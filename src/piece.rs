@@ -45,12 +45,12 @@ impl PieceKind {
 }
 
 #[derive(Debug, Clone, Component)]
-pub struct Placed {
+pub struct PlacedPiece {
     kind: PieceKind,
     pos: Pos,
 }
 
-impl Placed {
+impl PlacedPiece {
     /// Creates a new placed piece.
     pub fn new(kind: PieceKind, pos: Pos) -> Self {
         Self { kind, pos }
@@ -73,14 +73,14 @@ impl Placed {
 }
 
 #[derive(Debug, Clone, Component)]
-pub struct Dragged {
+pub struct DraggedPiece {
     kind: PieceKind,
     initial: Pos,
     current: Pos,
     placeable: HashSet<Pos>,
 }
 
-impl Dragged {
+impl DraggedPiece {
     /// Creates a new dragged piece.
     pub fn new<'a, I>(
         kind: PieceKind,
@@ -119,14 +119,14 @@ impl Dragged {
         self.initial == self.current
     }
 
-    /// Attempts to place the dragged piece at the given position.
+    /// Attempts to move the dragged piece to the given position.
     ///
     /// Returns `true` and updates the current position if the position is valid,
     /// meaning it is either in the set of placeable positions or
     /// the original position (i.e., the piece was not moved).
     ///
     /// Returns `false` if the position is not allowed.
-    pub fn try_place_at(&mut self, pos: Pos) -> bool {
+    pub fn try_move_to(&mut self, pos: Pos) -> bool {
         if !self.placeable.contains(&pos) && self.initial != pos {
             return false;
         }
@@ -171,3 +171,6 @@ impl Dragged {
         Ok(placeable)
     }
 }
+
+#[derive(Debug, Component)]
+pub struct HighlightedPiece;

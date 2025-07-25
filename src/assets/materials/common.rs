@@ -1,9 +1,6 @@
 use bevy::{
     asset::{Assets, Handle},
-    color::{
-        Color,
-        palettes::tailwind::{CYAN_300, ROSE_400, YELLOW_300},
-    },
+    color::Color,
     pbr::StandardMaterial,
 };
 
@@ -11,9 +8,8 @@ use bevy::{
 pub struct CommonMaterials {
     pub tile_black: Handle<StandardMaterial>,
     pub tile_white: Handle<StandardMaterial>,
-    pub tile_drag_initial: Handle<StandardMaterial>,
-    pub tile_placeable: Handle<StandardMaterial>,
-    pub piece_dragged: Handle<StandardMaterial>,
+    pub highlight_source: Handle<StandardMaterial>,
+    pub highlight_placeable: Handle<StandardMaterial>,
 }
 
 impl CommonMaterials {
@@ -21,9 +17,8 @@ impl CommonMaterials {
         CommonMaterials {
             tile_black: materials.add(Color::srgb(0.2, 0.2, 0.2)),
             tile_white: materials.add(Color::srgb(0.8, 0.8, 0.8)),
-            tile_drag_initial: materials.add(Color::from(CYAN_300)),
-            tile_placeable: materials.add(Color::from(YELLOW_300)),
-            piece_dragged: materials.add(Color::from(ROSE_400)),
+            highlight_source: materials.add(Color::srgba(0.4, 0.6, 1.0, 0.6)),
+            highlight_placeable: materials.add(Color::srgba(1.0, 0.9, 0.2, 0.6)),
         }
     }
 }
