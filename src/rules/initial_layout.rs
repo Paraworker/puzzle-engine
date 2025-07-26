@@ -1,4 +1,4 @@
-use crate::{
+use crate::rules::{
     piece::{PieceColor, PieceModel},
     position::Pos,
 };

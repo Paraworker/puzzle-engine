@@ -6,18 +6,20 @@
     pieces: {
         Cube: (
             count: Finite(2),
-            placement: Or(
+            movement: Or(
                 Equal(TargetRow, SourceRow),
                 Equal(TargetCol, SourceCol),
             ),
+            placement: False,
         ),
         Sphere: (
             count: Finite(3),
-            placement: True,
+            movement: True,
+            placement: False,
         ),
         Cylinder: (
             count: Infinite,
-            placement: Or(
+            movement: Or(
                 And(
                     Or(
                         Equal(Sub(TargetRow, SourceRow), Const(1)),
@@ -33,6 +35,7 @@
                     Equal(TargetRow, SourceRow),
                 ),
             ),
+            placement: False,
         ),
     },
     players: [
@@ -62,4 +65,5 @@
             pos: (2, 2),
         ),
     ],
+    win_condition: False,
 )

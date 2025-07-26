@@ -1,4 +1,4 @@
-use crate::position::Pos;
+use crate::rules::position::Pos;
 use bevy::prelude::*;
 
 /// Component for a base tile entity.

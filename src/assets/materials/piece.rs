@@ -1,4 +1,4 @@
-use crate::piece::PieceColor;
+use crate::rules::piece::PieceColor;
 use bevy::{
     asset::{Assets, Handle},
     color::Color,

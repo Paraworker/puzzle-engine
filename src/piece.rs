@@ -1,25 +1,13 @@
 use crate::{
-    GameError,
-    position::Pos,
-    rules::expr::{ExprContext, boolean::BoolExpr},
+    rules::{
+        expr::{ExprContext, ExprScenario, boolean::BoolExpr},
+        piece::{PieceColor, PieceModel},
+        position::Pos,
+    },
     tile::Tile,
 };
 use bevy::prelude::*;
-use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum PieceModel {
-    Cube,
-    Sphere,
-    Cylinder,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum PieceColor {
-    White,
-    Black,
-}
 
 #[derive(Debug, Clone, Copy)]
 pub struct PieceKind {
@@ -85,9 +73,9 @@ impl DraggedPiece {
     pub fn new<'a, I>(
         kind: PieceKind,
         initial: Pos,
-        placement: &BoolExpr,
+        movement: &BoolExpr,
         tiles: I,
-    ) -> Result<Self, GameError>
+    ) -> anyhow::Result<Self>
     where
         I: Iterator<Item = &'a Tile>,
     {
@@ -95,7 +83,7 @@ impl DraggedPiece {
             kind,
             initial,
             current: initial,
-            placeable: Self::collect_placeable(kind, initial, placement, tiles)?,
+            placeable: Self::collect_placeable(kind, initial, movement, tiles)?,
         })
     }
 
@@ -143,9 +131,9 @@ impl DraggedPiece {
     fn collect_placeable<'a, I>(
         kind: PieceKind,
         source: Pos,
-        placement: &BoolExpr,
+        movement: &BoolExpr,
         tiles: I,
-    ) -> Result<HashSet<Pos>, GameError>
+    ) -> anyhow::Result<HashSet<Pos>>
     where
         I: Iterator<Item = &'a Tile>,
     {
@@ -158,12 +146,14 @@ impl DraggedPiece {
             }
 
             let ctx = ExprContext {
-                kind,
-                source,
-                target: tile.pos(),
+                scenario: ExprScenario::PieceMovement {
+                    kind,
+                    source,
+                    target: tile.pos(),
+                },
             };
 
-            if placement.evaluate(&ctx).unwrap() {
+            if movement.evaluate(&ctx)? {
                 placeable.insert(tile.pos());
             }
         }

@@ -1,6 +1,6 @@
-use crate::{
-    GameError,
-    rules::expr::{ExprContext, arith::ArithExpr},
+use crate::rules::{
+    RulesError,
+    expr::{ExprContext, arith::ArithExpr},
 };
 use serde::{Deserialize, Serialize};
 
@@ -16,7 +16,7 @@ pub enum BoolExpr {
     Or(Box<BoolExpr>, Box<BoolExpr>),
     Not(Box<BoolExpr>),
 
-    /// Arithmetic operators
+    /// Arithmetic comparison operators
     Equal(ArithExpr, ArithExpr),
     NotEqual(ArithExpr, ArithExpr),
     LessThan(ArithExpr, ArithExpr),
@@ -27,7 +27,7 @@ pub enum BoolExpr {
 
 impl BoolExpr {
     /// Evaluates the boolean expression.
-    pub fn evaluate(&self, ctx: &ExprContext) -> Result<bool, GameError> {
+    pub fn evaluate(&self, ctx: &ExprContext) -> Result<bool, RulesError> {
         match self {
             BoolExpr::True => Ok(true),
             BoolExpr::False => Ok(false),

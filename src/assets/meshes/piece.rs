@@ -1,4 +1,4 @@
-use crate::piece::PieceModel;
+use crate::rules::piece::PieceModel;
 use bevy::{
     asset::{Assets, Handle},
     math::primitives::{Cuboid, Cylinder, Sphere},

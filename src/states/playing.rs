@@ -1,8 +1,7 @@
 use crate::{
     assets::GameAssets,
     piece::{DraggedPiece, HighlightedPiece, PieceKind, PlacedPiece},
-    position::Pos,
-    rules::{GameRules, board::BoardRuleSet},
+    rules::{GameRules, board::BoardRuleSet, position::Pos},
     session::{GameSession, pieces::PieceEntities, state::SessionState, tiles::TileEntities},
     states::GameState,
     tile::{DragInitialTile, PlaceableTile, Tile},
@@ -421,7 +420,7 @@ fn spawn_piece(
                 let dragged = DraggedPiece::new(
                     placed.kind(),
                     placed.pos(),
-                    rules.pieces.get(placed.kind().model()).unwrap().placement(),
+                    rules.pieces.get(placed.kind().model()).unwrap().movement(),
                     tile_query.iter(),
                 )
                 .unwrap();

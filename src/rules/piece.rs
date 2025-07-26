@@ -1,6 +1,19 @@
-use crate::{piece::PieceModel, rules::expr::boolean::BoolExpr};
+use crate::rules::expr::boolean::BoolExpr;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum PieceModel {
+    Cube,
+    Sphere,
+    Cylinder,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum PieceColor {
+    White,
+    Black,
+}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Count {
@@ -10,17 +23,30 @@ pub enum Count {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PieceRules {
+    /// The maximum number of pieces allowed for this kind.
     count: Count,
+
+    /// A boolean expression that defines whether a move is allowed.
+    /// Evaluated in the context of [`ExprScenario::PieceMovement`].
+    movement: BoolExpr,
+
+    /// A boolean expression that defines whether placement is allowed.
+    /// Evaluated in the context of [`ExprScenario::PiecePlacement`].
     placement: BoolExpr,
 }
 
 impl PieceRules {
-    /// Returns the count of pieces.
+    /// Returns the count of pieces allowed.
     pub fn count(&self) -> &Count {
         &self.count
     }
 
-    /// Returns the boolean expression used to determine valid placement tiles
+    /// Returns the movement boolean expression.
+    pub fn movement(&self) -> &BoolExpr {
+        &self.movement
+    }
+
+    /// Returns the placement boolean expression.
     pub fn placement(&self) -> &BoolExpr {
         &self.placement
     }
