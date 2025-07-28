@@ -2,7 +2,12 @@ use crate::{
     assets::GameAssets,
     piece::{DraggedPiece, HighlightedPiece, PieceKind, PlacedPiece},
     rules::{GameRules, board::BoardRuleSet, position::Pos},
-    session::{GameSession, pieces::PieceEntities, state::SessionState, tiles::TileEntities},
+    session::{
+        GameSession,
+        pieces::{PieceEntities, PlacedPieceIndex},
+        state::SessionState,
+        tiles::TileEntities,
+    },
     states::GameState,
     tile::{DragInitialTile, PlaceableTile, Tile},
 };
@@ -107,9 +112,9 @@ fn on_enter(
 
     // Initial pieces
     for piece in rules.initial_layout.layout() {
-        spawn_piece(
+        spawn_placed_piece(
             &mut commands,
-            &mut session,
+            &mut session.placed_pieces,
             &assets,
             &rules.board,
             PieceKind::new(piece.model(), piece.color()),
@@ -205,6 +210,13 @@ fn finish_dragging(
         for event in released.read() {
             if event.button == PointerButton::Primary {
                 if let Ok(dragged) = dragged_piece_query.get(entities.base()) {
+                    // If the target position is already occupied, remove the existing piece (i.e. capture it)
+                    despawn_placed_piece(
+                        &mut commands,
+                        &mut session.placed_pieces,
+                        dragged.current_pos(),
+                    );
+
                     // Unhighlight the dragged piece
                     if let Ok(mut visibility) =
                         highlighted_piece_query.get_mut(entities.highlighted())
@@ -371,9 +383,9 @@ fn piece_pos_to_world(to: Pos, board: &BoardRuleSet) -> Vec3 {
 }
 
 /// Spawns a piece on the board at the specified position with the given model and color.
-fn spawn_piece(
+fn spawn_placed_piece(
     commands: &mut Commands,
-    session: &mut GameSession,
+    placed_pieces: &mut PlacedPieceIndex,
     assets: &GameAssets,
     board: &BoardRuleSet,
     kind: PieceKind,
@@ -411,23 +423,34 @@ fn spawn_piece(
         mut session: ResMut<GameSession>,
         rules: Res<GameRules>,
     ) {
-        if trigger.button != PointerButton::Primary {
-            return;
-        }
-
         if let SessionState::Navigating = session.state {
-            if let Ok(placed) = placed_piece_query.get(trigger.target()) {
-                let dragged = DraggedPiece::new(
-                    placed.kind(),
-                    placed.pos(),
-                    rules.pieces.get(placed.kind().model()).unwrap().movement(),
-                    tile_query.iter(),
-                )
-                .unwrap();
+            // Skip if the pointer event is not primary click
+            if trigger.button != PointerButton::Primary {
+                return;
+            }
 
-                // Take the piece entities from the placed piece index
-                let entities = session.placed_pieces.remove(placed.pos()).unwrap();
+            // Try to fetch the selected placed piece
+            let Ok(placed) = placed_piece_query.get(trigger.target()) else {
+                return;
+            };
 
+            // Try to create a drag context from the selected piece
+            let Ok(dragged) = DraggedPiece::new(
+                placed.kind(),
+                placed.pos(),
+                rules.pieces.get(placed.kind().model()).unwrap().movement(),
+                tile_query.iter(),
+            ) else {
+                return;
+            };
+
+            // Take the piece entities from the placed piece index
+            let Some(entities) = session.placed_pieces.remove(placed.pos()) else {
+                return;
+            };
+
+            // Highlight visual elements (non-fatal)
+            {
                 // Highlight the dragging piece
                 if let Ok(mut visibility) = highlighted_piece_query.get_mut(entities.highlighted())
                 {
@@ -449,16 +472,16 @@ fn spawn_piece(
                         *visibility = Visibility::Visible;
                     }
                 }
-
-                // Update component
-                commands
-                    .entity(entities.base())
-                    .insert(dragged)
-                    .remove::<PlacedPiece>();
-
-                // Start dragging state
-                session.state = SessionState::Dragging(entities);
             }
+
+            // Apply component state change
+            commands
+                .entity(entities.base())
+                .insert(dragged)
+                .remove::<PlacedPiece>();
+
+            // Enter dragging state
+            session.state = SessionState::Dragging(entities);
         }
     }
 
@@ -493,9 +516,14 @@ fn spawn_piece(
     commands.entity(base).add_child(highlighted);
 
     // Add to placed piece index
-    session
-        .placed_pieces
-        .add(pos, PieceEntities::new(base, highlighted));
+    placed_pieces.add(pos, PieceEntities::new(base, highlighted));
+}
+
+/// Despawns a piece at the specified position.
+fn despawn_placed_piece(commands: &mut Commands, placed_pieces: &mut PlacedPieceIndex, pos: Pos) {
+    if let Some(entities) = placed_pieces.remove(pos) {
+        commands.entity(entities.base()).despawn();
+    }
 }
 
 /// Converts a logical board position to world space translation.
