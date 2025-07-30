@@ -1,4 +1,4 @@
-use crate::rules::expr::boolean::BoolExpr;
+use crate::rules::{count::Count, expr::boolean::BoolExpr};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -13,12 +13,6 @@ pub enum PieceModel {
 pub enum PieceColor {
     White,
     Black,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum Count {
-    Infinite,
-    Finite(usize),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -37,8 +31,8 @@ pub struct PieceRules {
 
 impl PieceRules {
     /// Returns the count of pieces allowed.
-    pub fn count(&self) -> &Count {
-        &self.count
+    pub fn count(&self) -> Count {
+        self.count
     }
 
     /// Returns the movement boolean expression.
@@ -58,7 +52,12 @@ pub struct PieceRuleSet(HashMap<PieceModel, PieceRules>);
 
 impl PieceRuleSet {
     /// Returns the piece rules for the specified model.
-    pub fn get(&self, model: PieceModel) -> Option<&PieceRules> {
-        self.0.get(&model)
+    pub fn get(&self, model: PieceModel) -> &PieceRules {
+        self.0.get(&model).expect("No such piece model found")
+    }
+
+    /// Returns all piece rules.
+    pub fn pieces(&self) -> impl Iterator<Item = (&PieceModel, &PieceRules)> {
+        self.0.iter()
     }
 }

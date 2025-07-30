@@ -1,19 +1,14 @@
 use crate::rules::piece::PieceColor;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PlayerRules {
-    name: String,
-    color: PieceColor,
-}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct PlayerRules(PieceColor);
 
 impl PlayerRules {
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn color(&self) -> PieceColor {
-        self.color
+    /// Returns the piece color of the player.
+    pub fn piece_color(&self) -> PieceColor {
+        self.0
     }
 }
 
@@ -23,7 +18,7 @@ pub struct PlayerRuleSet(Vec<PlayerRules>);
 
 impl PlayerRuleSet {
     /// Returns all players.
-    pub fn players(&self) -> &[PlayerRules] {
-        &self.0
+    pub fn players(&self) -> impl Iterator<Item = &PlayerRules> {
+        self.0.iter()
     }
 }

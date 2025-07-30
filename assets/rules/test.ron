@@ -39,14 +39,8 @@
         ),
     },
     players: [
-        (
-            name: "Alice",
-            color: Black,
-        ),
-        (
-            name: "Bob",
-            color: White,
-        ),
+        Black,
+        White,
     ],
     initial_layout: [
         (

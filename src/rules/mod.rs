@@ -11,6 +11,7 @@ use std::path::Path;
 use thiserror::Error;
 
 pub mod board;
+pub mod count;
 pub mod expr;
 pub mod initial_layout;
 pub mod piece;
@@ -23,6 +24,8 @@ pub enum RulesError {
     DivisionByZero,
     #[error("variable is not supported in this scenario")]
     UnsupportedVariable,
+    #[error("piece count is depleted")]
+    CountDepleted,
 }
 
 #[derive(Debug, Serialize, Deserialize, Resource)]

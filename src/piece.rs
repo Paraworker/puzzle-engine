@@ -103,8 +103,8 @@ impl DraggedPiece {
     }
 
     /// Checks if the piece has not been moved from its initial position.
-    pub fn unmoved(&self) -> bool {
-        self.initial == self.current
+    pub fn moved(&self) -> bool {
+        self.initial != self.current
     }
 
     /// Attempts to move the dragged piece to the given position.

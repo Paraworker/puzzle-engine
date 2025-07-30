@@ -4,9 +4,10 @@ use crate::{
     rules::{GameRules, board::BoardRuleSet, position::Pos},
     session::{
         GameSession,
-        pieces::{PieceEntities, PlacedPieceIndex},
+        piece_index::{PieceEntities, PlacedPieceIndex},
+        player::Players,
         state::SessionState,
-        tiles::TileEntities,
+        tile_index::TileEntities,
     },
     states::GameState,
     tile::{DragInitialTile, PlaceableTile, Tile},
@@ -82,7 +83,7 @@ fn on_enter(
     assets: Res<GameAssets>,
     rules: Res<GameRules>,
 ) {
-    let mut session = GameSession::new();
+    let mut session = GameSession::new(&rules);
 
     // Board
     spawn_board(
@@ -115,6 +116,7 @@ fn on_enter(
         spawn_placed_piece(
             &mut commands,
             &mut session.placed_pieces,
+            &mut session.players,
             &assets,
             &rules.board,
             PieceKind::new(piece.model(), piece.color()),
@@ -210,12 +212,18 @@ fn finish_dragging(
         for event in released.read() {
             if event.button == PointerButton::Primary {
                 if let Ok(dragged) = dragged_piece_query.get(entities.base()) {
-                    // If the target position is already occupied, remove the existing piece (i.e. capture it)
-                    despawn_placed_piece(
-                        &mut commands,
-                        &mut session.placed_pieces,
-                        dragged.current_pos(),
-                    );
+                    if dragged.moved() {
+                        // If the target position is already occupied, remove the existing piece (i.e. capture it)
+                        despawn_placed_piece(
+                            &mut commands,
+                            &mut session.placed_pieces,
+                            dragged.current_pos(),
+                        );
+
+                        // Switch to the next player
+                        // We only switch players if the piece was moved
+                        session.players.next();
+                    }
 
                     // Unhighlight the dragged piece
                     if let Ok(mut visibility) =
@@ -386,6 +394,7 @@ fn piece_pos_to_world(to: Pos, board: &BoardRuleSet) -> Vec3 {
 fn spawn_placed_piece(
     commands: &mut Commands,
     placed_pieces: &mut PlacedPieceIndex,
+    players: &mut Players,
     assets: &GameAssets,
     board: &BoardRuleSet,
     kind: PieceKind,
@@ -434,11 +443,16 @@ fn spawn_placed_piece(
                 return;
             };
 
+            // If the piece color does not match the current player's color, do nothing
+            if session.players.current().piece_color() != placed.kind().color() {
+                return;
+            }
+
             // Try to create a drag context from the selected piece
             let Ok(dragged) = DraggedPiece::new(
                 placed.kind(),
                 placed.pos(),
-                rules.pieces.get(placed.kind().model()).unwrap().movement(),
+                rules.pieces.get(placed.kind().model()).movement(),
                 tile_query.iter(),
             ) else {
                 return;
@@ -514,6 +528,13 @@ fn spawn_placed_piece(
         .id();
 
     commands.entity(base).add_child(highlighted);
+
+    // Decrease the piece stock
+    players
+        .get(kind.color())
+        .piece_stock(kind.model())
+        .decrease()
+        .expect("Failed to decrease piece stock");
 
     // Add to placed piece index
     placed_pieces.add(pos, PieceEntities::new(base, highlighted));
