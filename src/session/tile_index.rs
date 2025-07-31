@@ -6,16 +6,16 @@ use std::collections::HashMap;
 #[derive(Debug, Clone)]
 pub struct TileEntities {
     base: Entity,
-    drag_initial: Entity,
+    source_or_target: Entity,
     placeable: Entity,
 }
 
 impl TileEntities {
     /// Creates a new `TileEntities`.
-    pub fn new(base: Entity, drag_initial: Entity, placeable: Entity) -> Self {
+    pub fn new(base: Entity, source_or_target: Entity, placeable: Entity) -> Self {
         Self {
             base,
-            drag_initial,
+            source_or_target,
             placeable,
         }
     }
@@ -25,9 +25,9 @@ impl TileEntities {
         self.base
     }
 
-    /// Returns the drag initial entity.
-    pub fn drag_initial(&self) -> Entity {
-        self.drag_initial
+    /// Returns the source or target entity.
+    pub fn source_or_target(&self) -> Entity {
+        self.source_or_target
     }
 
     /// Returns the placeable entity.
@@ -36,7 +36,7 @@ impl TileEntities {
     }
 }
 
-/// A index of tile entities by their position.
+/// An index of tile entities by their position.
 #[derive(Debug)]
 pub struct TileIndex(HashMap<Pos, TileEntities>);
 

@@ -3,12 +3,17 @@ use crate::rules::{
     piece::{PieceColor, PieceModel, PieceRuleSet},
     player::{PlayerRuleSet, PlayerRules},
 };
-use std::collections::HashMap;
+use indexmap::IndexMap;
 
 #[derive(Debug)]
 pub struct Player {
+    /// The color of the player's pieces.
     piece_color: PieceColor,
-    piece_stock: HashMap<PieceModel, Count>,
+
+    /// A mapping from each piece model to the remaining count for this player.
+    ///
+    /// Uses [`IndexMap`] to ensure a stable iteration order.
+    piece_stock: IndexMap<PieceModel, Count>,
 }
 
 impl Player {
@@ -31,6 +36,10 @@ impl Player {
             .get_mut(&model)
             .expect("No such piece model found")
     }
+
+    pub fn piece_stocks(&self) -> impl Iterator<Item = (&PieceModel, &Count)> {
+        self.piece_stock.iter()
+    }
 }
 
 #[derive(Debug)]
@@ -51,7 +60,12 @@ impl Players {
     }
 
     /// Returns the current player.
-    pub fn current(&mut self) -> &mut Player {
+    pub fn current(&self) -> &Player {
+        &self.players[self.current]
+    }
+
+    /// Returns the current mutable player.
+    pub fn current_mut(&mut self) -> &mut Player {
         &mut self.players[self.current]
     }
 
@@ -61,7 +75,15 @@ impl Players {
     }
 
     /// Returns the player with the specified color.
-    pub fn get(&mut self, color: PieceColor) -> &mut Player {
+    pub fn get(&self, color: PieceColor) -> &Player {
+        self.players
+            .iter()
+            .find(|player| player.piece_color() == color)
+            .expect("No such player found")
+    }
+
+    /// Returns the mutable player with the specified color.
+    pub fn get_mut(&mut self, color: PieceColor) -> &mut Player {
         self.players
             .iter_mut()
             .find(|player| player.piece_color() == color)

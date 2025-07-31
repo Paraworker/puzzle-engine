@@ -1,12 +1,24 @@
 use crate::rules::{count::Count, expr::boolean::BoolExpr};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, fmt};
+use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum PieceModel {
     Cube,
     Sphere,
     Cylinder,
+}
+
+impl fmt::Display for PieceModel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let name = match self {
+            PieceModel::Cube => "Cube",
+            PieceModel::Sphere => "Sphere",
+            PieceModel::Cylinder => "Cylinder",
+        };
+        write!(f, "{name}")
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -56,9 +68,10 @@ impl PieceRules {
     }
 }
 
+/// Uses [`IndexMap`] to ensure a stable iteration order.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct PieceRuleSet(HashMap<PieceModel, PieceRules>);
+pub struct PieceRuleSet(IndexMap<PieceModel, PieceRules>);
 
 impl PieceRuleSet {
     /// Returns the piece rules for the specified model.

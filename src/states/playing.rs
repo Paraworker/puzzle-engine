@@ -1,16 +1,21 @@
 use crate::{
     assets::GameAssets,
-    piece::{DraggedPiece, HighlightedPiece, PieceKind, PlacedPiece},
-    rules::{GameRules, board::BoardRuleSet, piece::PieceColor, position::Pos},
+    piece::{HighlightedPiece, MovingPiece, PieceKind, PlacedPiece, PlacingPiece},
+    rules::{
+        GameRules,
+        board::BoardRuleSet,
+        piece::{PieceColor, PieceModel, PieceRuleSet},
+        position::Pos,
+    },
     session::{
         GameSession,
         piece_index::{PieceEntities, PlacedPieceIndex},
         player::Players,
         state::SessionState,
-        tile_index::TileEntities,
+        tile_index::{TileEntities, TileIndex},
     },
     states::GameState,
-    tile::{DragInitialTile, PlaceableTile, Tile},
+    tile::{PlaceableTile, SourceOrTargetTile, Tile},
 };
 use bevy::{input::mouse::MouseWheel, prelude::*, render::view::RenderLayers};
 use bevy_egui::{
@@ -25,19 +30,20 @@ impl Plugin for PlayingPlugin {
         app.add_systems(OnEnter(GameState::Playing), on_enter)
             .add_systems(
                 Update,
-                (zoom, orbit, finish_dragging).run_if(in_state(GameState::Playing)),
+                (
+                    on_mouse_wheel,
+                    on_pointer_drag,
+                    on_button_pressed,
+                    on_button_released,
+                )
+                    .run_if(in_state(GameState::Playing)),
             )
             .add_systems(OnExit(GameState::Playing), on_exit)
             .add_systems(
                 EguiPrimaryContextPass,
-                top_panel.run_if(in_state(GameState::Playing)),
+                (top_panel, stock_panel).run_if(in_state(GameState::Playing)),
             );
     }
-}
-
-#[derive(Resource)]
-struct GameUi {
-    top_panel_text: String,
 }
 
 #[derive(Component)]
@@ -103,11 +109,6 @@ fn on_enter(
     // Create game session
     let mut session = GameSession::new(&rules);
 
-    // Create game ui state
-    let ui = GameUi {
-        top_panel_text: turn_title(session.players.current().piece_color()),
-    };
-
     // Board
     spawn_board(
         &mut commands,
@@ -161,7 +162,6 @@ fn on_enter(
 
     // Insert resources
     commands.insert_resource(session);
-    commands.insert_resource(ui);
 }
 
 fn on_exit(mut commands: Commands, entities: Query<Entity, With<PlayingMarker>>) {
@@ -171,18 +171,22 @@ fn on_exit(mut commands: Commands, entities: Query<Entity, With<PlayingMarker>>)
     }
 
     // Delete related resources
-    commands.remove_resource::<GameUi>();
     commands.remove_resource::<GameSession>();
     commands.remove_resource::<GameRules>();
 }
 
-/// A system that zooms the camera when the mouse wheel is scrolled.
-fn zoom(
+/// A system that triggered on the mouse wheel event.
+fn on_mouse_wheel(
     mut scroll_evr: EventReader<MouseWheel>,
+    mut egui: EguiContexts,
     mut query: Query<(&mut Transform, &mut PlayingCamera)>,
     session: Res<GameSession>,
 ) {
-    if let SessionState::Navigating = session.state {
+    if egui.ctx_mut().unwrap().wants_pointer_input() {
+        return;
+    }
+
+    if let SessionState::Selecting = session.state {
         for ev in scroll_evr.read() {
             for (mut transform, mut camera) in &mut query {
                 camera.zoom(ev.y);
@@ -194,13 +198,18 @@ fn zoom(
     }
 }
 
-/// A system that orbits the camera around the focus point when dragged.
-fn orbit(
+/// A system that triggered when the pointer is dragged.
+fn on_pointer_drag(
     mut drag_events: EventReader<Pointer<Drag>>,
+    mut egui: EguiContexts,
     mut camera_query: Query<(&mut Transform, &mut PlayingCamera)>,
     session: Res<GameSession>,
 ) {
-    if let SessionState::Navigating = session.state {
+    if egui.ctx_mut().unwrap().wants_pointer_input() {
+        return;
+    }
+
+    if let SessionState::Selecting = session.state {
         for drag in drag_events.read() {
             for (mut transform, mut cam) in camera_query.iter_mut() {
                 cam.drag(drag.delta.x, drag.delta.y);
@@ -212,23 +221,101 @@ fn orbit(
     }
 }
 
-/// A system that finishes dragging a piece when the primary button is released.
-fn finish_dragging(
-    mut released: EventReader<Pointer<Released>>,
+/// A system that triggered when the primary button is released.
+fn on_button_pressed(
+    mut pressed: EventReader<Pointer<Pressed>>,
+    mut egui: EguiContexts,
     mut commands: Commands,
-    dragged_piece_query: Query<&DraggedPiece>,
+    mut source_or_target_tile_query: Query<
+        &mut Visibility,
+        (With<SourceOrTargetTile>, Without<PlaceableTile>),
+    >,
+    mut placeable_tile_query: Query<
+        &mut Visibility,
+        (With<PlaceableTile>, Without<SourceOrTargetTile>),
+    >,
+    assets: Res<GameAssets>,
+    rules: Res<GameRules>,
+    mut session: ResMut<GameSession>,
+) {
+    if egui.ctx_mut().unwrap().wants_pointer_input() {
+        return;
+    }
+
+    let session = session.as_mut();
+
+    if let SessionState::Placing(placing) = &mut session.state {
+        for event in pressed.read() {
+            if event.button == PointerButton::Primary {
+                if let Some(to_place) = placing.to_place_pos() {
+                    // If the to place position is already occupied, remove the existing piece (i.e. capture it)
+                    despawn_placed_piece(&mut commands, &mut session.placed_pieces, to_place);
+
+                    // Spawn the placed piece at the target position
+                    spawn_placed_piece(
+                        &mut commands,
+                        &mut session.placed_pieces,
+                        &mut session.players,
+                        &assets,
+                        &rules.board,
+                        placing.kind(),
+                        to_place,
+                    );
+
+                    // Unhighlight the to place tile
+                    if let Ok(mut visibility) = source_or_target_tile_query
+                        .get_mut(session.tiles.get(to_place).unwrap().source_or_target())
+                    {
+                        *visibility = Visibility::Hidden;
+                    }
+
+                    // Switch to the next player
+                    // We only switch players if the piece was moved
+                    session.players.next();
+
+                    // Update the top panel text to reflect the current player's turn
+                    session
+                        .top_panel_text
+                        .set_turn(session.players.current().piece_color());
+                };
+
+                // Unhighlight placeable tiles
+                for pos in placing.placeable_tiles() {
+                    if let Ok(mut visibility) =
+                        placeable_tile_query.get_mut(session.tiles.get(pos).unwrap().placeable())
+                    {
+                        *visibility = Visibility::Hidden;
+                    }
+                }
+
+                // Finish placing state
+                session.state = SessionState::Selecting;
+
+                // We only handle the first release event
+                break;
+            }
+        }
+    }
+}
+
+/// A system that triggered when the primary button is released.
+fn on_button_released(
+    mut released: EventReader<Pointer<Released>>,
+    mut egui: EguiContexts,
+    mut commands: Commands,
+    moving_piece_query: Query<&MovingPiece>,
     mut highlighted_piece_query: Query<
         &mut Visibility,
         (
             With<HighlightedPiece>,
-            Without<DragInitialTile>,
+            Without<SourceOrTargetTile>,
             Without<PlaceableTile>,
         ),
     >,
-    mut drag_initial_tile_query: Query<
+    mut source_or_target_tile_query: Query<
         &mut Visibility,
         (
-            With<DragInitialTile>,
+            With<SourceOrTargetTile>,
             Without<PlaceableTile>,
             Without<HighlightedPiece>,
         ),
@@ -238,24 +325,27 @@ fn finish_dragging(
         (
             With<PlaceableTile>,
             Without<HighlightedPiece>,
-            Without<DragInitialTile>,
+            Without<SourceOrTargetTile>,
         ),
     >,
     mut session: ResMut<GameSession>,
-    mut ui: ResMut<GameUi>,
 ) {
+    if egui.ctx_mut().unwrap().wants_pointer_input() {
+        return;
+    }
+
     let session = session.as_mut();
 
-    if let SessionState::Dragging(entities) = &session.state {
+    if let SessionState::Moving(entities) = &session.state {
         for event in released.read() {
             if event.button == PointerButton::Primary {
-                if let Ok(dragged) = dragged_piece_query.get(entities.base()) {
-                    if dragged.moved() {
+                if let Ok(moving) = moving_piece_query.get(entities.base()) {
+                    if moving.moved() {
                         // If the target position is already occupied, remove the existing piece (i.e. capture it)
                         despawn_placed_piece(
                             &mut commands,
                             &mut session.placed_pieces,
-                            dragged.current_pos(),
+                            moving.current_pos(),
                         );
 
                         // Switch to the next player
@@ -263,29 +353,31 @@ fn finish_dragging(
                         session.players.next();
 
                         // Update the top panel text to reflect the current player's turn
-                        ui.top_panel_text = turn_title(session.players.current().piece_color());
+                        session
+                            .top_panel_text
+                            .set_turn(session.players.current().piece_color());
                     }
 
-                    // Unhighlight the dragged piece
+                    // Unhighlight the moving piece
                     if let Ok(mut visibility) =
                         highlighted_piece_query.get_mut(entities.highlighted())
                     {
                         *visibility = Visibility::Hidden;
                     }
 
-                    // Unhighlight the drag initial tiles
-                    if let Ok(mut visibility) = drag_initial_tile_query.get_mut(
+                    // Unhighlight the move initial tile
+                    if let Ok(mut visibility) = source_or_target_tile_query.get_mut(
                         session
                             .tiles
-                            .get(dragged.initial_pos())
+                            .get(moving.initial_pos())
                             .unwrap()
-                            .drag_initial(),
+                            .source_or_target(),
                     ) {
                         *visibility = Visibility::Hidden;
                     }
 
-                    // Unhighlight the placeable tiles
-                    for pos in dragged.placeable_tiles() {
+                    // Unhighlight placeable tiles
+                    for pos in moving.placeable_tiles() {
                         if let Ok(mut visibility) = placeable_tile_query
                             .get_mut(session.tiles.get(pos).unwrap().placeable())
                         {
@@ -296,16 +388,16 @@ fn finish_dragging(
                     // Update component
                     commands
                         .entity(entities.base())
-                        .insert(PlacedPiece::new(dragged.kind(), dragged.current_pos()))
-                        .remove::<DraggedPiece>();
+                        .insert(PlacedPiece::new(moving.kind(), moving.current_pos()))
+                        .remove::<MovingPiece>();
 
                     // Add piece entities to the placed piece index at the current position
                     session
                         .placed_pieces
-                        .add(dragged.current_pos(), entities.clone());
+                        .add(moving.current_pos(), entities.clone());
 
-                    // Finish dragging state
-                    session.state = SessionState::Navigating;
+                    // Finish moving state
+                    session.state = SessionState::Selecting;
                 }
 
                 // We only handle the first release event
@@ -325,27 +417,91 @@ fn spawn_board(
 ) {
     fn on_tile_hovered(
         trigger: Trigger<Pointer<Over>>,
-        mut dragged_query: Query<(&mut Transform, &mut DraggedPiece)>,
+        mut moving_query: Query<(&mut Transform, &mut MovingPiece)>,
         mut tile_query: Query<&Tile>,
+        mut source_or_target_query: Query<
+            &mut Visibility,
+            (With<SourceOrTargetTile>, Without<PlaceableTile>),
+        >,
+        mut placeable_tile_query: Query<&mut Visibility, With<PlaceableTile>>,
         rules: Res<GameRules>,
-        session: Res<GameSession>,
+        mut session: ResMut<GameSession>,
     ) {
-        if let SessionState::Dragging(entities) = &session.state {
-            let Ok(tile) = tile_query.get_mut(trigger.target()) else {
-                return;
-            };
+        match &mut session.state {
+            SessionState::Moving(entities) => {
+                let Ok(tile) = tile_query.get_mut(trigger.target()) else {
+                    return;
+                };
 
-            let Ok((mut transform, mut dragged)) = dragged_query.get_mut(entities.base()) else {
-                return;
-            };
+                let Ok((mut transform, mut moving)) = moving_query.get_mut(entities.base()) else {
+                    return;
+                };
 
-            // Attempt to move the piece
-            if !dragged.try_move_to(tile.pos()) {
-                return;
+                // Attempt to move the piece
+                if !moving.try_move_to(tile.pos()) {
+                    return;
+                }
+
+                // Update translation
+                transform.translation = piece_pos_to_world(tile.pos(), &rules.board);
             }
+            SessionState::Placing(placing) => {
+                let Ok(tile) = tile_query.get_mut(trigger.target()) else {
+                    return;
+                };
 
-            // Update translation
-            transform.translation = piece_pos_to_world(tile.pos(), &rules.board);
+                // Attempt to place the piece
+                if !placing.try_place_at(tile.pos()) {
+                    return;
+                }
+
+                let entities = session.tiles.get(tile.pos()).unwrap();
+
+                // Unhighlight placable
+                if let Ok(mut visibility) = placeable_tile_query.get_mut(entities.placeable()) {
+                    *visibility = Visibility::Hidden;
+                }
+
+                // Highlight to place
+                if let Ok(mut visibility) =
+                    source_or_target_query.get_mut(entities.source_or_target())
+                {
+                    *visibility = Visibility::Visible;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn on_tile_out(
+        _trigger: Trigger<Pointer<Out>>,
+        mut source_or_target_query: Query<
+            &mut Visibility,
+            (With<SourceOrTargetTile>, Without<PlaceableTile>),
+        >,
+        mut placeable_tile_query: Query<&mut Visibility, With<PlaceableTile>>,
+        mut session: ResMut<GameSession>,
+    ) {
+        let session = session.as_mut();
+
+        if let SessionState::Placing(placing) = &mut session.state {
+            if let Some(to_place) = placing.to_place_pos() {
+                let entities = session.tiles.get(to_place).unwrap();
+
+                // Highlight placable
+                if let Ok(mut visibility) = placeable_tile_query.get_mut(entities.placeable()) {
+                    *visibility = Visibility::Visible;
+                }
+
+                // Unhighlight to place
+                if let Ok(mut visibility) =
+                    source_or_target_query.get_mut(entities.source_or_target())
+                {
+                    *visibility = Visibility::Hidden;
+                }
+
+                placing.clear_to_place();
+            }
         }
     }
 
@@ -380,21 +536,22 @@ fn spawn_board(
                     PlayingMarker,
                 ))
                 .observe(on_tile_hovered)
+                .observe(on_tile_out)
                 .id();
 
-            // Spawn drag initial entity
-            let drag_initial = commands
+            // Spawn source or target entity
+            let source_or_target = commands
                 .spawn((
                     Mesh3d(meshes.add(Cuboid::new(
                         BoardRuleSet::tile_size(),
                         BoardRuleSet::tile_height(),
                         BoardRuleSet::tile_size(),
                     ))),
-                    MeshMaterial3d(assets.materials.common.highlight_source.clone()),
+                    MeshMaterial3d(assets.materials.common.highlight_source_or_target.clone()),
                     Transform::default(),
                     GlobalTransform::default(),
                     Visibility::Hidden,
-                    DragInitialTile,
+                    SourceOrTargetTile,
                 ))
                 .id();
 
@@ -416,12 +573,12 @@ fn spawn_board(
 
             commands
                 .entity(base)
-                .add_children(&[drag_initial, placeable]);
+                .add_children(&[source_or_target, placeable]);
 
             // Add to tile index
             session
                 .tiles
-                .add(pos, TileEntities::new(base, drag_initial, placeable));
+                .add(pos, TileEntities::new(base, source_or_target, placeable));
         }
     }
 }
@@ -450,14 +607,14 @@ fn spawn_placed_piece(
             &mut Visibility,
             (
                 With<HighlightedPiece>,
-                Without<DragInitialTile>,
+                Without<SourceOrTargetTile>,
                 Without<PlaceableTile>,
             ),
         >,
-        mut drag_initial_query: Query<
+        mut source_or_target_query: Query<
             &mut Visibility,
             (
-                With<DragInitialTile>,
+                With<SourceOrTargetTile>,
                 Without<HighlightedPiece>,
                 Without<PlaceableTile>,
             ),
@@ -467,13 +624,13 @@ fn spawn_placed_piece(
             (
                 With<PlaceableTile>,
                 Without<HighlightedPiece>,
-                Without<DragInitialTile>,
+                Without<SourceOrTargetTile>,
             ),
         >,
         mut session: ResMut<GameSession>,
         rules: Res<GameRules>,
     ) {
-        if let SessionState::Navigating = session.state {
+        if let SessionState::Selecting = session.state {
             // Skip if the pointer event is not primary click
             if trigger.button != PointerButton::Primary {
                 return;
@@ -489,8 +646,8 @@ fn spawn_placed_piece(
                 return;
             }
 
-            // Try to create a drag context from the selected piece
-            let Ok(dragged) = DraggedPiece::new(
+            // Try to create a move context from the selected piece
+            let Ok(moving) = MovingPiece::new(
                 placed.kind(),
                 placed.pos(),
                 rules.pieces.get(placed.kind().model()).movement(),
@@ -506,21 +663,21 @@ fn spawn_placed_piece(
 
             // Highlight visual elements (non-fatal)
             {
-                // Highlight the dragging piece
+                // Highlight the moving piece
                 if let Ok(mut visibility) = highlighted_piece_query.get_mut(entities.highlighted())
                 {
                     *visibility = Visibility::Visible;
                 }
 
-                // Highlight drag initial tile
-                if let Ok(mut visibility) = drag_initial_query
-                    .get_mut(session.tiles.get(placed.pos()).unwrap().drag_initial())
+                // Highlight move initial tile
+                if let Ok(mut visibility) = source_or_target_query
+                    .get_mut(session.tiles.get(placed.pos()).unwrap().source_or_target())
                 {
                     *visibility = Visibility::Visible;
                 }
 
                 // Highlight placeable tiles
-                for pos in dragged.placeable_tiles() {
+                for pos in moving.placeable_tiles() {
                     if let Ok(mut visibility) =
                         placeable_query.get_mut(session.tiles.get(pos).unwrap().placeable())
                     {
@@ -532,11 +689,11 @@ fn spawn_placed_piece(
             // Apply component state change
             commands
                 .entity(entities.base())
-                .insert(dragged)
+                .insert(moving)
                 .remove::<PlacedPiece>();
 
-            // Enter dragging state
-            session.state = SessionState::Dragging(entities);
+            // Enter moving state
+            session.state = SessionState::Moving(entities);
         }
     }
 
@@ -560,7 +717,7 @@ fn spawn_placed_piece(
     let highlighted = commands
         .spawn((
             Mesh3d(mesh.clone()),
-            MeshMaterial3d(assets.materials.common.highlight_source.clone()),
+            MeshMaterial3d(assets.materials.common.highlight_source_or_target.clone()),
             Transform::default(),
             GlobalTransform::default(),
             Visibility::Hidden,
@@ -572,7 +729,7 @@ fn spawn_placed_piece(
 
     // Decrease the piece stock
     players
-        .get(kind.color())
+        .get_mut(kind.color())
         .piece_stock(kind.model())
         .decrease()
         .expect("Failed to decrease piece stock");
@@ -604,7 +761,7 @@ fn pos_to_world(pos: Pos, board: &BoardRuleSet, y: f32) -> Vec3 {
     )
 }
 
-fn top_panel(mut contexts: EguiContexts, ui: Res<GameUi>) {
+fn top_panel(mut egui: EguiContexts, session: Res<GameSession>) {
     egui::TopBottomPanel::top("top_panel")
         .frame(
             egui::Frame::NONE
@@ -612,14 +769,95 @@ fn top_panel(mut contexts: EguiContexts, ui: Res<GameUi>) {
                 .stroke(Stroke::NONE)
                 .inner_margin(egui::Margin::symmetric(0, 10)),
         )
-        .show(contexts.ctx_mut().unwrap(), |ui_ctx| {
+        .show(egui.ctx_mut().unwrap(), |ui_ctx| {
             ui_ctx.with_layout(
                 egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
-                |ui_ctx| ui_ctx.label(egui::RichText::new(&ui.top_panel_text).strong().size(24.0)),
+                |ui_ctx| {
+                    ui_ctx.label(
+                        egui::RichText::new(session.top_panel_text.as_ref())
+                            .strong()
+                            .size(24.0),
+                    )
+                },
             );
         });
 }
 
-fn turn_title(color: PieceColor) -> String {
-    format!("{}'s Turn", color)
+fn stock_panel(
+    mut egui: EguiContexts,
+    tile_query: Query<&Tile>,
+    mut placeable_query: Query<&mut Visibility, With<PlaceableTile>>,
+    rules: Res<GameRules>,
+    mut session: ResMut<GameSession>,
+) {
+    fn enter_placing_state(
+        tile_query: &Query<&Tile>,
+        placeable_query: &mut Query<&mut Visibility, With<PlaceableTile>>,
+        session_state: &mut SessionState,
+        tile_index: &TileIndex,
+        rules: &PieceRuleSet,
+        model: PieceModel,
+        color: PieceColor,
+    ) {
+        let placing = PlacingPiece::new(
+            PieceKind::new(model, color),
+            rules.get(model).placement(),
+            tile_query.iter(),
+        )
+        .unwrap();
+
+        // Highlight placeable tiles
+        for pos in placing.placeable_tiles() {
+            if let Ok(mut visibility) =
+                placeable_query.get_mut(tile_index.get(pos).unwrap().placeable())
+            {
+                *visibility = Visibility::Visible;
+            }
+        }
+
+        // Enter placing state
+        *session_state = SessionState::Placing(placing);
+    }
+
+    let session = session.as_mut();
+
+    egui::TopBottomPanel::bottom("stock_panel")
+        .frame(
+            egui::Frame::NONE
+                .fill(egui::Color32::from_rgb(30, 30, 30))
+                .inner_margin(egui::Margin::symmetric(10, 8)),
+        )
+        .show(egui.ctx_mut().unwrap(), |ui| {
+            egui::ScrollArea::horizontal().show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new("Piece Stock").size(18.0).strong());
+
+                    let player = session.players.current();
+
+                    for (model, count) in player.piece_stocks() {
+                        let button = egui::Button::new(
+                            egui::RichText::new(format!("{model}: {count}"))
+                                .size(18.0)
+                                .strong(),
+                        );
+
+                        // Enable the button if the session is in selecting state and the count is not depleted
+                        let enabled = matches!(session.state, SessionState::Selecting)
+                            && !count.is_depleted();
+
+                        if ui.add_enabled(enabled, button).clicked() {
+                            enter_placing_state(
+                                &tile_query,
+                                &mut placeable_query,
+                                &mut session.state,
+                                &session.tiles,
+                                &rules.pieces,
+                                model.clone(),
+                                player.piece_color(),
+                            );
+                        }
+                    }
+                });
+            });
+        });
 }

@@ -5,17 +5,23 @@
     ),
     pieces: {
         Cube: (
-            count: Finite(2),
+            count: Finite(100),
             movement: Or(
                 Equal(TargetRow, SourceRow),
                 Equal(TargetCol, SourceCol),
             ),
-            placement: False,
+            placement: Or(
+                Equal(ToPlaceRow, Const(4)),
+                Equal(ToPlaceCol, Const(4)),
+            ),
         ),
         Sphere: (
-            count: Finite(3),
+            count: Finite(100),
             movement: True,
-            placement: False,
+            placement: Or(
+                Equal(ToPlaceRow, Const(5)),
+                Equal(ToPlaceCol, Const(5)),
+            ),
         ),
         Cylinder: (
             count: Infinite,
@@ -35,7 +41,10 @@
                     Equal(TargetRow, SourceRow),
                 ),
             ),
-            placement: False,
+            placement: Or(
+                Equal(ToPlaceRow, Const(6)),
+                Equal(ToPlaceCol, Const(6)),
+            ),
         ),
     },
     players: [

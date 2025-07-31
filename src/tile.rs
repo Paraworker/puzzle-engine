@@ -19,9 +19,9 @@ impl Tile {
     }
 }
 
-/// Component for a drag initial entity.
+/// Component for a source or target entity.
 #[derive(Debug, Component)]
-pub struct DragInitialTile;
+pub struct SourceOrTargetTile;
 
 /// Component for a Placeable entity.
 #[derive(Debug, Component)]

@@ -1838,6 +1838,7 @@ dependencies = [
  "anyhow",
  "bevy",
  "bevy_egui",
+ "indexmap",
  "ron 0.10.1",
  "serde",
  "thiserror 2.0.12",
