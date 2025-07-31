@@ -3,6 +3,7 @@ use crate::states::{
     playing::PlayingPlugin, startup::StartupPlugin,
 };
 use bevy::prelude::*;
+use bevy_egui::EguiPlugin;
 
 mod assets;
 mod config;
@@ -30,6 +31,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(new_window_plugin()))
         .init_state::<GameState>()
         .add_plugins(MeshPickingPlugin)
+        .add_plugins(EguiPlugin::default())
         .add_plugins(StartupPlugin)
         .add_plugins(MenuPlugin)
         .add_plugins(GameSetupPlugin)

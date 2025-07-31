@@ -1,7 +1,7 @@
 use crate::{
     assets::GameAssets,
     piece::{DraggedPiece, HighlightedPiece, PieceKind, PlacedPiece},
-    rules::{GameRules, board::BoardRuleSet, position::Pos},
+    rules::{GameRules, board::BoardRuleSet, piece::PieceColor, position::Pos},
     session::{
         GameSession,
         piece_index::{PieceEntities, PlacedPieceIndex},
@@ -12,7 +12,11 @@ use crate::{
     states::GameState,
     tile::{DragInitialTile, PlaceableTile, Tile},
 };
-use bevy::{input::mouse::MouseWheel, prelude::*};
+use bevy::{input::mouse::MouseWheel, prelude::*, render::view::RenderLayers};
+use bevy_egui::{
+    EguiContexts, EguiGlobalSettings, EguiPrimaryContextPass, PrimaryEguiContext,
+    egui::{self, Stroke},
+};
 
 pub struct PlayingPlugin;
 
@@ -23,8 +27,17 @@ impl Plugin for PlayingPlugin {
                 Update,
                 (zoom, orbit, finish_dragging).run_if(in_state(GameState::Playing)),
             )
-            .add_systems(OnExit(GameState::Playing), on_exit);
+            .add_systems(OnExit(GameState::Playing), on_exit)
+            .add_systems(
+                EguiPrimaryContextPass,
+                top_panel.run_if(in_state(GameState::Playing)),
+            );
     }
+}
+
+#[derive(Resource)]
+struct GameUi {
+    top_panel_text: String,
 }
 
 #[derive(Component)]
@@ -79,11 +92,21 @@ impl PlayingCamera {
 
 fn on_enter(
     mut commands: Commands,
+    mut egui_global_settings: ResMut<EguiGlobalSettings>,
     mut meshes: ResMut<Assets<Mesh>>,
     assets: Res<GameAssets>,
     rules: Res<GameRules>,
 ) {
+    // Disable the automatic creation of a primary context to set it up manually for the camera we need.
+    egui_global_settings.auto_create_primary_context = false;
+
+    // Create game session
     let mut session = GameSession::new(&rules);
+
+    // Create game ui state
+    let ui = GameUi {
+        top_panel_text: turn_title(session.players.current().piece_color()),
+    };
 
     // Board
     spawn_board(
@@ -107,9 +130,21 @@ fn on_enter(
         PlayingMarker,
     ));
 
-    // Camera
+    // World camera
     let cam = PlayingCamera::new();
     commands.spawn((Camera3d::default(), cam.transform(), cam, PlayingMarker));
+
+    // Egui camera
+    commands.spawn((
+        PrimaryEguiContext,
+        Camera2d,
+        RenderLayers::none(),
+        Camera {
+            order: 1,
+            ..default()
+        },
+        PlayingMarker,
+    ));
 
     // Initial pieces
     for piece in rules.initial_layout.layout() {
@@ -124,8 +159,9 @@ fn on_enter(
         );
     }
 
-    // Insert the game session to resource
+    // Insert resources
     commands.insert_resource(session);
+    commands.insert_resource(ui);
 }
 
 fn on_exit(mut commands: Commands, entities: Query<Entity, With<PlayingMarker>>) {
@@ -135,6 +171,7 @@ fn on_exit(mut commands: Commands, entities: Query<Entity, With<PlayingMarker>>)
     }
 
     // Delete related resources
+    commands.remove_resource::<GameUi>();
     commands.remove_resource::<GameSession>();
     commands.remove_resource::<GameRules>();
 }
@@ -205,6 +242,7 @@ fn finish_dragging(
         ),
     >,
     mut session: ResMut<GameSession>,
+    mut ui: ResMut<GameUi>,
 ) {
     let session = session.as_mut();
 
@@ -223,6 +261,9 @@ fn finish_dragging(
                         // Switch to the next player
                         // We only switch players if the piece was moved
                         session.players.next();
+
+                        // Update the top panel text to reflect the current player's turn
+                        ui.top_panel_text = turn_title(session.players.current().piece_color());
                     }
 
                     // Unhighlight the dragged piece
@@ -561,4 +602,24 @@ fn pos_to_world(pos: Pos, board: &BoardRuleSet, y: f32) -> Vec3 {
         y,
         half_len(board.rows()) - pos.row() as f32 * BoardRuleSet::tile_size(),
     )
+}
+
+fn top_panel(mut contexts: EguiContexts, ui: Res<GameUi>) {
+    egui::TopBottomPanel::top("top_panel")
+        .frame(
+            egui::Frame::NONE
+                .fill(egui::Color32::from_rgba_premultiplied(30, 30, 30, 192))
+                .stroke(Stroke::NONE)
+                .inner_margin(egui::Margin::symmetric(0, 10)),
+        )
+        .show(contexts.ctx_mut().unwrap(), |ui_ctx| {
+            ui_ctx.with_layout(
+                egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
+                |ui_ctx| ui_ctx.label(egui::RichText::new(&ui.top_panel_text).strong().size(24.0)),
+            );
+        });
+}
+
+fn turn_title(color: PieceColor) -> String {
+    format!("{}'s Turn", color)
 }

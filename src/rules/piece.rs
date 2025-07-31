@@ -1,6 +1,6 @@
 use crate::rules::{count::Count, expr::boolean::BoolExpr};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum PieceModel {
@@ -13,6 +13,16 @@ pub enum PieceModel {
 pub enum PieceColor {
     White,
     Black,
+}
+
+impl fmt::Display for PieceColor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let text = match self {
+            PieceColor::White => "White",
+            PieceColor::Black => "Black",
+        };
+        write!(f, "{text}")
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
