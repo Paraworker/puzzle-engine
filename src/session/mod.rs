@@ -25,7 +25,7 @@ pub struct GameSession {
 impl GameSession {
     pub fn new(rules: &GameRules) -> Self {
         let players = Players::from_rules(&rules.players, &rules.pieces);
-        let top_panel_text = TopPanelText::turn(players.current().piece_color());
+        let top_panel_text = TopPanelText::turn(players.current().0);
 
         Self {
             state: SessionState::Selecting,

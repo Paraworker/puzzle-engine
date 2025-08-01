@@ -1,24 +1,18 @@
 use crate::rules::piece::PieceColor;
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct PlayerRules(PieceColor);
+pub struct PlayerRules {}
 
-impl PlayerRules {
-    /// Returns the piece color of the player.
-    pub fn piece_color(&self) -> PieceColor {
-        self.0
-    }
-}
-
+/// Uses [`IndexMap`] to ensure a stable iteration order.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct PlayerRuleSet(Vec<PlayerRules>);
+pub struct PlayerRuleSet(IndexMap<PieceColor, PlayerRules>);
 
 impl PlayerRuleSet {
     /// Returns all players.
-    pub fn players(&self) -> impl Iterator<Item = &PlayerRules> {
+    pub fn players(&self) -> impl Iterator<Item = (&PieceColor, &PlayerRules)> {
         self.0.iter()
     }
 }

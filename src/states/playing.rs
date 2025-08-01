@@ -274,9 +274,7 @@ fn on_button_pressed(
                     session.players.next();
 
                     // Update the top panel text to reflect the current player's turn
-                    session
-                        .top_panel_text
-                        .set_turn(session.players.current().piece_color());
+                    session.top_panel_text.set_turn(session.players.current().0);
                 };
 
                 // Unhighlight placeable tiles
@@ -353,9 +351,7 @@ fn on_button_released(
                         session.players.next();
 
                         // Update the top panel text to reflect the current player's turn
-                        session
-                            .top_panel_text
-                            .set_turn(session.players.current().piece_color());
+                        session.top_panel_text.set_turn(session.players.current().0);
                     }
 
                     // Unhighlight the moving piece
@@ -642,7 +638,7 @@ fn spawn_placed_piece(
             };
 
             // If the piece color does not match the current player's color, do nothing
-            if session.players.current().piece_color() != placed.kind().color() {
+            if session.players.current().0 != placed.kind().color() {
                 return;
             }
 
@@ -730,8 +726,7 @@ fn spawn_placed_piece(
     // Decrease the piece stock
     players
         .get_mut(kind.color())
-        .piece_stock(kind.model())
-        .decrease()
+        .decrease_stock_of(kind.model())
         .expect("Failed to decrease piece stock");
 
     // Add to placed piece index
@@ -832,7 +827,7 @@ fn stock_panel(
                 ui.horizontal(|ui| {
                     ui.label(egui::RichText::new("Piece Stock").size(18.0).strong());
 
-                    let player = session.players.current();
+                    let (piece_color, player) = session.players.current();
 
                     for (model, count) in player.piece_stocks() {
                         let button = egui::Button::new(
@@ -853,7 +848,7 @@ fn stock_panel(
                                 &session.tiles,
                                 &rules.pieces,
                                 model.clone(),
-                                player.piece_color(),
+                                piece_color,
                             );
                         }
                     }

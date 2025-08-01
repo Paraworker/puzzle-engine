@@ -18,13 +18,13 @@ impl fmt::Display for Count {
 }
 
 impl Count {
-    pub fn decrease(&mut self) -> Result<Self, RulesError> {
+    pub fn decrease(&mut self) -> Result<(), RulesError> {
         match self {
-            Count::Infinite => Ok(*self),
+            Count::Infinite => Ok(()),
             Count::Finite(count) => {
                 if *count > 0 {
                     *count -= 1;
-                    Ok(*self)
+                    Ok(())
                 } else {
                     Err(RulesError::CountDepleted)
                 }

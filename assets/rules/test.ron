@@ -47,10 +47,10 @@
             ),
         ),
     },
-    players: [
-        Black,
-        White,
-    ],
+    players: {
+        Black: (),
+        White: (),
+    },
     initial_layout: [
         (
             model: Cube,
