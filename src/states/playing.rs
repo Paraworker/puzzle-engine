@@ -10,9 +10,9 @@ use crate::{
     session::{
         GameSession,
         piece_index::{PieceEntities, PlacedPieceIndex},
-        player::Players,
         state::SessionState,
         tile_index::{TileEntities, TileIndex},
+        turn::TurnController,
     },
     states::GameState,
     tile::{PlaceableTile, SourceOrTargetTile, Tile},
@@ -45,6 +45,9 @@ impl Plugin for PlayingPlugin {
             );
     }
 }
+
+#[derive(Resource)]
+struct TopPanelText(String);
 
 #[derive(Component)]
 struct PlayingMarker;
@@ -152,7 +155,7 @@ fn on_enter(
         spawn_placed_piece(
             &mut commands,
             &mut session.placed_pieces,
-            &mut session.players,
+            &mut session.turn_controller,
             &assets,
             &rules.board,
             PieceKind::new(piece.model(), piece.color()),
@@ -161,6 +164,9 @@ fn on_enter(
     }
 
     // Insert resources
+    commands.insert_resource(TopPanelText(
+        session.turn_controller.formatted_turn_message(),
+    ));
     commands.insert_resource(session);
 }
 
@@ -171,6 +177,7 @@ fn on_exit(mut commands: Commands, entities: Query<Entity, With<PlayingMarker>>)
     }
 
     // Delete related resources
+    commands.remove_resource::<TopPanelText>();
     commands.remove_resource::<GameSession>();
     commands.remove_resource::<GameRules>();
 }
@@ -237,6 +244,7 @@ fn on_button_pressed(
     assets: Res<GameAssets>,
     rules: Res<GameRules>,
     mut session: ResMut<GameSession>,
+    mut top_panel_text: ResMut<TopPanelText>,
 ) {
     if egui.ctx_mut().unwrap().wants_pointer_input() {
         return;
@@ -255,7 +263,7 @@ fn on_button_pressed(
                     spawn_placed_piece(
                         &mut commands,
                         &mut session.placed_pieces,
-                        &mut session.players,
+                        &mut session.turn_controller,
                         &assets,
                         &rules.board,
                         placing.kind(),
@@ -269,12 +277,12 @@ fn on_button_pressed(
                         *visibility = Visibility::Hidden;
                     }
 
-                    // Switch to the next player
+                    // Advance the turn
                     // We only switch players if the piece was moved
-                    session.players.next();
+                    session.turn_controller.advance_turn();
 
                     // Update the top panel text to reflect the current player's turn
-                    session.top_panel_text.set_turn(session.players.current().0);
+                    top_panel_text.0 = session.turn_controller.formatted_turn_message();
                 };
 
                 // Unhighlight placeable tiles
@@ -327,6 +335,7 @@ fn on_button_released(
         ),
     >,
     mut session: ResMut<GameSession>,
+    mut top_panel_text: ResMut<TopPanelText>,
 ) {
     if egui.ctx_mut().unwrap().wants_pointer_input() {
         return;
@@ -346,12 +355,12 @@ fn on_button_released(
                             moving.current_pos(),
                         );
 
-                        // Switch to the next player
+                        // Advance the turn
                         // We only switch players if the piece was moved
-                        session.players.next();
+                        session.turn_controller.advance_turn();
 
                         // Update the top panel text to reflect the current player's turn
-                        session.top_panel_text.set_turn(session.players.current().0);
+                        top_panel_text.0 = session.turn_controller.formatted_turn_message();
                     }
 
                     // Unhighlight the moving piece
@@ -588,7 +597,7 @@ fn piece_pos_to_world(to: Pos, board: &BoardRuleSet) -> Vec3 {
 fn spawn_placed_piece(
     commands: &mut Commands,
     placed_pieces: &mut PlacedPieceIndex,
-    players: &mut Players,
+    turn_controller: &mut TurnController,
     assets: &GameAssets,
     board: &BoardRuleSet,
     kind: PieceKind,
@@ -638,7 +647,7 @@ fn spawn_placed_piece(
             };
 
             // If the piece color does not match the current player's color, do nothing
-            if session.players.current().0 != placed.kind().color() {
+            if session.turn_controller.current_player().0 != placed.kind().color() {
                 return;
             }
 
@@ -724,9 +733,9 @@ fn spawn_placed_piece(
     commands.entity(base).add_child(highlighted);
 
     // Decrease the piece stock
-    players
-        .get_mut(kind.color())
-        .decrease_stock_of(kind.model())
+    turn_controller
+        .player_mut(kind.color())
+        .decrease_stock(kind.model())
         .expect("Failed to decrease piece stock");
 
     // Add to placed piece index
@@ -756,7 +765,7 @@ fn pos_to_world(pos: Pos, board: &BoardRuleSet, y: f32) -> Vec3 {
     )
 }
 
-fn top_panel(mut egui: EguiContexts, session: Res<GameSession>) {
+fn top_panel(mut egui: EguiContexts, text: Res<TopPanelText>) {
     egui::TopBottomPanel::top("top_panel")
         .frame(
             egui::Frame::NONE
@@ -767,13 +776,7 @@ fn top_panel(mut egui: EguiContexts, session: Res<GameSession>) {
         .show(egui.ctx_mut().unwrap(), |ui_ctx| {
             ui_ctx.with_layout(
                 egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
-                |ui_ctx| {
-                    ui_ctx.label(
-                        egui::RichText::new(session.top_panel_text.as_ref())
-                            .strong()
-                            .size(24.0),
-                    )
-                },
+                |ui_ctx| ui_ctx.label(egui::RichText::new(&text.0).strong().size(24.0)),
             );
         });
 }
@@ -827,9 +830,9 @@ fn stock_panel(
                 ui.horizontal(|ui| {
                     ui.label(egui::RichText::new("Piece Stock").size(18.0).strong());
 
-                    let (piece_color, player) = session.players.current();
+                    let (piece_color, player) = session.turn_controller.current_player();
 
-                    for (model, count) in player.piece_stocks() {
+                    for (model, count) in player.stocks() {
                         let button = egui::Button::new(
                             egui::RichText::new(format!("{model}: {count}"))
                                 .size(18.0)
