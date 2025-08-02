@@ -655,6 +655,7 @@ fn spawn_placed_piece(
             let Ok(moving) = MovingPiece::new(
                 placed.kind(),
                 placed.pos(),
+                &mut session,
                 rules.pieces.get(placed.kind().model()).movement(),
                 tile_query.iter(),
             ) else {
@@ -788,35 +789,6 @@ fn stock_panel(
     rules: Res<GameRules>,
     mut session: ResMut<GameSession>,
 ) {
-    fn enter_placing_state(
-        tile_query: &Query<&Tile>,
-        placeable_query: &mut Query<&mut Visibility, With<PlaceableTile>>,
-        session_state: &mut SessionState,
-        tile_index: &TileIndex,
-        rules: &PieceRuleSet,
-        model: PieceModel,
-        color: PieceColor,
-    ) {
-        let placing = PlacingPiece::new(
-            PieceKind::new(model, color),
-            rules.get(model).placement(),
-            tile_query.iter(),
-        )
-        .unwrap();
-
-        // Highlight placeable tiles
-        for pos in placing.placeable_tiles() {
-            if let Ok(mut visibility) =
-                placeable_query.get_mut(tile_index.get(pos).unwrap().placeable())
-            {
-                *visibility = Visibility::Visible;
-            }
-        }
-
-        // Enter placing state
-        *session_state = SessionState::Placing(placing);
-    }
-
     let session = session.as_mut();
 
     egui::TopBottomPanel::bottom("stock_panel")
@@ -844,15 +816,28 @@ fn stock_panel(
                             && !count.is_depleted();
 
                         if ui.add_enabled(enabled, button).clicked() {
-                            enter_placing_state(
-                                &tile_query,
-                                &mut placeable_query,
-                                &mut session.state,
-                                &session.tiles,
-                                &rules.pieces,
-                                model.clone(),
-                                piece_color,
-                            );
+                            // Enter placing state if the session is in selecting state
+                            if let SessionState::Selecting = session.state {
+                                let placing = PlacingPiece::new(
+                                    PieceKind::new(model, piece_color),
+                                    session,
+                                    rules.pieces.get(model).placement(),
+                                    tile_query.iter(),
+                                )
+                                .unwrap();
+
+                                // Highlight placeable tiles
+                                for pos in placing.placeable_tiles() {
+                                    if let Ok(mut visibility) = placeable_query
+                                        .get_mut(session.tiles.get(pos).unwrap().placeable())
+                                    {
+                                        *visibility = Visibility::Visible;
+                                    }
+                                }
+
+                                // Enter placing state
+                                session.state = SessionState::Placing(placing);
+                            }
                         }
                     }
                 });

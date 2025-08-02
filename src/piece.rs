@@ -4,6 +4,7 @@ use crate::{
         piece::{PieceColor, PieceModel},
         position::Pos,
     },
+    session::{self, GameSession},
     tile::Tile,
 };
 use bevy::prelude::*;
@@ -73,6 +74,7 @@ impl MovingPiece {
     pub fn new<'a, I>(
         kind: PieceKind,
         initial: Pos,
+        session: &mut GameSession,
         movement: &BoolExpr,
         tiles: I,
     ) -> anyhow::Result<Self>
@@ -83,7 +85,7 @@ impl MovingPiece {
             kind,
             initial,
             current: initial,
-            placeable: Self::collect_placeable(kind, initial, movement, tiles)?,
+            placeable: Self::collect_placeable(kind, initial, session, movement, tiles)?,
         })
     }
 
@@ -131,6 +133,7 @@ impl MovingPiece {
     fn collect_placeable<'a, I>(
         kind: PieceKind,
         source: Pos,
+        session: &mut GameSession,
         movement: &BoolExpr,
         tiles: I,
     ) -> anyhow::Result<HashSet<Pos>>
@@ -146,6 +149,7 @@ impl MovingPiece {
             }
 
             let ctx = ExprContext {
+                session,
                 scenario: ExprScenario::PieceMovement {
                     kind,
                     source,
@@ -174,14 +178,19 @@ pub struct PlacingPiece {
 
 impl PlacingPiece {
     /// Creates a new placing piece.
-    pub fn new<'a, I>(kind: PieceKind, placement: &BoolExpr, tiles: I) -> anyhow::Result<Self>
+    pub fn new<'a, I>(
+        kind: PieceKind,
+        session: &GameSession,
+        placement: &BoolExpr,
+        tiles: I,
+    ) -> anyhow::Result<Self>
     where
         I: Iterator<Item = &'a Tile>,
     {
         Ok(Self {
             kind,
             to_place: None,
-            placeable: Self::collect_placeable(kind, placement, tiles)?,
+            placeable: Self::collect_placeable(kind, session, placement, tiles)?,
         })
     }
 
@@ -223,6 +232,7 @@ impl PlacingPiece {
 
     fn collect_placeable<'a, I>(
         kind: PieceKind,
+        session: &GameSession,
         placement: &BoolExpr,
         tiles: I,
     ) -> anyhow::Result<HashSet<Pos>>
@@ -233,6 +243,7 @@ impl PlacingPiece {
 
         for tile in tiles {
             let ctx = ExprContext {
+                session,
                 scenario: ExprScenario::PiecePlacement {
                     kind,
                     to_place: tile.pos(),

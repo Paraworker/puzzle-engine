@@ -59,10 +59,10 @@ pub struct TurnController {
     current_player: usize,
 
     /// The current turn number, starting from 1.
-    turn_number: u64,
+    turn_number: i64,
 
     /// The current round number, starting from 1.
-    round_number: u64,
+    round_number: i64,
 }
 
 impl TurnController {
@@ -109,12 +109,12 @@ impl TurnController {
     }
 
     /// Returns current turn number.
-    pub fn turn_number(&self) -> u64 {
+    pub fn turn_number(&self) -> i64 {
         self.turn_number
     }
 
     /// Returns current round number.
-    pub fn round_number(&self) -> u64 {
+    pub fn round_number(&self) -> i64 {
         self.round_number
     }
 

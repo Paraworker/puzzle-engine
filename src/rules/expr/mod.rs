@@ -1,4 +1,4 @@
-use crate::{piece::PieceKind, rules::position::Pos};
+use crate::{piece::PieceKind, rules::position::Pos, session::GameSession};
 
 pub mod arith;
 pub mod boolean;
@@ -26,6 +26,7 @@ pub enum ExprScenario {
 }
 
 #[derive(Debug)]
-pub struct ExprContext {
+pub struct ExprContext<'s> {
+    pub session: &'s GameSession,
     pub scenario: ExprScenario,
 }

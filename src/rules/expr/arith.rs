@@ -7,6 +7,9 @@ use serde::{Deserialize, Serialize};
 /// Arithmetic expression.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ArithExpr {
+    /// A constant integer value.
+    Const(i64),
+
     /// Addition, e.g., `a + b`
     Add(Box<ArithExpr>, Box<ArithExpr>),
     /// Subtraction, e.g., `a - b`
@@ -16,8 +19,10 @@ pub enum ArithExpr {
     /// Division, e.g., `a / b`
     Div(Box<ArithExpr>, Box<ArithExpr>),
 
-    /// A constant integer value.
-    Const(i64),
+    /// Current turn number.
+    TurnNumber,
+    /// Current round number.
+    RoundNumber,
 
     /// Variables available only in [`ExprScenario::PieceMovement`]:
     /// - `SourceCol`, `SourceRow`: The source tile position.
@@ -37,11 +42,13 @@ impl ArithExpr {
     /// Evaluates the arithmetic expression.
     pub fn evaluate(&self, ctx: &ExprContext) -> Result<i64, RulesError> {
         match self {
+            ArithExpr::Const(n) => Ok(*n),
             ArithExpr::Add(lhs, rhs) => Ok(lhs.evaluate(ctx)? + rhs.evaluate(ctx)?),
             ArithExpr::Sub(lhs, rhs) => Ok(lhs.evaluate(ctx)? - rhs.evaluate(ctx)?),
             ArithExpr::Mul(lhs, rhs) => Ok(lhs.evaluate(ctx)? * rhs.evaluate(ctx)?),
             ArithExpr::Div(lhs, rhs) => Self::div(lhs, rhs, ctx),
-            ArithExpr::Const(n) => Ok(*n),
+            ArithExpr::TurnNumber => Ok(ctx.session.turn_controller.turn_number()),
+            ArithExpr::RoundNumber => Ok(ctx.session.turn_controller.round_number()),
             ArithExpr::SourceCol => Self::source_col(ctx),
             ArithExpr::SourceRow => Self::source_row(ctx),
             ArithExpr::TargetCol => Self::target_col(ctx),
