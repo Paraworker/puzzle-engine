@@ -192,15 +192,18 @@ fn on_mouse_wheel(
         return;
     }
 
-    if let SessionState::Selecting = session.state {
-        for ev in scroll_evr.read() {
-            for (mut transform, mut camera) in &mut query {
-                camera.zoom(ev.y);
+    match session.state {
+        SessionState::Selecting | SessionState::Reviewing => {
+            for ev in scroll_evr.read() {
+                for (mut transform, mut camera) in &mut query {
+                    camera.zoom(ev.y);
 
-                // Update transform
-                *transform = camera.transform();
+                    // Update transform
+                    *transform = camera.transform();
+                }
             }
         }
+        _ => {}
     }
 }
 
@@ -215,15 +218,18 @@ fn on_pointer_drag(
         return;
     }
 
-    if let SessionState::Selecting = session.state {
-        for drag in drag_events.read() {
-            for (mut transform, mut cam) in camera_query.iter_mut() {
-                cam.drag(drag.delta.x, drag.delta.y);
+    match session.state {
+        SessionState::Selecting | SessionState::Reviewing => {
+            for drag in drag_events.read() {
+                for (mut transform, mut cam) in camera_query.iter_mut() {
+                    cam.drag(drag.delta.x, drag.delta.y);
 
-                // Update transform
-                *transform = cam.transform();
+                    // Update transform
+                    *transform = cam.transform();
+                }
             }
         }
+        _ => {}
     }
 }
 
@@ -897,28 +903,25 @@ fn stock_panel(
                             && !count.is_depleted();
 
                         if ui.add_enabled(enabled, button).clicked() {
-                            // Enter placing state if the session is in selecting state
-                            if let SessionState::Selecting = session.state {
-                                let placing = PlacingPiece::new(
-                                    PieceKind::new(model, piece_color),
-                                    session,
-                                    rules.pieces.get(model).placement(),
-                                    tile_query.iter(),
-                                )
-                                .unwrap();
+                            let placing = PlacingPiece::new(
+                                PieceKind::new(model, piece_color),
+                                session,
+                                rules.pieces.get(model).placement(),
+                                tile_query.iter(),
+                            )
+                            .unwrap();
 
-                                // Highlight placeable tiles
-                                for pos in placing.placeable_tiles() {
-                                    if let Ok(mut visibility) = placeable_query
-                                        .get_mut(session.tiles.get(pos).unwrap().placeable())
-                                    {
-                                        *visibility = Visibility::Visible;
-                                    }
+                            // Highlight placeable tiles
+                            for pos in placing.placeable_tiles() {
+                                if let Ok(mut visibility) = placeable_query
+                                    .get_mut(session.tiles.get(pos).unwrap().placeable())
+                                {
+                                    *visibility = Visibility::Visible;
                                 }
-
-                                // Enter placing state
-                                session.state = SessionState::Placing(placing);
                             }
+
+                            // Enter placing state
+                            session.state = SessionState::Placing(placing);
                         }
                     }
                 });
