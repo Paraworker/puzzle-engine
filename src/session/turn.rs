@@ -1,16 +1,41 @@
-use crate::rules::{
-    RulesError,
-    count::Count,
-    piece::{PieceColor, PieceModel, PieceRuleSet},
-    player::{PlayerRuleSet, PlayerRules},
+use std::fmt;
+
+use crate::{
+    GameError,
+    rules::{
+        RulesError,
+        count::Count,
+        piece::{PieceColor, PieceModel, PieceRuleSet},
+        player::PlayerRuleSet,
+    },
 };
 use indexmap::IndexMap;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlayerState {
+    Active,
+    Won,
+    Lost,
+}
+
+impl fmt::Display for PlayerState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            PlayerState::Active => write!(f, "Active"),
+            PlayerState::Won => write!(f, "Won"),
+            PlayerState::Lost => write!(f, "Lost"),
+        }
+    }
+}
 
 /// Represents a player in the game.
 ///
 /// This struct is managed by [`TurnController`].
 #[derive(Debug)]
 pub struct Player {
+    /// The current state of the player.
+    state: PlayerState,
+
     /// A mapping from each piece model to the remaining count for this player.
     ///
     /// Uses [`IndexMap`] to ensure a stable iteration order.
@@ -18,13 +43,24 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn from_rules(player_rules: &PlayerRules, piece_rule_set: &PieceRuleSet) -> Self {
+    pub fn new(piece_rule_set: &PieceRuleSet) -> Self {
         Self {
+            state: PlayerState::Active,
             stock: piece_rule_set
                 .pieces()
                 .map(|(model, rules)| (model.clone(), rules.count()))
                 .collect(),
         }
+    }
+
+    /// Returns the current state of the player.
+    pub fn state(&self) -> PlayerState {
+        self.state
+    }
+
+    /// Sets the state of the player.
+    pub fn set_state(&mut self, state: PlayerState) {
+        self.state = state;
     }
 
     /// Returns the piece stock for the specified model.
@@ -66,11 +102,11 @@ pub struct TurnController {
 }
 
 impl TurnController {
-    pub fn from_rules(player_rule_set: &PlayerRuleSet, piece_rule_set: &PieceRuleSet) -> Self {
+    pub fn new(player_rule_set: &PlayerRuleSet, piece_rule_set: &PieceRuleSet) -> Self {
         Self {
             players: player_rule_set
                 .players()
-                .map(|(color, rules)| (*color, Player::from_rules(rules, piece_rule_set)))
+                .map(|(color, _)| (color, Player::new(piece_rule_set)))
                 .collect(),
             current_player: 0,
             turn_number: 1,
@@ -95,17 +131,31 @@ impl TurnController {
     }
 
     /// Advances the turn to the next player.
-    pub fn advance_turn(&mut self) {
-        // Increment the current player index
-        self.current_player = (self.current_player + 1) % self.players.len();
+    pub fn advance_turn(&mut self) -> Result<(), GameError> {
+        let num_players = self.players.len();
 
-        // Increment the turn number
-        self.turn_number += 1;
+        // Search for the next active player, checking each player at most once.
+        for offset in 1..=num_players {
+            let next_index = (self.current_player + offset) % num_players;
 
-        // If we have cycled through all players, increment the round number
-        if self.current_player == 0 {
-            self.round_number += 1;
+            // Only pick active player.
+            if self.players[next_index].state() == PlayerState::Active {
+                // A new round begins if the turn has wrapped around to a player at or before
+                // the previous player's index.
+                if next_index <= self.current_player {
+                    self.round_number += 1;
+                }
+
+                // Update the current player and increment the turn number.
+                self.current_player = next_index;
+                self.turn_number += 1;
+
+                return Ok(());
+            }
         }
+
+        // If the loop completes, no active players were found.
+        Err(GameError::NoActivePlayer)
     }
 
     /// Returns current turn number.
@@ -128,13 +178,33 @@ impl TurnController {
         self.players.get_mut(&color).expect("No such player found")
     }
 
+    /// Returns all players.
+    pub fn players(&self) -> impl Iterator<Item = (PieceColor, &Player)> {
+        self.players.iter().map(|(color, player)| (*color, player))
+    }
+
+    /// Returns all mutable players.
+    pub fn players_mut(&mut self) -> impl Iterator<Item = (PieceColor, &mut Player)> {
+        self.players
+            .iter_mut()
+            .map(|(color, player)| (*color, player))
+    }
+
     /// Returns formatted string for the current turn message.
-    pub fn formatted_turn_message(&self) -> String {
+    pub fn turn_message(&self) -> String {
         format!(
             "{}'s Turn — Turn {}, Round {}",
             self.current_player().0,
             self.turn_number,
             self.round_number
         )
+    }
+
+    /// Returns formatted string for the player states.
+    pub fn player_states_message(&self) -> String {
+        self.players()
+            .map(|(color, player)| format!("{}[{}]", color, player.state()))
+            .collect::<Vec<String>>()
+            .join(", ")
     }
 }

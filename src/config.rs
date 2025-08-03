@@ -1,7 +1,8 @@
-use crate::{rules::GameRules, utils::load_ron};
+use crate::{GameError, rules::GameRules};
 use bevy::ecs::resource::Resource;
+use ron::de::from_reader;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, fs::File, io::BufReader};
 
 #[derive(Debug, Serialize, Deserialize, Resource)]
 pub struct Config {
@@ -11,7 +12,7 @@ pub struct Config {
 impl Config {
     const CONFIG_PATH: &'static str = "assets/config.ron";
 
-    pub fn load() -> anyhow::Result<Self> {
-        load_ron(Self::CONFIG_PATH)
+    pub fn load() -> Result<Self, GameError> {
+        Ok(from_reader(BufReader::new(File::open(Self::CONFIG_PATH)?))?)
     }
 }

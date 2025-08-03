@@ -26,7 +26,7 @@ impl GameSession {
             state: SessionState::Selecting,
             tiles: TileIndex::new(),
             placed_pieces: PlacedPieceIndex::new(),
-            turn_controller: TurnController::from_rules(&rules.players, &rules.pieces),
+            turn_controller: TurnController::new(&rules.players, &rules.pieces),
         }
     }
 }

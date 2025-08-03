@@ -1,10 +1,11 @@
 use crate::{
+    GameError,
     rules::{
         expr::{ExprContext, ExprScenario, boolean::BoolExpr},
         piece::{PieceColor, PieceModel},
         position::Pos,
     },
-    session::{self, GameSession},
+    session::GameSession,
     tile::Tile,
 };
 use bevy::prelude::*;
@@ -77,7 +78,7 @@ impl MovingPiece {
         session: &mut GameSession,
         movement: &BoolExpr,
         tiles: I,
-    ) -> anyhow::Result<Self>
+    ) -> Result<Self, GameError>
     where
         I: Iterator<Item = &'a Tile>,
     {
@@ -133,10 +134,10 @@ impl MovingPiece {
     fn collect_placeable<'a, I>(
         kind: PieceKind,
         source: Pos,
-        session: &mut GameSession,
+        session: &GameSession,
         movement: &BoolExpr,
         tiles: I,
-    ) -> anyhow::Result<HashSet<Pos>>
+    ) -> Result<HashSet<Pos>, GameError>
     where
         I: Iterator<Item = &'a Tile>,
     {
@@ -148,8 +149,12 @@ impl MovingPiece {
                 continue;
             }
 
+            let turn_number = session.turn_controller.turn_number();
+            let round_number = session.turn_controller.round_number();
+
             let ctx = ExprContext {
-                session,
+                turn_number,
+                round_number,
                 scenario: ExprScenario::PieceMovement {
                     kind,
                     source,
@@ -183,7 +188,7 @@ impl PlacingPiece {
         session: &GameSession,
         placement: &BoolExpr,
         tiles: I,
-    ) -> anyhow::Result<Self>
+    ) -> Result<Self, GameError>
     where
         I: Iterator<Item = &'a Tile>,
     {
@@ -235,15 +240,19 @@ impl PlacingPiece {
         session: &GameSession,
         placement: &BoolExpr,
         tiles: I,
-    ) -> anyhow::Result<HashSet<Pos>>
+    ) -> Result<HashSet<Pos>, GameError>
     where
         I: Iterator<Item = &'a Tile>,
     {
         let mut placeable = HashSet::new();
 
+        let turn_number = session.turn_controller.turn_number();
+        let round_number = session.turn_controller.round_number();
+
         for tile in tiles {
             let ctx = ExprContext {
-                session,
+                turn_number,
+                round_number,
                 scenario: ExprScenario::PiecePlacement {
                     kind,
                     to_place: tile.pos(),

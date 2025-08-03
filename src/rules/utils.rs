@@ -1,8 +1,9 @@
+use crate::rules::RulesError;
 use ron::de::from_reader;
 use serde::de::DeserializeOwned;
 use std::{fs::File, io::BufReader, path::Path};
 
-pub fn load_ron<P, T>(path: P) -> anyhow::Result<T>
+pub(crate) fn load_ron<P, T>(path: P) -> Result<T, RulesError>
 where
     P: AsRef<Path>,
     T: DeserializeOwned,

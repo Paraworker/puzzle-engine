@@ -1,9 +1,14 @@
-use crate::states::{
-    GameState, game_setup::GameSetupPlugin, loading::LoadingPlugin, menu::MenuPlugin,
-    playing::PlayingPlugin, startup::StartupPlugin,
+use crate::{
+    rules::RulesError,
+    states::{
+        GameState, game_setup::GameSetupPlugin, loading::LoadingPlugin, menu::MenuPlugin,
+        playing::PlayingPlugin, startup::StartupPlugin,
+    },
 };
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
+use ron::de::SpannedError;
+use thiserror::Error;
 
 mod assets;
 mod config;
@@ -12,7 +17,18 @@ mod rules;
 mod session;
 mod states;
 mod tile;
-mod utils;
+
+#[derive(Debug, Error)]
+pub enum GameError {
+    #[error("no active player")]
+    NoActivePlayer,
+    #[error("rules error: {0}")]
+    Rules(#[from] RulesError),
+    #[error("config format error: {0}")]
+    ConfigFormat(#[from] SpannedError),
+    #[error("io error: {0}")]
+    Io(#[from] std::io::Error),
+}
 
 fn new_window_plugin() -> WindowPlugin {
     const WINDOW_TITLE: &str = "Crazy Puzzle";

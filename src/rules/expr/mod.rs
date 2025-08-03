@@ -1,4 +1,7 @@
-use crate::{piece::PieceKind, rules::position::Pos, session::GameSession};
+use crate::{
+    piece::PieceKind,
+    rules::{piece::PieceColor, position::Pos},
+};
 
 pub mod arith;
 pub mod boolean;
@@ -21,12 +24,23 @@ pub enum ExprScenario {
         /// The position where the piece is to be placed.
         to_place: Pos,
     },
-    /// A win condition is being checked.
-    WinCondition,
+    /// Check whether a player should win.
+    PlayerWinCondition {
+        /// Piece color of the player.
+        piece_color: PieceColor,
+    },
+    /// Check whether a player should lose.
+    PlayerLoseCondition {
+        /// Piece color of the player.
+        piece_color: PieceColor,
+    },
+    /// Check whether the game should over.
+    GameOverCondition,
 }
 
 #[derive(Debug)]
-pub struct ExprContext<'s> {
-    pub session: &'s GameSession,
+pub struct ExprContext {
+    pub turn_number: i64,
+    pub round_number: i64,
     pub scenario: ExprScenario,
 }

@@ -48,8 +48,14 @@
         ),
     },
     players: {
-        Black: (),
-        White: (),
+        Black: (
+            win_condition: False,
+            lose_condition: False,
+        ),
+        White: (
+            win_condition: False,
+            lose_condition: False,
+        ),
     },
     initial_layout: [
         (
@@ -68,5 +74,5 @@
             pos: (2, 2),
         ),
     ],
-    win_condition: False,
+    game_over_condition: False,
 )

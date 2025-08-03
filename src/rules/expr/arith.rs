@@ -46,20 +46,20 @@ impl ArithExpr {
             ArithExpr::Add(lhs, rhs) => Ok(lhs.evaluate(ctx)? + rhs.evaluate(ctx)?),
             ArithExpr::Sub(lhs, rhs) => Ok(lhs.evaluate(ctx)? - rhs.evaluate(ctx)?),
             ArithExpr::Mul(lhs, rhs) => Ok(lhs.evaluate(ctx)? * rhs.evaluate(ctx)?),
-            ArithExpr::Div(lhs, rhs) => Self::div(lhs, rhs, ctx),
-            ArithExpr::TurnNumber => Ok(ctx.session.turn_controller.turn_number()),
-            ArithExpr::RoundNumber => Ok(ctx.session.turn_controller.round_number()),
-            ArithExpr::SourceCol => Self::source_col(ctx),
-            ArithExpr::SourceRow => Self::source_row(ctx),
-            ArithExpr::TargetCol => Self::target_col(ctx),
-            ArithExpr::TargetRow => Self::target_row(ctx),
-            ArithExpr::ToPlaceCol => Self::to_place_col(ctx),
-            ArithExpr::ToPlaceRow => Self::to_place_row(ctx),
+            ArithExpr::Div(lhs, rhs) => Self::evaluate_div(lhs, rhs, ctx),
+            ArithExpr::TurnNumber => Ok(ctx.turn_number),
+            ArithExpr::RoundNumber => Ok(ctx.round_number),
+            ArithExpr::SourceCol => Self::query_source_col(ctx),
+            ArithExpr::SourceRow => Self::query_source_row(ctx),
+            ArithExpr::TargetCol => Self::query_target_col(ctx),
+            ArithExpr::TargetRow => Self::query_target_row(ctx),
+            ArithExpr::ToPlaceCol => Self::query_to_place_col(ctx),
+            ArithExpr::ToPlaceRow => Self::query_to_place_row(ctx),
         }
     }
 
     /// Evaluates the division operation.
-    fn div(lhs: &ArithExpr, rhs: &ArithExpr, ctx: &ExprContext) -> Result<i64, RulesError> {
+    fn evaluate_div(lhs: &ArithExpr, rhs: &ArithExpr, ctx: &ExprContext) -> Result<i64, RulesError> {
         let num = lhs.evaluate(ctx)?;
         let denom = rhs.evaluate(ctx)?;
 
@@ -71,7 +71,7 @@ impl ArithExpr {
     }
 
     /// Query `SourceCol`
-    fn source_col(ctx: &ExprContext) -> Result<i64, RulesError> {
+    fn query_source_col(ctx: &ExprContext) -> Result<i64, RulesError> {
         if let ExprScenario::PieceMovement { source, .. } = ctx.scenario {
             Ok(source.col())
         } else {
@@ -80,7 +80,7 @@ impl ArithExpr {
     }
 
     /// Query `SourceRow`
-    fn source_row(ctx: &ExprContext) -> Result<i64, RulesError> {
+    fn query_source_row(ctx: &ExprContext) -> Result<i64, RulesError> {
         if let ExprScenario::PieceMovement { source, .. } = ctx.scenario {
             Ok(source.row())
         } else {
@@ -89,7 +89,7 @@ impl ArithExpr {
     }
 
     /// Query `TargetCol`
-    fn target_col(ctx: &ExprContext) -> Result<i64, RulesError> {
+    fn query_target_col(ctx: &ExprContext) -> Result<i64, RulesError> {
         if let ExprScenario::PieceMovement { target, .. } = ctx.scenario {
             Ok(target.col())
         } else {
@@ -98,7 +98,7 @@ impl ArithExpr {
     }
 
     /// Query `TargetRow`
-    fn target_row(ctx: &ExprContext) -> Result<i64, RulesError> {
+    fn query_target_row(ctx: &ExprContext) -> Result<i64, RulesError> {
         if let ExprScenario::PieceMovement { target, .. } = ctx.scenario {
             Ok(target.row())
         } else {
@@ -107,7 +107,7 @@ impl ArithExpr {
     }
 
     /// Query `ToPlaceCol`
-    fn to_place_col(ctx: &ExprContext) -> Result<i64, RulesError> {
+    fn query_to_place_col(ctx: &ExprContext) -> Result<i64, RulesError> {
         if let ExprScenario::PiecePlacement { to_place, .. } = ctx.scenario {
             Ok(to_place.col())
         } else {
@@ -116,7 +116,7 @@ impl ArithExpr {
     }
 
     /// Query `ToPlaceRow`
-    fn to_place_row(ctx: &ExprContext) -> Result<i64, RulesError> {
+    fn query_to_place_row(ctx: &ExprContext) -> Result<i64, RulesError> {
         if let ExprScenario::PiecePlacement { to_place, .. } = ctx.scenario {
             Ok(to_place.row())
         } else {

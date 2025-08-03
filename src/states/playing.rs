@@ -1,18 +1,19 @@
 use crate::{
+    GameError,
     assets::GameAssets,
     piece::{HighlightedPiece, MovingPiece, PieceKind, PlacedPiece, PlacingPiece},
     rules::{
         GameRules,
         board::BoardRuleSet,
-        piece::{PieceColor, PieceModel, PieceRuleSet},
+        expr::{ExprContext, ExprScenario},
         position::Pos,
     },
     session::{
         GameSession,
         piece_index::{PieceEntities, PlacedPieceIndex},
         state::SessionState,
-        tile_index::{TileEntities, TileIndex},
-        turn::TurnController,
+        tile_index::TileEntities,
+        turn::{PlayerState, TurnController},
     },
     states::GameState,
     tile::{PlaceableTile, SourceOrTargetTile, Tile},
@@ -164,9 +165,7 @@ fn on_enter(
     }
 
     // Insert resources
-    commands.insert_resource(TopPanelText(
-        session.turn_controller.formatted_turn_message(),
-    ));
+    commands.insert_resource(TopPanelText(session.turn_controller.turn_message()));
     commands.insert_resource(session);
 }
 
@@ -228,7 +227,7 @@ fn on_pointer_drag(
     }
 }
 
-/// A system that triggered when the primary button is released.
+/// A system that triggered when the primary button is pressed.
 fn on_button_pressed(
     mut pressed: EventReader<Pointer<Pressed>>,
     mut egui: EguiContexts,
@@ -255,6 +254,15 @@ fn on_button_pressed(
     if let SessionState::Placing(placing) = &mut session.state {
         for event in pressed.read() {
             if event.button == PointerButton::Primary {
+                // Unhighlight placeable tiles
+                for pos in placing.placeable_tiles() {
+                    if let Ok(mut visibility) =
+                        placeable_tile_query.get_mut(session.tiles.get(pos).unwrap().placeable())
+                    {
+                        *visibility = Visibility::Hidden;
+                    }
+                }
+
                 if let Some(to_place) = placing.to_place_pos() {
                     // If the to place position is already occupied, remove the existing piece (i.e. capture it)
                     despawn_placed_piece(&mut commands, &mut session.placed_pieces, to_place);
@@ -277,25 +285,16 @@ fn on_button_pressed(
                         *visibility = Visibility::Hidden;
                     }
 
-                    // Advance the turn
-                    // We only switch players if the piece was moved
-                    session.turn_controller.advance_turn();
-
-                    // Update the top panel text to reflect the current player's turn
-                    top_panel_text.0 = session.turn_controller.formatted_turn_message();
-                };
-
-                // Unhighlight placeable tiles
-                for pos in placing.placeable_tiles() {
-                    if let Ok(mut visibility) =
-                        placeable_tile_query.get_mut(session.tiles.get(pos).unwrap().placeable())
-                    {
-                        *visibility = Visibility::Hidden;
-                    }
+                    finish_turn(
+                        &rules,
+                        &mut session.turn_controller,
+                        &mut session.state,
+                        &mut top_panel_text,
+                    );
+                } else {
+                    // Placement cancelled.
+                    session.state = SessionState::Selecting;
                 }
-
-                // Finish placing state
-                session.state = SessionState::Selecting;
 
                 // We only handle the first release event
                 break;
@@ -334,6 +333,7 @@ fn on_button_released(
             Without<SourceOrTargetTile>,
         ),
     >,
+    rules: Res<GameRules>,
     mut session: ResMut<GameSession>,
     mut top_panel_text: ResMut<TopPanelText>,
 ) {
@@ -347,22 +347,6 @@ fn on_button_released(
         for event in released.read() {
             if event.button == PointerButton::Primary {
                 if let Ok(moving) = moving_piece_query.get(entities.base()) {
-                    if moving.moved() {
-                        // If the target position is already occupied, remove the existing piece (i.e. capture it)
-                        despawn_placed_piece(
-                            &mut commands,
-                            &mut session.placed_pieces,
-                            moving.current_pos(),
-                        );
-
-                        // Advance the turn
-                        // We only switch players if the piece was moved
-                        session.turn_controller.advance_turn();
-
-                        // Update the top panel text to reflect the current player's turn
-                        top_panel_text.0 = session.turn_controller.formatted_turn_message();
-                    }
-
                     // Unhighlight the moving piece
                     if let Ok(mut visibility) =
                         highlighted_piece_query.get_mut(entities.highlighted())
@@ -390,6 +374,13 @@ fn on_button_released(
                         }
                     }
 
+                    // If the target position is already occupied, remove the existing piece (i.e. capture it)
+                    despawn_placed_piece(
+                        &mut commands,
+                        &mut session.placed_pieces,
+                        moving.current_pos(),
+                    );
+
                     // Update component
                     commands
                         .entity(entities.base())
@@ -401,8 +392,17 @@ fn on_button_released(
                         .placed_pieces
                         .add(moving.current_pos(), entities.clone());
 
-                    // Finish moving state
-                    session.state = SessionState::Selecting;
+                    if moving.moved() {
+                        finish_turn(
+                            &rules,
+                            &mut session.turn_controller,
+                            &mut session.state,
+                            &mut top_panel_text,
+                        );
+                    } else {
+                        // Movement cancelled.
+                        session.state = SessionState::Selecting;
+                    }
                 }
 
                 // We only handle the first release event
@@ -764,6 +764,87 @@ fn pos_to_world(pos: Pos, board: &BoardRuleSet, y: f32) -> Vec3 {
         y,
         half_len(board.rows()) - pos.row() as f32 * BoardRuleSet::tile_size(),
     )
+}
+
+/// Finishes the current turn, evaluates win/loss conditions, and prepares for the next turn or ends the game.
+fn finish_turn(
+    rules: &GameRules,
+    turn_controller: &mut TurnController,
+    session_state: &mut SessionState,
+    top_panel_text: &mut TopPanelText,
+) {
+    let turn_number = turn_controller.turn_number();
+    let round_number = turn_controller.round_number();
+
+    // Check win and lose condition for each active player.
+    for (piece_color, player) in turn_controller
+        .players_mut()
+        .filter(|(_, player)| player.state() == PlayerState::Active)
+    {
+        let player_rules = rules.players.get(piece_color);
+
+        // Check win condition
+        let ctx = ExprContext {
+            turn_number,
+            round_number,
+            scenario: ExprScenario::PlayerWinCondition { piece_color },
+        };
+
+        if player_rules.win_condition().evaluate(&ctx).unwrap() {
+            player.set_state(PlayerState::Won);
+
+            // If the player has won, we don't check it's lose condition.
+            continue;
+        }
+
+        // Check lose condition
+        let ctx = ExprContext {
+            turn_number,
+            round_number,
+            scenario: ExprScenario::PlayerLoseCondition { piece_color },
+        };
+
+        if player_rules.lose_condition().evaluate(&ctx).unwrap() {
+            player.set_state(PlayerState::Lost);
+        }
+    }
+
+    // Check game over condition
+    let ctx = ExprContext {
+        turn_number,
+        round_number,
+        scenario: ExprScenario::GameOverCondition,
+    };
+
+    if rules.game_over_condition.evaluate(&ctx).unwrap() {
+        // Update top panel text.
+        top_panel_text.0 = format!("Game Over: {}", turn_controller.player_states_message());
+
+        // Switch to [`SessionSate::Reviewing`].
+        *session_state = SessionState::Reviewing;
+    } else {
+        // Advance the turn
+        match turn_controller.advance_turn() {
+            Ok(()) => {
+                top_panel_text.0 = turn_controller.turn_message();
+
+                // Switch to [`SessionSate::Selecting`].
+                *session_state = SessionState::Selecting;
+            }
+            Err(GameError::NoActivePlayer) => {
+                top_panel_text.0 = format!(
+                    "No Active Player: {}",
+                    turn_controller.player_states_message()
+                );
+
+                // Switch to [`SessionSate::Reviewing`].
+                *session_state = SessionState::Reviewing;
+            }
+            Err(_) => {
+                panic!("Unexpected error occurred");
+            }
+        }
+    }
 }
 
 fn top_panel(mut egui: EguiContexts, text: Res<TopPanelText>) {

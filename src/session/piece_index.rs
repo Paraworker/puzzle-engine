@@ -1,7 +1,6 @@
+use crate::rules::position::Pos;
 use bevy::prelude::*;
 use std::collections::HashMap;
-
-use crate::rules::position::Pos;
 
 /// Entities associated with a piece.
 #[derive(Debug, Clone)]
