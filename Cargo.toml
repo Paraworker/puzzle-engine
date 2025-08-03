@@ -1,13 +1,2 @@
-[package]
-name = "crazy-puzzle"
-version = "0.1.0"
-edition = "2024"
-description = "A puzzle game engine"
-
-[dependencies]
-bevy = "0.16"
-bevy_egui = "0.35"
-indexmap = "2.10"
-ron = "0.10"
-serde = { version = "1.0", features = ["derive"] }
-thiserror = "2.0"
+[workspace]
+members = ["game", "rules"]
