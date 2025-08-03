@@ -1,13 +1,14 @@
 use crate::{
     GameError,
     assets::GameAssets,
+    expr_contexts::{game_over::GameOverContext, win_or_lose::WinOrLoseContext},
     piece::{HighlightedPiece, MovingPiece, PlacedPiece, PlacingPiece},
     session::{
         GameSession,
         piece_index::{PieceEntities, PlacedPieceIndex},
         state::SessionState,
         tile_index::TileEntities,
-        turn::{PlayerState, TurnController},
+        turn::TurnController,
     },
     states::{GameState, game_setup::GameRules},
     tile::{PlaceableTile, SourceOrTargetTile, Tile},
@@ -20,8 +21,8 @@ use bevy_egui::{
 use crazy_puzzle_rules::{
     Rules,
     board::BoardRuleSet,
-    expr::{ExprContext, ExprScenario},
     piece::{PieceColor, PieceModel},
+    player::PlayerState,
     position::Pos,
 };
 
@@ -798,13 +799,13 @@ fn finish_turn(
     {
         let player_rules = rules.players.get(piece_color);
 
-        // Check win condition
-        let ctx = ExprContext {
+        let ctx = WinOrLoseContext {
+            piece_color,
             turn_number,
             round_number,
-            scenario: ExprScenario::PlayerWinCondition { piece_color },
         };
 
+        // Check win condition
         if player_rules.win_condition().evaluate(&ctx).unwrap() {
             player.set_state(PlayerState::Won);
 
@@ -813,24 +814,17 @@ fn finish_turn(
         }
 
         // Check lose condition
-        let ctx = ExprContext {
-            turn_number,
-            round_number,
-            scenario: ExprScenario::PlayerLoseCondition { piece_color },
-        };
-
         if player_rules.lose_condition().evaluate(&ctx).unwrap() {
             player.set_state(PlayerState::Lost);
         }
     }
 
-    // Check game over condition
-    let ctx = ExprContext {
+    let ctx = GameOverContext {
         turn_number,
         round_number,
-        scenario: ExprScenario::GameOverCondition,
     };
 
+    // Check game over condition
     if rules.game_over_condition.evaluate(&ctx).unwrap() {
         // Update top panel text.
         top_panel_text.0 = format!("Game Over: {}", turn_controller.player_states_message());

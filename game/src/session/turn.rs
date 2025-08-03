@@ -2,27 +2,9 @@ use crate::GameError;
 use crazy_puzzle_rules::{
     count::Count,
     piece::{PieceColor, PieceModel, PieceRuleSet},
-    player::PlayerRuleSet,
+    player::{PlayerRuleSet, PlayerState},
 };
 use indexmap::IndexMap;
-use std::fmt;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PlayerState {
-    Active,
-    Won,
-    Lost,
-}
-
-impl fmt::Display for PlayerState {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            PlayerState::Active => write!(f, "Active"),
-            PlayerState::Won => write!(f, "Won"),
-            PlayerState::Lost => write!(f, "Lost"),
-        }
-    }
-}
 
 /// Represents a player in the game.
 ///

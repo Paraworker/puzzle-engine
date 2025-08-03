@@ -1,7 +1,12 @@
-use crate::{GameError, session::GameSession, tile::Tile};
+use crate::{
+    GameError,
+    expr_contexts::{movement::MovementContext, placement::PlacementContext},
+    session::GameSession,
+    tile::Tile,
+};
 use bevy::prelude::*;
 use crazy_puzzle_rules::{
-    expr::{ExprContext, ExprScenario, boolean::BoolExpr},
+    conditions::{movement::MovementCondition, placement::PlacementCondition},
     piece::{PieceColor, PieceModel},
     position::Pos,
 };
@@ -57,7 +62,7 @@ impl MovingPiece {
         color: PieceColor,
         initial: Pos,
         session: &mut GameSession,
-        movement: &BoolExpr,
+        movement: &MovementCondition,
         tiles: I,
     ) -> Result<Self, GameError>
     where
@@ -123,7 +128,7 @@ impl MovingPiece {
         color: PieceColor,
         source: Pos,
         session: &GameSession,
-        movement: &BoolExpr,
+        movement: &MovementCondition,
         tiles: I,
     ) -> Result<HashSet<Pos>, GameError>
     where
@@ -131,24 +136,22 @@ impl MovingPiece {
     {
         let mut placeable = HashSet::new();
 
+        let turn_number = session.turn_controller.turn_number();
+        let round_number = session.turn_controller.round_number();
+
         for tile in tiles {
             // Skip source tile
             if source == tile.pos() {
                 continue;
             }
 
-            let turn_number = session.turn_controller.turn_number();
-            let round_number = session.turn_controller.round_number();
-
-            let ctx = ExprContext {
+            let ctx = MovementContext {
+                model,
+                color,
                 turn_number,
                 round_number,
-                scenario: ExprScenario::PieceMovement {
-                    model,
-                    color,
-                    source,
-                    target: tile.pos(),
-                },
+                source,
+                target: tile.pos(),
             };
 
             if movement.evaluate(&ctx)? {
@@ -177,7 +180,7 @@ impl PlacingPiece {
         model: PieceModel,
         color: PieceColor,
         session: &GameSession,
-        placement: &BoolExpr,
+        placement: &PlacementCondition,
         tiles: I,
     ) -> Result<Self, GameError>
     where
@@ -236,7 +239,7 @@ impl PlacingPiece {
         model: PieceModel,
         color: PieceColor,
         session: &GameSession,
-        placement: &BoolExpr,
+        placement: &PlacementCondition,
         tiles: I,
     ) -> Result<HashSet<Pos>, GameError>
     where
@@ -248,14 +251,12 @@ impl PlacingPiece {
         let round_number = session.turn_controller.round_number();
 
         for tile in tiles {
-            let ctx = ExprContext {
+            let ctx = PlacementContext {
+                model,
+                color,
                 turn_number,
                 round_number,
-                scenario: ExprScenario::PiecePlacement {
-                    model,
-                    color,
-                    to_place: tile.pos(),
-                },
+                to_place: tile.pos(),
             };
 
             if placement.evaluate(&ctx)? {

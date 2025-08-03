@@ -1,33 +1,39 @@
 use crate::{
     RulesError,
-    expr::{ExprContext, arith::ArithExpr},
+    expr::{Context, integer::IntExpr},
 };
 use serde::{Deserialize, Serialize};
 
 /// Boolean expression.
 #[derive(Debug, Serialize, Deserialize)]
-pub enum BoolExpr {
+pub enum BoolExpr<B, I> {
     /// Literal
     True,
     False,
 
     /// Logical operators
-    And(Box<BoolExpr>, Box<BoolExpr>),
-    Or(Box<BoolExpr>, Box<BoolExpr>),
-    Not(Box<BoolExpr>),
+    And(Box<BoolExpr<B, I>>, Box<BoolExpr<B, I>>),
+    Or(Box<BoolExpr<B, I>>, Box<BoolExpr<B, I>>),
+    Not(Box<BoolExpr<B, I>>),
 
     /// Arithmetic comparison operators
-    Equal(ArithExpr, ArithExpr),
-    NotEqual(ArithExpr, ArithExpr),
-    LessThan(ArithExpr, ArithExpr),
-    GreaterThan(ArithExpr, ArithExpr),
-    LessOrEqual(ArithExpr, ArithExpr),
-    GreaterOrEqual(ArithExpr, ArithExpr),
+    Equal(IntExpr<I>, IntExpr<I>),
+    NotEqual(IntExpr<I>, IntExpr<I>),
+    LessThan(IntExpr<I>, IntExpr<I>),
+    GreaterThan(IntExpr<I>, IntExpr<I>),
+    LessOrEqual(IntExpr<I>, IntExpr<I>),
+    GreaterOrEqual(IntExpr<I>, IntExpr<I>),
+
+    /// Query from variable
+    Query(B),
 }
 
-impl BoolExpr {
+impl<B, I> BoolExpr<B, I> {
     /// Evaluates the boolean expression.
-    pub fn evaluate(&self, ctx: &ExprContext) -> Result<bool, RulesError> {
+    pub fn evaluate<C>(&self, ctx: &C) -> Result<bool, RulesError>
+    where
+        C: Context<BoolVar = B, IntVar = I>,
+    {
         match self {
             BoolExpr::True => Ok(true),
             BoolExpr::False => Ok(false),
@@ -40,6 +46,7 @@ impl BoolExpr {
             BoolExpr::GreaterThan(lhs, rhs) => Ok(lhs.evaluate(ctx)? > rhs.evaluate(ctx)?),
             BoolExpr::LessOrEqual(lhs, rhs) => Ok(lhs.evaluate(ctx)? <= rhs.evaluate(ctx)?),
             BoolExpr::GreaterOrEqual(lhs, rhs) => Ok(lhs.evaluate(ctx)? >= rhs.evaluate(ctx)?),
+            BoolExpr::Query(var) => Ok(ctx.query_bool(var)?),
         }
     }
 }

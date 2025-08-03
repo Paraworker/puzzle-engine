@@ -1,50 +1,22 @@
-use crate::{
-    piece::{PieceColor, PieceModel},
-    position::Pos,
-};
+use thiserror::Error;
 
-pub mod arith;
 pub mod boolean;
+pub mod integer;
 
-#[derive(Debug)]
-pub enum ExprScenario {
-    /// A piece is being moved from one tile to another.
-    PieceMovement {
-        /// The model of the piece.
-        model: PieceModel,
-        /// The color of the piece.
-        color: PieceColor,
-        /// The source position of the piece.
-        source: Pos,
-        /// The target position of the piece.
-        target: Pos,
-    },
-    /// A new piece is being placed onto the board.
-    PiecePlacement {
-        /// The model of the piece.
-        model: PieceModel,
-        /// The color of the piece.
-        color: PieceColor,
-        /// The position where the piece is to be placed.
-        to_place: Pos,
-    },
-    /// Check whether a player should win.
-    PlayerWinCondition {
-        /// Piece color of the player.
-        piece_color: PieceColor,
-    },
-    /// Check whether a player should lose.
-    PlayerLoseCondition {
-        /// Piece color of the player.
-        piece_color: PieceColor,
-    },
-    /// Check whether the game should over.
-    GameOverCondition,
-}
+#[derive(Debug, Error)]
+#[error("{0}")]
+pub struct QueryError(pub String);
 
-#[derive(Debug)]
-pub struct ExprContext {
-    pub turn_number: i64,
-    pub round_number: i64,
-    pub scenario: ExprScenario,
+/// Context for evaluating expressions.
+pub trait Context {
+    /// Boolean variable type associated with the context.
+    type BoolVar;
+    /// Integer variable type associated with the context.
+    type IntVar;
+
+    /// Query the value of a boolean variable.
+    fn query_bool(&self, var: &Self::BoolVar) -> Result<bool, QueryError>;
+
+    /// Query the value of an int variable.
+    fn query_int(&self, var: &Self::IntVar) -> Result<i64, QueryError>;
 }
