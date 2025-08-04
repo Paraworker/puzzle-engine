@@ -1,8 +1,11 @@
-use crate::session::{
-    piece_index::PlacedPieceIndex, state::SessionState, tile_index::TileIndex, turn::TurnController,
+use crate::{
+    session::{
+        piece_index::PlacedPieceIndex, state::SessionState, tile_index::TileIndex,
+        turn::TurnController,
+    },
+    states::game_setup::LoadedRules,
 };
 use bevy::prelude::*;
-use crazy_puzzle_rules::Rules;
 
 pub mod piece_index;
 pub mod state;
@@ -18,7 +21,7 @@ pub struct GameSession {
 }
 
 impl GameSession {
-    pub fn new(rules: &Rules) -> Self {
+    pub fn new(rules: &LoadedRules) -> Self {
         Self {
             state: SessionState::Selecting,
             tiles: TileIndex::new(),

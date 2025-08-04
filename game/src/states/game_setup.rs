@@ -1,8 +1,7 @@
-use std::ops::Deref;
-
-use crate::states::GameState;
+use crate::{settings::Settings, states::GameState};
 use bevy::prelude::*;
-use crazy_puzzle_rules::Rules;
+use crazy_puzzle_rules::GameRules;
+use std::ops::Deref;
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
@@ -19,10 +18,10 @@ impl Plugin for GameSetupPlugin {
 }
 
 #[derive(Resource)]
-pub struct GameRules(Rules);
+pub struct LoadedRules(GameRules);
 
-impl Deref for GameRules {
-    type Target = Rules;
+impl Deref for LoadedRules {
+    type Target = GameRules;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -32,7 +31,10 @@ impl Deref for GameRules {
 #[derive(Component)]
 struct GameSetupMarker;
 
-fn on_enter(mut commands: Commands) {
+fn on_enter(mut commands: Commands, settings: Res<Settings>) {
+    // Load rules from settings
+    let rules = GameRules::load(settings.rules_path.as_path()).unwrap();
+
     // camera
     commands.spawn((Camera2d, GameSetupMarker));
 
@@ -58,11 +60,13 @@ fn on_enter(mut commands: Commands) {
                     ..default()
                 })
                 .with_children(|parent| {
-                    parent.spawn(label("Build Your Game", 50.0));
+                    parent.spawn(label(format!("Loaded Rules: {}", rules.name), 50.0));
                     parent.spawn(spacer(200.0));
                     parent.spawn(button("Ready!"));
                 });
         });
+
+    commands.insert_resource(LoadedRules(rules));
 }
 
 fn on_exit(mut commands: Commands, entities: Query<Entity, With<GameSetupMarker>>) {
@@ -72,7 +76,6 @@ fn on_exit(mut commands: Commands, entities: Query<Entity, With<GameSetupMarker>
 }
 
 fn update(
-    mut commands: Commands,
     mut next_state: ResMut<NextState<GameState>>,
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &mut BorderColor),
@@ -84,11 +87,6 @@ fn update(
             Interaction::Pressed => {
                 *color = PRESSED_BUTTON.into();
                 border_color.0 = Color::WHITE;
-
-                // TODO: Load rules from UI
-                commands.insert_resource(GameRules(
-                    Rules::load("game/assets/rules/test.ron").unwrap(),
-                ));
 
                 next_state.set(GameState::Loading);
             }

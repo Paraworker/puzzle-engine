@@ -31,8 +31,10 @@ pub enum RulesError {
     Io(#[from] std::io::Error),
 }
 
+/// Rules for a game.
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Rules {
+pub struct GameRules {
+    pub name: String,
     pub board: BoardRuleSet,
     pub pieces: PieceRuleSet,
     pub players: PlayerRuleSet,
@@ -40,7 +42,7 @@ pub struct Rules {
     pub game_over_condition: GameOverCondition,
 }
 
-impl Rules {
+impl GameRules {
     pub fn load<P>(path: P) -> Result<Self, RulesError>
     where
         P: AsRef<Path>,
