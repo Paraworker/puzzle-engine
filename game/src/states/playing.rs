@@ -10,7 +10,7 @@ use crate::{
         tile_index::TileEntities,
         turn::TurnController,
     },
-    states::{GameState, game_setup::GameRules},
+    states::{GameState, game_setup::LoadedRules},
     tile::{PlaceableTile, SourceOrTargetTile, Tile},
 };
 use bevy::{input::mouse::MouseWheel, prelude::*, render::view::RenderLayers};
@@ -19,7 +19,6 @@ use bevy_egui::{
     egui::{self, Stroke},
 };
 use crazy_puzzle_rules::{
-    Rules,
     board::BoardRuleSet,
     piece::{PieceColor, PieceModel},
     player::PlayerState,
@@ -107,7 +106,7 @@ fn on_enter(
     mut egui_global_settings: ResMut<EguiGlobalSettings>,
     mut meshes: ResMut<Assets<Mesh>>,
     assets: Res<GameAssets>,
-    rules: Res<GameRules>,
+    rules: Res<LoadedRules>,
 ) {
     // Disable the automatic creation of a primary context to set it up manually for the camera we need.
     egui_global_settings.auto_create_primary_context = false;
@@ -181,7 +180,7 @@ fn on_exit(mut commands: Commands, entities: Query<Entity, With<PlayingMarker>>)
     // Delete related resources
     commands.remove_resource::<TopPanelText>();
     commands.remove_resource::<GameSession>();
-    commands.remove_resource::<GameRules>();
+    commands.remove_resource::<LoadedRules>();
 }
 
 /// A system that triggered on the mouse wheel event.
@@ -250,7 +249,7 @@ fn on_button_pressed(
         (With<PlaceableTile>, Without<SourceOrTargetTile>),
     >,
     assets: Res<GameAssets>,
-    rules: Res<GameRules>,
+    rules: Res<LoadedRules>,
     mut session: ResMut<GameSession>,
     mut top_panel_text: ResMut<TopPanelText>,
 ) {
@@ -343,7 +342,7 @@ fn on_button_released(
             Without<SourceOrTargetTile>,
         ),
     >,
-    rules: Res<GameRules>,
+    rules: Res<LoadedRules>,
     mut session: ResMut<GameSession>,
     mut top_panel_text: ResMut<TopPanelText>,
 ) {
@@ -443,7 +442,7 @@ fn spawn_board(
             (With<SourceOrTargetTile>, Without<PlaceableTile>),
         >,
         mut placeable_tile_query: Query<&mut Visibility, With<PlaceableTile>>,
-        rules: Res<GameRules>,
+        rules: Res<LoadedRules>,
         mut session: ResMut<GameSession>,
     ) {
         match &mut session.state {
@@ -648,7 +647,7 @@ fn spawn_placed_piece(
             ),
         >,
         mut session: ResMut<GameSession>,
-        rules: Res<GameRules>,
+        rules: Res<LoadedRules>,
     ) {
         if let SessionState::Selecting = session.state {
             // Skip if the pointer event is not primary click
@@ -784,7 +783,7 @@ fn pos_to_world(pos: Pos, board: &BoardRuleSet, y: f32) -> Vec3 {
 
 /// Finishes the current turn, evaluates win/loss conditions, and prepares for the next turn or ends the game.
 fn finish_turn(
-    rules: &Rules,
+    rules: &LoadedRules,
     turn_controller: &mut TurnController,
     session_state: &mut SessionState,
     top_panel_text: &mut TopPanelText,
@@ -876,7 +875,7 @@ fn stock_panel(
     mut egui: EguiContexts,
     tile_query: Query<&Tile>,
     mut placeable_query: Query<&mut Visibility, With<PlaceableTile>>,
-    rules: Res<GameRules>,
+    rules: Res<LoadedRules>,
     mut session: ResMut<GameSession>,
 ) {
     let session = session.as_mut();

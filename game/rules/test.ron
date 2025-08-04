@@ -1,4 +1,5 @@
 (
+    name: "Test",
     board: (
         rows: 8,
         cols: 8,

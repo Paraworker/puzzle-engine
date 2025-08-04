@@ -9,10 +9,10 @@ use ron::de::SpannedError;
 use thiserror::Error;
 
 mod assets;
-mod config;
 mod expr_contexts;
 mod piece;
 mod session;
+mod settings;
 mod states;
 mod tile;
 

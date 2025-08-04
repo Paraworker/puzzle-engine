@@ -1,4 +1,4 @@
-use crate::{assets::GameAssets, config::Config, states::GameState};
+use crate::{assets::GameAssets, settings::Settings, states::GameState};
 use bevy::{
     app::{App, Plugin, Startup},
     asset::Assets,
@@ -22,8 +22,8 @@ fn on_startup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
-    // Load config
-    commands.insert_resource(Config::load().expect("Unable to load config"));
+    // Load setting
+    commands.insert_resource(Settings::load("game/settings.ron").unwrap());
 
     // Load assets
     commands.insert_resource(GameAssets::new(&mut materials, &mut meshes));
