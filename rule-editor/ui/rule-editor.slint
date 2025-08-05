@@ -1,0 +1,150 @@
+import { TabWidget, LineEdit, Button, ListView } from "std-widgets.slint";
+import { TextEditor } from "text-editor.slint";
+
+component NamePage inherits VerticalLayout {
+    in-out property <string> rules_name;
+
+    padding: 16px;
+    spacing: 12px;
+    alignment: center;
+
+    HorizontalLayout {
+        min-width: 400px;
+        alignment: center;
+        LineEdit {
+            placeholder-text: "Enter rules name here";
+            width: 400px;
+            height: 30px;
+            text <=> root.rules_name;
+        }
+    }
+}
+
+component BoardPage inherits HorizontalLayout {
+    in-out property <string> board_rows;
+    in-out property <string> board_cols;
+
+    padding: 16px;
+    spacing: 12px;
+    alignment: center;
+
+    VerticalLayout {
+        min-width: 400px;
+        alignment: center;
+        spacing: 12px;
+        LineEdit {
+            placeholder-text: "Enter board row number here";
+            input-type: number;
+            width: 400px;
+            height: 30px;
+            text <=> root.board_rows;
+        }
+
+        LineEdit {
+            placeholder-text: "Enter board column number here";
+            input-type: number;
+            width: 400px;
+            height: 30px;
+            text <=> root.board_cols;
+        }
+    }
+}
+
+component PiecesPage inherits GridLayout {
+    in-out property <string> content;
+
+    padding: 16px;
+    spacing: 12px;
+
+    TextEditor {
+        content <=> root.content;
+    }
+}
+
+component PlayersPage inherits GridLayout {
+    in-out property <string> content;
+
+    padding: 16px;
+    spacing: 12px;
+
+    TextEditor {
+        content <=> root.content;
+    }
+}
+
+component InitialLayoutPage inherits GridLayout {
+    in-out property <string> content;
+
+    padding: 16px;
+    spacing: 12px;
+
+    TextEditor {
+        content <=> root.content;
+    }
+}
+
+component GameOverConditionPage inherits GridLayout {
+    in-out property <string> content;
+
+    padding: 16px;
+    spacing: 12px;
+
+    TextEditor {
+        content <=> root.content;
+    }
+}
+
+export component RuleEditor inherits VerticalLayout {
+    in-out property <string> rules_name;
+    in-out property <string> board_rows;
+    in-out property <string> board_cols;
+    in-out property <string> pieces;
+    in-out property <string> players;
+    in-out property <string> initial_layout;
+    in-out property <string> game_over_condition;
+
+    TabWidget {
+        Tab {
+            title: "Name";
+            NamePage {
+                rules_name <=> root.rules_name;
+            }
+        }
+
+        Tab {
+            title: "Board";
+            BoardPage {
+                board_rows <=> root.board_rows;
+                board_cols <=> root.board_cols;
+            }
+        }
+
+        Tab {
+            title: "Pieces";
+            PiecesPage {
+                content <=> root.pieces;
+            }
+        }
+
+        Tab {
+            title: "Players";
+            PlayersPage {
+                content <=> root.players;
+            }
+        }
+
+        Tab {
+            title: "Initial Layout";
+            InitialLayoutPage {
+                content <=> root.initial_layout;
+            }
+        }
+
+        Tab {
+            title: "Game Over Condition";
+            GameOverConditionPage {
+                content <=> root.game_over_condition;
+            }
+        }
+    }
+}

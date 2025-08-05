@@ -1,4 +1,9 @@
-use crate::{RulesError, expr::boolean::BoolExpr, piece::PieceColor};
+use crate::{
+    RulesError,
+    expr::boolean::BoolExpr,
+    piece::PieceColor,
+    utils::{from_ron_str, to_ron_str},
+};
 use indexmap::{IndexMap, map::Entry};
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -109,5 +114,15 @@ impl PlayerRuleSet {
     /// Returns player number.
     pub fn player_num(&self) -> usize {
         self.0.len()
+    }
+
+    /// Parses from a ron string.
+    pub fn from_ron_str(str: &str) -> Result<Self, RulesError> {
+        from_ron_str(str)
+    }
+
+    /// Converts into a ron string.
+    pub fn to_ron_str(&self) -> Result<String, RulesError> {
+        to_ron_str(self)
     }
 }

@@ -1,4 +1,9 @@
-use crate::{RulesError, count::Count, expr::boolean::BoolExpr};
+use crate::{
+    RulesError,
+    count::Count,
+    expr::boolean::BoolExpr,
+    utils::{from_ron_str, to_ron_str},
+};
 use indexmap::{IndexMap, map::Entry};
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -156,5 +161,15 @@ impl PieceRuleSet {
     /// Returns number of added piece models.
     pub fn model_num(&self) -> usize {
         self.0.len()
+    }
+
+    /// Parses from a ron string.
+    pub fn from_ron_str(str: &str) -> Result<Self, RulesError> {
+        from_ron_str(str)
+    }
+
+    /// Converts into a ron string.
+    pub fn to_ron_str(&self) -> Result<String, RulesError> {
+        to_ron_str(self)
     }
 }
