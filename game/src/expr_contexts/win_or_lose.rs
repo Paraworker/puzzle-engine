@@ -1,30 +1,56 @@
+use crate::{
+    GameError,
+    expr_contexts::{
+        query_color_at_pos_equal, query_model_at_pos_equal, query_pos_occupied, query_round_number,
+        query_turn_number,
+    },
+    piece::PlacedPiece,
+    session::{piece_index::PlacedPieceIndex, turn::TurnController},
+};
+use bevy::prelude::*;
 use rule_engine::{
-    conditions::win_or_lose::{WinOrLoseBool, WinOrLoseInt},
-    expr::{Context, QueryError},
-    piece::PieceColor,
+    expr::Context,
+    piece::{PieceColor, PieceModel},
+    position::Pos,
 };
 
 #[derive(Debug)]
-pub struct WinOrLoseContext {
-    pub piece_color: PieceColor,
-    pub turn_number: i64,
-    pub round_number: i64,
+pub struct WinOrLoseContext<'t, 'i, 'world, 'state, 'data> {
+    pub turn: &'t TurnController,
+    pub placed_piece_index: &'i PlacedPieceIndex,
+    pub placed_piece_query: Query<'world, 'state, &'data PlacedPiece>,
 }
 
-impl Context for WinOrLoseContext {
-    type BoolVar = WinOrLoseBool;
-    type IntVar = WinOrLoseInt;
+impl Context for WinOrLoseContext<'_, '_, '_, '_, '_> {
+    type Error = GameError;
 
-    fn query_bool(&self, var: &Self::BoolVar) -> Result<bool, QueryError> {
-        match var {
-            WinOrLoseBool::PlayerColorEqual(color) => Ok(self.piece_color == *color),
-        }
+    fn turn_number(&self) -> Result<i64, Self::Error> {
+        query_turn_number(&self.turn)
     }
 
-    fn query_int(&self, var: &Self::IntVar) -> Result<i64, QueryError> {
-        match var {
-            WinOrLoseInt::TurnNumber => Ok(self.turn_number),
-            WinOrLoseInt::RoundNumber => Ok(self.round_number),
-        }
+    fn round_number(&self) -> Result<i64, Self::Error> {
+        query_round_number(&self.turn)
+    }
+
+    fn pos_occupied(&self, pos: Pos) -> Result<bool, Self::Error> {
+        query_pos_occupied(&self.placed_piece_index, pos)
+    }
+
+    fn model_at_pos_equal(&self, pos: Pos, model: PieceModel) -> Result<bool, Self::Error> {
+        query_model_at_pos_equal(
+            &self.placed_piece_index,
+            self.placed_piece_query,
+            pos,
+            model,
+        )
+    }
+
+    fn color_at_pos_equal(&self, pos: Pos, color: PieceColor) -> Result<bool, Self::Error> {
+        query_color_at_pos_equal(
+            &self.placed_piece_index,
+            self.placed_piece_query,
+            pos,
+            color,
+        )
     }
 }

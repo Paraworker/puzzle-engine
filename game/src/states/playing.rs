@@ -6,9 +6,9 @@ use crate::{
     session::{
         GameSession,
         piece_index::{PieceEntities, PlacedPieceIndex},
+        player::Players,
         state::SessionState,
         tile_index::TileEntities,
-        turn::TurnController,
     },
     states::{GameState, game_setup::LoadedRules},
     tile::{PlaceableTile, SourceOrTargetTile, Tile},
@@ -156,10 +156,10 @@ fn on_enter(
     for piece in rules.initial_layout.layout() {
         spawn_placed_piece(
             &mut commands,
-            &mut session.placed_pieces,
-            &mut session.turn_controller,
             &assets,
             &rules.board,
+            &mut session.players,
+            &mut session.placed_pieces,
             piece.model(),
             piece.color(),
             piece.pos(),
@@ -167,7 +167,7 @@ fn on_enter(
     }
 
     // Insert resources
-    commands.insert_resource(TopPanelText(session.turn_controller.turn_message()));
+    commands.insert_resource(TopPanelText(session.turn.turn_message(&session.players)));
     commands.insert_resource(session);
 }
 
@@ -248,6 +248,7 @@ fn on_button_pressed(
         &mut Visibility,
         (With<PlaceableTile>, Without<SourceOrTargetTile>),
     >,
+    placed_piece_query: Query<&PlacedPiece>,
     assets: Res<GameAssets>,
     rules: Res<LoadedRules>,
     mut session: ResMut<GameSession>,
@@ -278,10 +279,10 @@ fn on_button_pressed(
                     // Spawn the placed piece at the target position
                     spawn_placed_piece(
                         &mut commands,
-                        &mut session.placed_pieces,
-                        &mut session.turn_controller,
                         &assets,
                         &rules.board,
+                        &mut session.players,
+                        &mut session.placed_pieces,
                         placing.model(),
                         placing.color(),
                         to_place,
@@ -294,12 +295,7 @@ fn on_button_pressed(
                         *visibility = Visibility::Hidden;
                     }
 
-                    finish_turn(
-                        &rules,
-                        &mut session.turn_controller,
-                        &mut session.state,
-                        &mut top_panel_text,
-                    );
+                    finish_turn(&rules, session, placed_piece_query, &mut top_panel_text);
                 } else {
                     // Placement cancelled.
                     session.state = SessionState::Selecting;
@@ -317,6 +313,7 @@ fn on_button_released(
     mut released: EventReader<Pointer<Released>>,
     mut egui: EguiContexts,
     mut commands: Commands,
+    placed_piece_query: Query<&PlacedPiece>,
     moving_piece_query: Query<&MovingPiece>,
     mut highlighted_piece_query: Query<
         &mut Visibility,
@@ -406,12 +403,7 @@ fn on_button_released(
                         .add(moving.current_pos(), entities.clone());
 
                     if moving.moved() {
-                        finish_turn(
-                            &rules,
-                            &mut session.turn_controller,
-                            &mut session.state,
-                            &mut top_panel_text,
-                        );
+                        finish_turn(&rules, session, placed_piece_query, &mut top_panel_text);
                     } else {
                         // Movement cancelled.
                         session.state = SessionState::Selecting;
@@ -609,10 +601,10 @@ fn piece_pos_to_world(to: Pos, board: &BoardRuleSet) -> Vec3 {
 /// Spawns a piece on the board at the specified position with the given model and color.
 fn spawn_placed_piece(
     commands: &mut Commands,
-    placed_pieces: &mut PlacedPieceIndex,
-    turn_controller: &mut TurnController,
     assets: &GameAssets,
     board: &BoardRuleSet,
+    players: &mut Players,
+    placed_pieces: &mut PlacedPieceIndex,
     model: PieceModel,
     color: PieceColor,
     pos: Pos,
@@ -661,7 +653,12 @@ fn spawn_placed_piece(
             };
 
             // If the piece color does not match the current player's color, do nothing
-            if session.turn_controller.current_player().0 != placed.color() {
+            if session
+                .players
+                .get_by_index(session.turn.current_player())
+                .0
+                != placed.color()
+            {
                 return;
             }
 
@@ -671,8 +668,9 @@ fn spawn_placed_piece(
                 placed.color(),
                 placed.pos(),
                 &mut session,
+                placed_piece_query,
                 rules.pieces.get(placed.model()).movement(),
-                tile_query.iter(),
+                tile_query,
             ) else {
                 return;
             };
@@ -749,8 +747,8 @@ fn spawn_placed_piece(
     commands.entity(base).add_child(highlighted);
 
     // Decrease the piece stock
-    turn_controller
-        .player_mut(color)
+    players
+        .get_by_color_mut(color)
         .decrease_stock(model)
         .expect("Failed to decrease piece stock");
 
@@ -759,8 +757,8 @@ fn spawn_placed_piece(
 }
 
 /// Despawns a piece at the specified position.
-fn despawn_placed_piece(commands: &mut Commands, placed_pieces: &mut PlacedPieceIndex, pos: Pos) {
-    if let Some(entities) = placed_pieces.remove(pos) {
+fn despawn_placed_piece(commands: &mut Commands, index: &mut PlacedPieceIndex, pos: Pos) {
+    if let Some(entities) = index.remove(pos) {
         commands.entity(entities.base()).despawn();
     }
 }
@@ -784,24 +782,22 @@ fn pos_to_world(pos: Pos, board: &BoardRuleSet, y: f32) -> Vec3 {
 /// Finishes the current turn, evaluates win/loss conditions, and prepares for the next turn or ends the game.
 fn finish_turn(
     rules: &LoadedRules,
-    turn_controller: &mut TurnController,
-    session_state: &mut SessionState,
+    session: &mut GameSession,
+    placed_piece_query: Query<&PlacedPiece>,
     top_panel_text: &mut TopPanelText,
 ) {
-    let turn_number = turn_controller.turn_number();
-    let round_number = turn_controller.round_number();
-
     // Check win and lose condition for each active player.
-    for (piece_color, player) in turn_controller
-        .players_mut()
+    for (piece_color, player) in session
+        .players
+        .iter_mut()
         .filter(|(_, player)| player.state() == PlayerState::Active)
     {
         let player_rules = rules.players.get(piece_color);
 
         let ctx = WinOrLoseContext {
-            piece_color,
-            turn_number,
-            round_number,
+            turn: &session.turn,
+            placed_piece_index: &session.placed_pieces,
+            placed_piece_query,
         };
 
         // Check win condition
@@ -819,34 +815,34 @@ fn finish_turn(
     }
 
     let ctx = GameOverContext {
-        turn_number,
-        round_number,
+        session,
+        query: placed_piece_query,
     };
 
     // Check game over condition
     if rules.game_over_condition.evaluate(&ctx).unwrap() {
         // Update top panel text.
-        top_panel_text.0 = format!("Game Over: {}", turn_controller.player_states_message());
+        top_panel_text.0 = format!("Game Over: {}", session.players.player_states_message());
 
         // Switch to [`SessionSate::Reviewing`].
-        *session_state = SessionState::Reviewing;
+        session.state = SessionState::Reviewing;
     } else {
         // Advance the turn
-        match turn_controller.advance_turn() {
+        match session.turn.advance_turn(&session.players) {
             Ok(()) => {
-                top_panel_text.0 = turn_controller.turn_message();
+                top_panel_text.0 = session.turn.turn_message(&session.players);
 
                 // Switch to [`SessionSate::Selecting`].
-                *session_state = SessionState::Selecting;
+                session.state = SessionState::Selecting;
             }
             Err(GameError::NoActivePlayer) => {
                 top_panel_text.0 = format!(
                     "No Active Player: {}",
-                    turn_controller.player_states_message()
+                    session.players.player_states_message()
                 );
 
                 // Switch to [`SessionSate::Reviewing`].
-                *session_state = SessionState::Reviewing;
+                session.state = SessionState::Reviewing;
             }
             Err(_) => {
                 panic!("Unexpected error occurred");
@@ -874,6 +870,7 @@ fn top_panel(mut egui: EguiContexts, text: Res<TopPanelText>) {
 fn stock_panel(
     mut egui: EguiContexts,
     tile_query: Query<&Tile>,
+    placed_piece_query: Query<&PlacedPiece>,
     mut placeable_query: Query<&mut Visibility, With<PlaceableTile>>,
     rules: Res<LoadedRules>,
     mut session: ResMut<GameSession>,
@@ -891,7 +888,8 @@ fn stock_panel(
                 ui.horizontal(|ui| {
                     ui.label(egui::RichText::new("Piece Stock").size(18.0).strong());
 
-                    let (piece_color, player) = session.turn_controller.current_player();
+                    let (piece_color, player) =
+                        session.players.get_by_index(session.turn.current_player());
 
                     for (model, count) in player.stocks() {
                         let button = egui::Button::new(
@@ -909,8 +907,9 @@ fn stock_panel(
                                 model,
                                 piece_color,
                                 session,
+                                placed_piece_query,
                                 rules.pieces.get(model).placement(),
-                                tile_query.iter(),
+                                tile_query,
                             )
                             .unwrap();
 

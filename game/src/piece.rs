@@ -6,7 +6,7 @@ use crate::{
 };
 use bevy::prelude::*;
 use rule_engine::{
-    conditions::{movement::MovementCondition, placement::PlacementCondition},
+    expr::boolean::BoolExpr,
     piece::{PieceColor, PieceModel},
     position::Pos,
 };
@@ -52,23 +52,29 @@ pub struct MovingPiece {
 
 impl MovingPiece {
     /// Creates a new moving piece.
-    pub fn new<'a, I>(
+    pub fn new(
         model: PieceModel,
         color: PieceColor,
         initial: Pos,
         session: &mut GameSession,
-        movement: &MovementCondition,
-        tiles: I,
-    ) -> Result<Self, GameError>
-    where
-        I: Iterator<Item = &'a Tile>,
-    {
+        placed_piece_query: Query<&PlacedPiece>,
+        movement: &BoolExpr,
+        tile_query: Query<&Tile>,
+    ) -> Result<Self, GameError> {
         Ok(Self {
             model,
             color,
             initial,
             current: initial,
-            placeable: Self::collect_placeable(model, color, initial, session, movement, tiles)?,
+            placeable: Self::collect_placeable(
+                model,
+                color,
+                initial,
+                session,
+                placed_piece_query,
+                movement,
+                tile_query,
+            )?,
         })
     }
 
@@ -118,35 +124,30 @@ impl MovingPiece {
         self.placeable.iter().cloned()
     }
 
-    fn collect_placeable<'a, I>(
+    fn collect_placeable(
         model: PieceModel,
         color: PieceColor,
-        source: Pos,
+        source_pos: Pos,
         session: &GameSession,
-        movement: &MovementCondition,
-        tiles: I,
-    ) -> Result<HashSet<Pos>, GameError>
-    where
-        I: Iterator<Item = &'a Tile>,
-    {
+        placed_piece_query: Query<&PlacedPiece>,
+        movement: &BoolExpr,
+        tile_query: Query<&Tile>,
+    ) -> Result<HashSet<Pos>, GameError> {
         let mut placeable = HashSet::new();
 
-        let turn_number = session.turn_controller.turn_number();
-        let round_number = session.turn_controller.round_number();
-
-        for tile in tiles {
+        for tile in tile_query {
             // Skip source tile
-            if source == tile.pos() {
+            if source_pos == tile.pos() {
                 continue;
             }
 
             let ctx = MovementContext {
-                model,
-                color,
-                turn_number,
-                round_number,
-                source,
-                target: tile.pos(),
+                session,
+                placed_piece_query,
+                moving_model: model,
+                moving_color: color,
+                source_pos,
+                target_pos: tile.pos(),
             };
 
             if movement.evaluate(&ctx)? {
@@ -171,21 +172,26 @@ pub struct PlacingPiece {
 
 impl PlacingPiece {
     /// Creates a new placing piece.
-    pub fn new<'a, I>(
+    pub fn new(
         model: PieceModel,
         color: PieceColor,
         session: &GameSession,
-        placement: &PlacementCondition,
-        tiles: I,
-    ) -> Result<Self, GameError>
-    where
-        I: Iterator<Item = &'a Tile>,
-    {
+        placed_piece_query: Query<&PlacedPiece>,
+        placement: &BoolExpr,
+        tile_query: Query<&Tile>,
+    ) -> Result<Self, GameError> {
         Ok(Self {
             model,
             color,
             to_place: None,
-            placeable: Self::collect_placeable(model, color, session, placement, tiles)?,
+            placeable: Self::collect_placeable(
+                model,
+                color,
+                session,
+                placed_piece_query,
+                placement,
+                tile_query,
+            )?,
         })
     }
 
@@ -230,28 +236,23 @@ impl PlacingPiece {
         self.placeable.iter().cloned()
     }
 
-    fn collect_placeable<'a, I>(
+    fn collect_placeable(
         model: PieceModel,
         color: PieceColor,
         session: &GameSession,
-        placement: &PlacementCondition,
-        tiles: I,
-    ) -> Result<HashSet<Pos>, GameError>
-    where
-        I: Iterator<Item = &'a Tile>,
-    {
+        placed_piece_query: Query<&PlacedPiece>,
+        placement: &BoolExpr,
+        tile_query: Query<&Tile>,
+    ) -> Result<HashSet<Pos>, GameError> {
         let mut placeable = HashSet::new();
 
-        let turn_number = session.turn_controller.turn_number();
-        let round_number = session.turn_controller.round_number();
-
-        for tile in tiles {
+        for tile in tile_query {
             let ctx = PlacementContext {
-                model,
-                color,
-                turn_number,
-                round_number,
-                to_place: tile.pos(),
+                placed_piece_query,
+                session,
+                to_place_model: model,
+                to_place_color: color,
+                to_place_pos: tile.pos(),
             };
 
             if placement.evaluate(&ctx)? {

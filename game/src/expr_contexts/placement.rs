@@ -1,36 +1,74 @@
+use crate::{
+    GameError,
+    expr_contexts::{
+        query_color_at_pos_equal, query_model_at_pos_equal, query_pos_occupied, query_round_number,
+        query_turn_number,
+    },
+    piece::PlacedPiece,
+    session::GameSession,
+};
+use bevy::prelude::*;
 use rule_engine::{
-    conditions::placement::{PlacementBool, PlacementInt},
-    expr::{Context, QueryError},
+    expr::Context,
     piece::{PieceColor, PieceModel},
     position::Pos,
 };
 
 #[derive(Debug)]
-pub struct PlacementContext {
-    pub model: PieceModel,
-    pub color: PieceColor,
-    pub turn_number: i64,
-    pub round_number: i64,
-    pub to_place: Pos,
+pub struct PlacementContext<'s, 'world, 'state, 'data> {
+    pub session: &'s GameSession,
+    pub placed_piece_query: Query<'world, 'state, &'data PlacedPiece>,
+    pub to_place_model: PieceModel,
+    pub to_place_color: PieceColor,
+    pub to_place_pos: Pos,
 }
 
-impl Context for PlacementContext {
-    type BoolVar = PlacementBool;
-    type IntVar = PlacementInt;
+impl Context for PlacementContext<'_, '_, '_, '_> {
+    type Error = GameError;
 
-    fn query_bool(&self, var: &Self::BoolVar) -> Result<bool, QueryError> {
-        match var {
-            PlacementBool::ToPlaceModelEqual(model) => Ok(self.model == *model),
-            PlacementBool::ToPlaceColorEqual(color) => Ok(self.color == *color),
-        }
+    fn turn_number(&self) -> Result<i64, Self::Error> {
+        query_turn_number(&self.session.turn)
     }
 
-    fn query_int(&self, var: &Self::IntVar) -> Result<i64, QueryError> {
-        match var {
-            PlacementInt::TurnNumber => Ok(self.turn_number),
-            PlacementInt::RoundNumber => Ok(self.round_number),
-            PlacementInt::ToPlaceCol => Ok(self.to_place.col()),
-            PlacementInt::ToPlaceRow => Ok(self.to_place.row()),
-        }
+    fn round_number(&self) -> Result<i64, Self::Error> {
+        query_round_number(&self.session.turn)
+    }
+
+    fn pos_occupied(&self, pos: Pos) -> Result<bool, Self::Error> {
+        query_pos_occupied(&self.session.placed_pieces, pos)
+    }
+
+    fn model_at_pos_equal(&self, pos: Pos, model: PieceModel) -> Result<bool, Self::Error> {
+        query_model_at_pos_equal(
+            &self.session.placed_pieces,
+            self.placed_piece_query,
+            pos,
+            model,
+        )
+    }
+
+    fn color_at_pos_equal(&self, pos: Pos, color: PieceColor) -> Result<bool, Self::Error> {
+        query_color_at_pos_equal(
+            &self.session.placed_pieces,
+            self.placed_piece_query,
+            pos,
+            color,
+        )
+    }
+
+    fn to_place_model_equal(&self, model: PieceModel) -> Result<bool, Self::Error> {
+        Ok(self.to_place_model == model)
+    }
+
+    fn to_place_color_equal(&self, color: PieceColor) -> Result<bool, Self::Error> {
+        Ok(self.to_place_color == color)
+    }
+
+    fn to_place_row(&self) -> Result<i64, Self::Error> {
+        Ok(self.to_place_pos.row())
+    }
+
+    fn to_place_col(&self) -> Result<i64, Self::Error> {
+        Ok(self.to_place_pos.col())
     }
 }

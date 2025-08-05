@@ -1,7 +1,4 @@
-use crate::{
-    conditions::{movement::MovementCondition, placement::PlacementCondition},
-    count::Count,
-};
+use crate::{count::Count, expr::boolean::BoolExpr};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -46,10 +43,10 @@ pub struct PieceRules {
     count: Count,
 
     /// A boolean expression that defines whether a move is allowed.
-    movement: MovementCondition,
+    movement: BoolExpr,
 
     /// A boolean expression that defines whether placement is allowed.
-    placement: PlacementCondition,
+    placement: BoolExpr,
 }
 
 impl PieceRules {
@@ -59,12 +56,12 @@ impl PieceRules {
     }
 
     /// Returns the movement condition.
-    pub fn movement(&self) -> &MovementCondition {
+    pub fn movement(&self) -> &BoolExpr {
         &self.movement
     }
 
     /// Returns the placement condition.
-    pub fn placement(&self) -> &PlacementCondition {
+    pub fn placement(&self) -> &BoolExpr {
         &self.placement
     }
 }
