@@ -8,20 +8,17 @@
         Cube: (
             count: Finite(100),
             movement: Or(
-                Equal(Query(TargetRow), Query(SourceRow)),
-                Equal(Query(TargetCol), Query(SourceCol)),
+                Equal(TargetRow, SourceRow),
+                Equal(TargetCol, SourceCol),
             ),
-            placement: Or(
-                Equal(Query(ToPlaceRow), Const(4)),
-                Equal(Query(ToPlaceCol), Const(4)),
-            ),
+            placement: Not(PosOccupied(ToPlaceRow, ToPlaceCol)),
         ),
         Sphere: (
             count: Finite(100),
             movement: True,
             placement: Or(
-                Equal(Query(ToPlaceRow), Const(5)),
-                Equal(Query(ToPlaceCol), Const(5)),
+                Equal(ToPlaceRow, Const(5)),
+                Equal(ToPlaceCol, Const(5)),
             ),
         ),
         Cylinder: (
@@ -29,22 +26,22 @@
             movement: Or(
                 And(
                     Or(
-                        Equal(Sub(Query(TargetRow), Query(SourceRow)), Const(1)),
-                        Equal(Sub(Query(TargetRow), Query(SourceRow)), Const(-1)),
+                        Equal(Sub(TargetRow, SourceRow), Const(1)),
+                        Equal(Sub(TargetRow, SourceRow), Const(-1)),
                     ),
-                    Equal(Query(TargetCol), Query(SourceCol)),
+                    Equal(TargetCol, SourceCol),
                 ),
                 And(
                     Or(
-                        Equal(Sub(Query(TargetCol), Query(SourceCol)), Const(1)),
-                        Equal(Sub(Query(TargetCol), Query(SourceCol)), Const(-1)),
+                        Equal(Sub(TargetCol, SourceCol), Const(1)),
+                        Equal(Sub(TargetCol, SourceCol), Const(-1)),
                     ),
-                    Equal(Query(TargetRow), Query(SourceRow)),
+                    Equal(TargetRow, SourceRow),
                 ),
             ),
             placement: Or(
-                Equal(Query(ToPlaceRow), Const(6)),
-                Equal(Query(ToPlaceCol), Const(6)),
+                Equal(ToPlaceRow, Const(6)),
+                Equal(ToPlaceCol, Const(6)),
             ),
         ),
     },

@@ -1,26 +1,54 @@
+use crate::{
+    GameError,
+    expr_contexts::{
+        query_color_at_pos_equal, query_model_at_pos_equal, query_pos_occupied, query_round_number,
+        query_turn_number,
+    },
+    piece::PlacedPiece,
+    session::GameSession,
+};
+use bevy::prelude::*;
 use rule_engine::{
-    conditions::game_over::{GameOverBool, GameOverInt},
-    expr::{Context, QueryError},
+    expr::Context,
+    piece::{PieceColor, PieceModel},
+    player::PlayerState,
+    position::Pos,
 };
 
 #[derive(Debug)]
-pub struct GameOverContext {
-    pub turn_number: i64,
-    pub round_number: i64,
+pub struct GameOverContext<'s, 'world, 'state, 'data> {
+    pub session: &'s GameSession,
+    pub query: Query<'world, 'state, &'data PlacedPiece>,
 }
 
-impl Context for GameOverContext {
-    type BoolVar = GameOverBool;
-    type IntVar = GameOverInt;
+impl Context for GameOverContext<'_, '_, '_, '_> {
+    type Error = GameError;
 
-    fn query_bool(&self, var: &Self::BoolVar) -> Result<bool, QueryError> {
-        todo!()
+    fn turn_number(&self) -> Result<i64, Self::Error> {
+        query_turn_number(&self.session.turn)
     }
 
-    fn query_int(&self, var: &Self::IntVar) -> Result<i64, QueryError> {
-        match var {
-            GameOverInt::TurnNumber => Ok(self.turn_number),
-            GameOverInt::RoundNumber => Ok(self.round_number),
-        }
+    fn round_number(&self) -> Result<i64, Self::Error> {
+        query_round_number(&self.session.turn)
+    }
+
+    fn pos_occupied(&self, pos: Pos) -> Result<bool, Self::Error> {
+        query_pos_occupied(&self.session.placed_pieces, pos)
+    }
+
+    fn model_at_pos_equal(&self, pos: Pos, model: PieceModel) -> Result<bool, Self::Error> {
+        query_model_at_pos_equal(&self.session.placed_pieces, self.query, pos, model)
+    }
+
+    fn color_at_pos_equal(&self, pos: Pos, color: PieceColor) -> Result<bool, Self::Error> {
+        query_color_at_pos_equal(&self.session.placed_pieces, self.query, pos, color)
+    }
+
+    fn player_state_equal(
+        &self,
+        color: PieceColor,
+        state: PlayerState,
+    ) -> Result<bool, Self::Error> {
+        Ok(self.session.players.get_by_color(color).state() == state)
     }
 }

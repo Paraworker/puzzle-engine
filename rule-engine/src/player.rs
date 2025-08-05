@@ -1,4 +1,4 @@
-use crate::{conditions::win_or_lose::WinOrLoseCondition, piece::PieceColor};
+use crate::{expr::boolean::BoolExpr, piece::PieceColor};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -23,19 +23,19 @@ impl fmt::Display for PlayerState {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PlayerRules {
     /// A boolean expression that defines whether a player can win.
-    win_condition: WinOrLoseCondition,
+    win_condition: BoolExpr,
     /// A boolean expression that defines whether a player can lose.
-    lose_condition: WinOrLoseCondition,
+    lose_condition: BoolExpr,
 }
 
 impl PlayerRules {
     /// Returns the win condition expression.
-    pub fn win_condition(&self) -> &WinOrLoseCondition {
+    pub fn win_condition(&self) -> &BoolExpr {
         &self.win_condition
     }
 
     /// Returns the lose condition expression.
-    pub fn lose_condition(&self) -> &WinOrLoseCondition {
+    pub fn lose_condition(&self) -> &BoolExpr {
         &self.lose_condition
     }
 }
