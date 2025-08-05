@@ -4,8 +4,8 @@ use crate::states::{
 };
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
-use crazy_puzzle_rules::RulesError;
 use ron::de::SpannedError;
+use rule_engine::RulesError;
 use thiserror::Error;
 
 mod assets;

@@ -3,7 +3,7 @@ use bevy::{
     color::Color,
     pbr::StandardMaterial,
 };
-use crazy_puzzle_rules::piece::PieceColor;
+use rule_engine::piece::PieceColor;
 use std::collections::HashMap;
 
 #[derive(Debug)]

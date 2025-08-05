@@ -1,10 +1,10 @@
 use crate::GameError;
-use crazy_puzzle_rules::{
+use indexmap::IndexMap;
+use rule_engine::{
     count::Count,
     piece::{PieceColor, PieceModel, PieceRuleSet},
     player::{PlayerRuleSet, PlayerState},
 };
-use indexmap::IndexMap;
 
 /// Represents a player in the game.
 ///

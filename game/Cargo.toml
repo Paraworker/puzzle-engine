@@ -6,10 +6,10 @@ license = "MIT"
 description = "A customizable rule-based puzzle game"
 
 [dependencies]
-crazy-puzzle-rules = { path = "../rules" }
 bevy = "0.16"
 bevy_egui = "0.35"
 indexmap = { version = "2.10", features = ["serde"] }
 ron = "0.10"
+rule-engine = { path = "../rule-engine" }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"

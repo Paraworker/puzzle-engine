@@ -1,4 +1,4 @@
-use crazy_puzzle_rules::{
+use rule_engine::{
     conditions::movement::{MovementBool, MovementInt},
     expr::{Context, QueryError},
     piece::{PieceColor, PieceModel},
