@@ -26,7 +26,7 @@ impl PieceEntities {
     }
 }
 
-/// A index of placed piece entities by their position.
+/// An index of placed piece entities by their position.
 #[derive(Debug)]
 pub struct PlacedPieceIndex(HashMap<Pos, PieceEntities>);
 
