@@ -28,7 +28,7 @@ impl InitialPiece {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct InitialLayout(Vec<InitialPiece>);
 

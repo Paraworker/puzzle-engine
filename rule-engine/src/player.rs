@@ -28,6 +28,12 @@ pub struct PlayerRules {
     lose_condition: BoolExpr,
 }
 
+impl Default for PlayerRules {
+    fn default() -> Self {
+        Self { win_condition: BoolExpr::False, lose_condition: BoolExpr::False }
+    }
+}
+
 impl PlayerRules {
     /// Returns the win condition expression.
     pub fn win_condition(&self) -> &BoolExpr {
@@ -45,6 +51,13 @@ impl PlayerRules {
 #[serde(transparent)]
 pub struct PlayerRuleSet(IndexMap<PieceColor, PlayerRules>);
 
+impl Default for PlayerRuleSet {
+    fn default() -> Self {
+        // At least one player, `White` as default.
+        Self(IndexMap::from([(PieceColor::White, PlayerRules::default())]))
+    }
+}
+
 impl PlayerRuleSet {
     /// Returns the player rules with the specified color.
     pub fn get(&self, color: PieceColor) -> &PlayerRules {
@@ -54,5 +67,10 @@ impl PlayerRuleSet {
     /// Returns all players.
     pub fn iter(&self) -> impl Iterator<Item = (PieceColor, &PlayerRules)> {
         self.0.iter().map(|(color, rules)| (*color, rules))
+    }
+
+    /// Returns player number.
+    pub fn player_num(&self) -> usize {
+        self.0.len()
     }
 }
