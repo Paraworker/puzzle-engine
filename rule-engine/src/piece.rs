@@ -55,6 +55,12 @@ pub struct PieceRules {
     placement: BoolExpr,
 }
 
+impl Default for PieceRules {
+    fn default() -> Self {
+        Self { count: Count::Infinite, movement: BoolExpr::False, placement: BoolExpr::False }
+    }
+}
+
 impl PieceRules {
     /// Returns the count of pieces allowed.
     pub fn count(&self) -> Count {
@@ -77,6 +83,13 @@ impl PieceRules {
 #[serde(transparent)]
 pub struct PieceRuleSet(IndexMap<PieceModel, PieceRules>);
 
+impl Default for PieceRuleSet {
+    fn default() -> Self {
+        // At least one type of piece, `Cube` as default.
+        Self(IndexMap::from([(PieceModel::Cube, PieceRules::default())]))
+    }
+}
+
 impl PieceRuleSet {
     /// Returns the piece rules for the specified model.
     pub fn get(&self, model: PieceModel) -> &PieceRules {
@@ -86,5 +99,10 @@ impl PieceRuleSet {
     /// Returns all rules.
     pub fn iter(&self) -> impl Iterator<Item = (PieceModel, &PieceRules)> {
         self.0.iter().map(|(model, rules)| (*model, rules))
+    }
+
+    /// Returns number of piece model added.
+    pub fn model_num(&self) -> usize {
+        self.0.len()
     }
 }

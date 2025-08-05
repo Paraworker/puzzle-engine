@@ -6,6 +6,12 @@ pub struct BoardRuleSet {
     cols: i64,
 }
 
+impl Default for BoardRuleSet {
+    fn default() -> Self {
+        Self { rows: 8, cols: 8 }
+    }
+}
+
 impl BoardRuleSet {
     /// Returns the number of rows in the board.
     pub const fn rows(&self) -> i64 {

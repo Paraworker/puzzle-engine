@@ -49,3 +49,16 @@ impl GameRules {
         load_ron(path)
     }
 }
+
+impl Default for GameRules {
+    fn default() -> Self {
+        Self {
+            name: "Default Rules".into(),
+            board: Default::default(),
+            pieces: Default::default(),
+            players: Default::default(),
+            initial_layout: Default::default(),
+            game_over_condition: BoolExpr::False,
+        }
+    }
+}
