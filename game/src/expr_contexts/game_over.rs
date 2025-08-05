@@ -1,4 +1,4 @@
-use crazy_puzzle_rules::{
+use rule_engine::{
     conditions::game_over::{GameOverBool, GameOverInt},
     expr::{Context, QueryError},
 };

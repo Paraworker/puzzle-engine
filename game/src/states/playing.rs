@@ -18,7 +18,7 @@ use bevy_egui::{
     EguiContexts, EguiGlobalSettings, EguiPrimaryContextPass, PrimaryEguiContext,
     egui::{self, Stroke},
 };
-use crazy_puzzle_rules::{
+use rule_engine::{
     board::BoardRuleSet,
     piece::{PieceColor, PieceModel},
     player::PlayerState,

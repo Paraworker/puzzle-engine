@@ -4,7 +4,7 @@ use bevy::{
     platform::collections::HashMap,
     render::mesh::Mesh,
 };
-use crazy_puzzle_rules::piece::PieceModel;
+use rule_engine::piece::PieceModel;
 
 #[derive(Debug)]
 pub struct PieceMeshes {

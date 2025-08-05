@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crazy_puzzle_rules::position::Pos;
+use rule_engine::position::Pos;
 use std::collections::HashMap;
 
 /// Entities associated with a tile.

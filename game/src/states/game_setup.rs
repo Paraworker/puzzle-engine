@@ -1,6 +1,6 @@
 use crate::{settings::Settings, states::GameState};
 use bevy::prelude::*;
-use crazy_puzzle_rules::GameRules;
+use rule_engine::GameRules;
 use std::ops::Deref;
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);

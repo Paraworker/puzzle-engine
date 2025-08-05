@@ -1,2 +1,3 @@
 [workspace]
-members = ["game", "rules"]
+members = ["game", "rule-engine"]
+resolver = "3"

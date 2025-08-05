@@ -1,4 +1,4 @@
-use crazy_puzzle_rules::{
+use rule_engine::{
     conditions::win_or_lose::{WinOrLoseBool, WinOrLoseInt},
     expr::{Context, QueryError},
     piece::PieceColor,

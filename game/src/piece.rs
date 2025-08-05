@@ -5,7 +5,7 @@ use crate::{
     tile::Tile,
 };
 use bevy::prelude::*;
-use crazy_puzzle_rules::{
+use rule_engine::{
     conditions::{movement::MovementCondition, placement::PlacementCondition},
     piece::{PieceColor, PieceModel},
     position::Pos,
