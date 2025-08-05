@@ -25,6 +25,9 @@ impl fmt::Display for PieceModel {
 pub enum PieceColor {
     White,
     Black,
+    Red,
+    Yellow,
+    Green,
 }
 
 impl fmt::Display for PieceColor {
@@ -32,6 +35,9 @@ impl fmt::Display for PieceColor {
         let text = match self {
             PieceColor::White => "White",
             PieceColor::Black => "Black",
+            PieceColor::Red => "Red",
+            PieceColor::Yellow => "Yellow",
+            PieceColor::Green => "Green",
         };
         write!(f, "{text}")
     }
