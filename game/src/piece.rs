@@ -39,11 +39,6 @@ impl PlacedPiece {
     pub fn pos(&self) -> Pos {
         self.pos
     }
-
-    /// Sets the position of the placed piece.
-    pub fn set_pos(&mut self, pos: Pos) {
-        self.pos = pos;
-    }
 }
 
 #[derive(Debug, Clone, Component)]
