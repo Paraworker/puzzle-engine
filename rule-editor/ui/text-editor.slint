@@ -1,0 +1,8 @@
+import { TextEdit } from "std-widgets.slint";
+
+export component TextEditor inherits TextEdit {
+    in-out property <string> content;
+
+    font-size: 20px;
+    text <=> root.content;
+}

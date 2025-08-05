@@ -1,9 +1,10 @@
 use crate::{
     board::BoardRuleSet,
     expr::boolean::BoolExpr,
-    initial_layout::InitialLayout,
+    initial_layout::{InitialLayout, InitialPiece},
     piece::{PieceColor, PieceModel, PieceRuleSet, PieceRules},
     player::{PlayerRuleSet, PlayerRules},
+    position::Pos,
     utils::{from_ron_file, to_ron_file},
 };
 use ron::de::SpannedError;
@@ -34,8 +35,8 @@ pub enum RulesError {
     UnsupportedVariable,
     #[error("piece count is depleted")]
     CountDepleted,
-    #[error("ron serialize or deserialize error: {0}")]
-    RonSpanned(#[from] SpannedError),
+    #[error("format error: {0}")]
+    Format(#[from] SpannedError),
     #[error("ron error: {0}")]
     Ron(#[from] ron::Error),
     #[error("io error: {0}")]
@@ -73,6 +74,7 @@ impl Default for GameRules {
     fn default() -> Self {
         let mut pieces = PieceRuleSet::default();
         let mut players = PlayerRuleSet::default();
+        let mut initial_layout = InitialLayout::default();
 
         // At least one type of piece, `Cube` as default.
         pieces.add(PieceModel::Cube, PieceRules::default()).unwrap();
@@ -82,12 +84,31 @@ impl Default for GameRules {
             .add(PieceColor::White, PlayerRules::default())
             .unwrap();
 
+        // Add some initial pieces.
+        initial_layout.add(InitialPiece {
+            model: PieceModel::Cube,
+            color: PieceColor::White,
+            pos: Pos::new(0, 0),
+        });
+
+        initial_layout.add(InitialPiece {
+            model: PieceModel::Cube,
+            color: PieceColor::White,
+            pos: Pos::new(1, 1),
+        });
+
+        initial_layout.add(InitialPiece {
+            model: PieceModel::Cube,
+            color: PieceColor::White,
+            pos: Pos::new(2, 2),
+        });
+
         Self {
             name: "Default Rules".into(),
             board: Default::default(),
             pieces,
             players,
-            initial_layout: Default::default(),
+            initial_layout,
             game_over_condition: BoolExpr::False,
         }
     }

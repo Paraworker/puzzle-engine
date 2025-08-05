@@ -69,12 +69,12 @@ impl IntExpr {
         }
     }
 
-    /// Parses a ron string into a boolean expression.
+    /// Parses from a ron string.
     pub fn from_ron_str(str: &str) -> Result<Self, RulesError> {
         from_ron_str(str)
     }
 
-    /// Converts a boolean expression into a ron string.
+    /// Converts into a ron string.
     pub fn to_ron_str(&self) -> Result<String, RulesError> {
         to_ron_str(self)
     }

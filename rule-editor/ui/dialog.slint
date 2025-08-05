@@ -1,0 +1,20 @@
+import { Button, StandardButton } from "std-widgets.slint";
+
+export component Dialog inherits Dialog {
+    title: topic;
+    min-width: 300px;
+
+    in-out property <string> topic;
+    in-out property <string> msg;
+
+    HorizontalLayout {
+        alignment: center;
+        Text {
+            text: msg;
+        }
+    }
+
+    StandardButton {
+        kind: ok;
+    }
+}

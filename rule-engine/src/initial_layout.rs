@@ -1,14 +1,16 @@
 use crate::{
+    RulesError,
     piece::{PieceColor, PieceModel},
     position::Pos,
+    utils::{from_ron_str, to_ron_str},
 };
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InitialPiece {
-    model: PieceModel,
-    color: PieceColor,
-    pos: Pos,
+    pub model: PieceModel,
+    pub color: PieceColor,
+    pub pos: Pos,
 }
 
 impl InitialPiece {
@@ -33,8 +35,23 @@ impl InitialPiece {
 pub struct InitialLayout(Vec<InitialPiece>);
 
 impl InitialLayout {
+    /// Add a new initial piece to the layout.
+    pub fn add(&mut self, piece: InitialPiece) {
+        self.0.push(piece);
+    }
+
     /// Returns the pieces.
     pub fn pieces(&self) -> &[InitialPiece] {
         &self.0
+    }
+
+    /// Parses from a ron string.
+    pub fn from_ron_str(str: &str) -> Result<Self, RulesError> {
+        from_ron_str(str)
+    }
+
+    /// Converts into a ron string.
+    pub fn to_ron_str(&self) -> Result<String, RulesError> {
+        to_ron_str(self)
     }
 }

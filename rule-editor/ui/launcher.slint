@@ -1,0 +1,32 @@
+import { Button } from "std-widgets.slint";
+
+export component Launcher inherits HorizontalLayout {
+    alignment: center;
+
+    VerticalLayout {
+        spacing: 12px;
+        padding: 16px;
+        alignment: center;
+
+        Button {
+            text: "Open Rules";
+            width: 180px;
+            height: 60px;
+            clicked => {
+                root.open_rules_clicked()
+            }
+        }
+
+        Button {
+            text: "Create Rules";
+            width: 180px;
+            height: 60px;
+            clicked => {
+                root.create_rules_clicked()
+            }
+        }
+    }
+
+    callback open_rules_clicked();
+    callback create_rules_clicked();
+}

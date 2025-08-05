@@ -1,0 +1,57 @@
+import { Launcher } from "launcher.slint";
+import { RuleEditor } from "rule-editor.slint";
+import { Dialog } from "dialog.slint";
+
+export { Dialog }
+
+export component AppWindow inherits Window {
+    title: "Crazy Puzzle Rule Editor";
+    preferred-width: 1000px;
+    preferred-height: 800px;
+    min-width: 600px;
+    min-height: 800px;
+
+    in-out property <bool> show_launcher: true;
+    in-out property <string> rules_name;
+    in-out property <string> board_rows;
+    in-out property <string> board_cols;
+    in-out property <string> pieces;
+    in-out property <string> players;
+    in-out property <string> initial_layout;
+    in-out property <string> game_over_condition;
+
+    MenuBar {
+        Menu {
+            title: @tr("File");
+            MenuItem {
+                title: @tr("Save As...");
+                enabled: !show_launcher;
+                activated => {
+                    root.save_as_activated();
+                }
+            }
+        }
+    }
+
+    if show_launcher: Launcher {
+        open_rules_clicked => {
+            root.open_rules_clicked()
+        }
+        create_rules_clicked => {
+            root.create_rules_clicked()
+        }
+    }
+    if !show_launcher: RuleEditor {
+        rules_name <=> root.rules_name;
+        board_rows <=> root.board_rows;
+        board_cols <=> root.board_cols;
+        pieces <=> root.pieces;
+        players <=> root.players;
+        initial_layout <=> root.initial_layout;
+        game_over_condition <=> root.game_over_condition;
+    }
+
+    callback open_rules_clicked();
+    callback create_rules_clicked();
+    callback save_as_activated();
+}
