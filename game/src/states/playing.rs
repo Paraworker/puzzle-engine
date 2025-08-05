@@ -5,7 +5,7 @@ use crate::{
     piece::{HighlightedPiece, MovingPiece, PlacedPiece, PlacingPiece},
     session::{
         GameSession,
-        piece_index::{Entry, Occupied, PieceEntities, PlacedPieceIndex, Vacant},
+        piece_index::{Entry, PieceEntities, PlacedPieceIndex},
         player::Players,
         state::SessionState,
         tile_index::TileEntities,
@@ -671,7 +671,7 @@ fn spawn_placed_piece(
                 placed.pos(),
                 &mut session,
                 placed_piece_query,
-                rules.pieces.get(placed.model()).movement(),
+                rules.pieces.get_by_model(placed.model()).movement(),
                 tile_query,
             ) else {
                 return;
@@ -798,7 +798,7 @@ fn finish_turn(
         .iter_mut()
         .filter(|(_, player)| player.state() == PlayerState::Active)
     {
-        let player_rules = rules.players.get(piece_color);
+        let player_rules = rules.players.get_by_color(piece_color);
 
         let ctx = WinOrLoseContext {
             turn: &session.turn,
@@ -914,7 +914,7 @@ fn stock_panel(
                                 piece_color,
                                 session,
                                 placed_piece_query,
-                                rules.pieces.get(model).placement(),
+                                rules.pieces.get_by_model(model).placement(),
                                 tile_query,
                             )
                             .unwrap();
