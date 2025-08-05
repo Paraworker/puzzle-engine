@@ -5,7 +5,7 @@ use crate::{
     piece::{HighlightedPiece, MovingPiece, PlacedPiece, PlacingPiece},
     session::{
         GameSession,
-        piece_index::{PieceEntities, PlacedPieceIndex},
+        piece_index::{Entry, Occupied, PieceEntities, PlacedPieceIndex, Vacant},
         player::Players,
         state::SessionState,
         tile_index::TileEntities,
@@ -163,7 +163,8 @@ fn on_enter(
             piece.model(),
             piece.color(),
             piece.pos(),
-        );
+        )
+        .unwrap();
     }
 
     // Insert resources
@@ -286,7 +287,8 @@ fn on_button_pressed(
                         placing.model(),
                         placing.color(),
                         to_place,
-                    );
+                    )
+                    .unwrap();
 
                     // Unhighlight the to place tile
                     if let Ok(mut visibility) = source_or_target_tile_query
@@ -608,7 +610,7 @@ fn spawn_placed_piece(
     model: PieceModel,
     color: PieceColor,
     pos: Pos,
-) {
+) -> Result<(), GameError> {
     fn on_piece_pressed(
         trigger: Trigger<Pointer<Pressed>>,
         mut commands: Commands,
@@ -716,6 +718,14 @@ fn spawn_placed_piece(
         }
     }
 
+    let Entry::Vacant(entry) = placed_pieces.entry(pos) else {
+        // Try to spawn duplicate piece at one position.
+        return Err(GameError::DuplicatePiece(pos));
+    };
+
+    // Decrease the piece stock
+    players.get_by_color_mut(color).decrease_stock(model)?;
+
     let mesh = assets.meshes.piece.get(model);
 
     let base = commands
@@ -746,14 +756,10 @@ fn spawn_placed_piece(
 
     commands.entity(base).add_child(highlighted);
 
-    // Decrease the piece stock
-    players
-        .get_by_color_mut(color)
-        .decrease_stock(model)
-        .expect("Failed to decrease piece stock");
-
     // Add to placed piece index
-    placed_pieces.add(pos, PieceEntities::new(base, highlighted));
+    entry.insert(PieceEntities::new(base, highlighted));
+
+    Ok(())
 }
 
 /// Despawns a piece at the specified position.

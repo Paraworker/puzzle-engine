@@ -5,7 +5,7 @@ use crate::states::{
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use ron::de::SpannedError;
-use rule_engine::RulesError;
+use rule_engine::{RulesError, position::Pos};
 use thiserror::Error;
 
 mod assets;
@@ -20,6 +20,8 @@ mod tile;
 pub enum GameError {
     #[error("no active player")]
     NoActivePlayer,
+    #[error("piece already exists at position: {0}")]
+    DuplicatePiece(Pos),
     #[error("rules error: {0}")]
     Rules(#[from] RulesError),
     #[error("config format error: {0}")]

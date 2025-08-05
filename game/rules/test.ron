@@ -54,6 +54,18 @@
             win_condition: False,
             lose_condition: False,
         ),
+        Red: (
+            win_condition: False,
+            lose_condition: False,
+        ),
+        Yellow: (
+            win_condition: False,
+            lose_condition: False,
+        ),
+        Green: (
+            win_condition: False,
+            lose_condition: False,
+        ),
     },
     initial_layout: [
         (
@@ -70,6 +82,21 @@
             model: Cylinder,
             color: White,
             pos: (2, 2),
+        ),
+        (
+            model: Cylinder,
+            color: Red,
+            pos: (3, 3),
+        ),
+        (
+            model: Sphere,
+            color: Yellow,
+            pos: (4, 4),
+        ),
+        (
+            model: Cube,
+            color: Green,
+            pos: (5, 5),
         ),
     ],
     game_over_condition: False,
