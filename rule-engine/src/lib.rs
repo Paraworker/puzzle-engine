@@ -18,6 +18,10 @@ pub mod utils;
 
 #[derive(Debug, Error)]
 pub enum RulesError {
+    #[error("duplicate piece color")]
+    DuplicateColor,
+    #[error("duplicate piece model")]
+    DuplicateModel,
     #[error("division by zero")]
     DivisionByZero,
     #[error("unsupported variable")]

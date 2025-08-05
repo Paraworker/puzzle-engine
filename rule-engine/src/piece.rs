@@ -1,5 +1,5 @@
-use crate::{count::Count, expr::boolean::BoolExpr};
-use indexmap::IndexMap;
+use crate::{RulesError, count::Count, expr::boolean::BoolExpr};
+use indexmap::{IndexMap, map::Entry};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -57,7 +57,11 @@ pub struct PieceRules {
 
 impl Default for PieceRules {
     fn default() -> Self {
-        Self { count: Count::Infinite, movement: BoolExpr::False, placement: BoolExpr::False }
+        Self {
+            count: Count::Infinite,
+            movement: BoolExpr::False,
+            placement: BoolExpr::False,
+        }
     }
 }
 
@@ -91,9 +95,46 @@ impl Default for PieceRuleSet {
 }
 
 impl PieceRuleSet {
+    /// Adds a new piece model with its rules.
+    pub fn add(&mut self, model: PieceModel, rules: PieceRules) -> Result<(), RulesError> {
+        match self.0.entry(model) {
+            Entry::Vacant(v) => {
+                v.insert(rules);
+                Ok(())
+            }
+            Entry::Occupied(_) => Err(RulesError::DuplicateModel),
+        }
+    }
+
+    /// Returns the piece rules at given index.
+    ///
+    /// Panic if out of index.
+    pub fn get_by_index(&self, index: usize) -> (PieceModel, &PieceRules) {
+        self.0
+            .get_index(index)
+            .map(|(model, rules)| (*model, rules))
+            .expect("Out of index!")
+    }
+
     /// Returns the piece rules for the specified model.
-    pub fn get(&self, model: PieceModel) -> &PieceRules {
+    pub fn get_by_model(&self, model: PieceModel) -> &PieceRules {
         self.0.get(&model).expect("No such piece model found")
+    }
+
+    /// Remove the piece rules at given index.
+    ///
+    /// Panic if out of index.
+    pub fn remove_by_index(&mut self, index: usize) {
+        self.0.shift_remove_index(index).expect("Out of index!");
+    }
+
+    /// Remove the piece rules with the specified model.
+    ///
+    /// Panic if no such piece model found.
+    pub fn remove_by_model(&mut self, model: PieceModel) {
+        self.0
+            .shift_remove(&model)
+            .expect("No such piece model found");
     }
 
     /// Returns all rules.
@@ -101,7 +142,7 @@ impl PieceRuleSet {
         self.0.iter().map(|(model, rules)| (*model, rules))
     }
 
-    /// Returns number of piece model added.
+    /// Returns number of added piece models.
     pub fn model_num(&self) -> usize {
         self.0.len()
     }
