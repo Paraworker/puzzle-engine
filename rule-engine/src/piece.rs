@@ -77,8 +77,8 @@ impl PieceRuleSet {
         self.0.get(&model).expect("No such piece model found")
     }
 
-    /// Returns all piece rules.
-    pub fn pieces(&self) -> impl Iterator<Item = (&PieceModel, &PieceRules)> {
-        self.0.iter()
+    /// Returns all rules.
+    pub fn iter(&self) -> impl Iterator<Item = (PieceModel, &PieceRules)> {
+        self.0.iter().map(|(model, rules)| (*model, rules))
     }
 }

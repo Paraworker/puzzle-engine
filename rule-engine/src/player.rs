@@ -52,7 +52,7 @@ impl PlayerRuleSet {
     }
 
     /// Returns all players.
-    pub fn players(&self) -> impl Iterator<Item = (PieceColor, &PlayerRules)> {
+    pub fn iter(&self) -> impl Iterator<Item = (PieceColor, &PlayerRules)> {
         self.0.iter().map(|(color, rules)| (*color, rules))
     }
 }

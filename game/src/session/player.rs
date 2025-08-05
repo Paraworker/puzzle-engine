@@ -24,8 +24,8 @@ impl Player {
         Self {
             state: PlayerState::Active,
             stock: piece_rule_set
-                .pieces()
-                .map(|(model, rules)| (model.clone(), rules.count()))
+                .iter()
+                .map(|(model, rules)| (model, rules.count()))
                 .collect(),
         }
     }
@@ -74,7 +74,7 @@ impl Players {
     pub fn new(player_rule_set: &PlayerRuleSet, piece_rule_set: &PieceRuleSet) -> Self {
         Self {
             map: player_rule_set
-                .players()
+                .iter()
                 .map(|(color, _)| (color, Player::new(piece_rule_set)))
                 .collect(),
         }
