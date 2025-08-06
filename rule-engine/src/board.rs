@@ -1,3 +1,4 @@
+use crate::RulesError;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -13,6 +14,14 @@ impl Default for BoardRuleSet {
 }
 
 impl BoardRuleSet {
+    pub const fn new(rows: i64, cols: i64) -> Result<Self, RulesError> {
+        if rows <= 0 || cols <= 0 {
+            Err(RulesError::InvalidBoardSize)
+        } else {
+            Ok(Self { rows, cols })
+        }
+    }
+
     /// Returns the number of rows in the board.
     pub const fn rows(&self) -> i64 {
         self.rows
@@ -21,16 +30,6 @@ impl BoardRuleSet {
     /// Returns the number of columns in the board.
     pub const fn cols(&self) -> i64 {
         self.cols
-    }
-
-    /// Sets the number of rows of the board.
-    pub const fn set_rows(&mut self, rows: i64) {
-        self.rows = rows;
-    }
-
-    /// Sets the number of columns of the board.
-    pub const fn set_cols(&mut self, cols: i64) {
-        self.cols = cols;
     }
 
     /// Returns the size of each tile.

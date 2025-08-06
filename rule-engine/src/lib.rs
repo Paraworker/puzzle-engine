@@ -1,6 +1,10 @@
 use crate::{
-    board::BoardRuleSet, expr::boolean::BoolExpr, initial_layout::InitialLayout,
-    piece::PieceRuleSet, player::PlayerRuleSet, utils::{ron_from_file, ron_to_file},
+    board::BoardRuleSet,
+    expr::boolean::BoolExpr,
+    initial_layout::InitialLayout,
+    piece::{PieceColor, PieceModel, PieceRuleSet, PieceRules},
+    player::{PlayerRuleSet, PlayerRules},
+    utils::{ron_from_file, ron_to_file},
 };
 use ron::de::SpannedError;
 use serde::{Deserialize, Serialize};
@@ -18,6 +22,8 @@ pub mod utils;
 
 #[derive(Debug, Error)]
 pub enum RulesError {
+    #[error("invalid board size")]
+    InvalidBoardSize,
     #[error("duplicate piece color")]
     DuplicateColor,
     #[error("duplicate piece model")]
@@ -65,11 +71,22 @@ impl GameRules {
 
 impl Default for GameRules {
     fn default() -> Self {
+        let mut pieces = PieceRuleSet::default();
+        let mut players = PlayerRuleSet::default();
+
+        // At least one type of piece, `Cube` as default.
+        pieces.add(PieceModel::Cube, PieceRules::default()).unwrap();
+
+        // At least one player, `White` as default.
+        players
+            .add(PieceColor::White, PlayerRules::default())
+            .unwrap();
+
         Self {
             name: "Default Rules".into(),
             board: Default::default(),
-            pieces: Default::default(),
-            players: Default::default(),
+            pieces,
+            players,
             initial_layout: Default::default(),
             game_over_condition: BoolExpr::False,
         }
