@@ -1,6 +1,6 @@
 use crate::{
     board::BoardRuleSet, expr::boolean::BoolExpr, initial_layout::InitialLayout,
-    piece::PieceRuleSet, player::PlayerRuleSet, utils::load_ron,
+    piece::PieceRuleSet, player::PlayerRuleSet, utils::{ron_from_file, ron_to_file},
 };
 use ron::de::SpannedError;
 use serde::{Deserialize, Serialize};
@@ -28,8 +28,10 @@ pub enum RulesError {
     UnsupportedVariable,
     #[error("piece count is depleted")]
     CountDepleted,
-    #[error("rules format error: {0}")]
-    Format(#[from] SpannedError),
+    #[error("ron serialize or deserialize error: {0}")]
+    RonSpanned(#[from] SpannedError),
+    #[error("ron error: {0}")]
+    Ron(#[from] ron::Error),
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 }
@@ -50,7 +52,14 @@ impl GameRules {
     where
         P: AsRef<Path>,
     {
-        load_ron(path)
+        ron_from_file(path)
+    }
+
+    pub fn save<P>(&self, path: P) -> Result<(), RulesError>
+    where
+        P: AsRef<Path>,
+    {
+        ron_to_file(self, path)
     }
 }
 

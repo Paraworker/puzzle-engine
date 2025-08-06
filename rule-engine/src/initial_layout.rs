@@ -33,8 +33,8 @@ impl InitialPiece {
 pub struct InitialLayout(Vec<InitialPiece>);
 
 impl InitialLayout {
-    /// Returns the layout.
-    pub fn layout(&self) -> &[InitialPiece] {
+    /// Returns the pieces.
+    pub fn pieces(&self) -> &[InitialPiece] {
         &self.0
     }
 }
