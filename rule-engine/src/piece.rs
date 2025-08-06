@@ -89,8 +89,7 @@ pub struct PieceRuleSet(IndexMap<PieceModel, PieceRules>);
 
 impl Default for PieceRuleSet {
     fn default() -> Self {
-        // At least one type of piece, `Cube` as default.
-        Self(IndexMap::from([(PieceModel::Cube, PieceRules::default())]))
+        Self(Default::default())
     }
 }
 

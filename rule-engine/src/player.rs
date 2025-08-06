@@ -56,11 +56,7 @@ pub struct PlayerRuleSet(IndexMap<PieceColor, PlayerRules>);
 
 impl Default for PlayerRuleSet {
     fn default() -> Self {
-        // At least one player, `White` as default.
-        Self(IndexMap::from([(
-            PieceColor::White,
-            PlayerRules::default(),
-        )]))
+        Self(Default::default())
     }
 }
 
