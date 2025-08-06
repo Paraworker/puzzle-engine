@@ -153,7 +153,7 @@ fn on_enter(
     ));
 
     // Initial pieces
-    for piece in rules.initial_layout.layout() {
+    for piece in rules.initial_layout.pieces() {
         spawn_placed_piece(
             &mut commands,
             &assets,

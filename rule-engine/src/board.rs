@@ -23,6 +23,16 @@ impl BoardRuleSet {
         self.cols
     }
 
+    /// Sets the number of rows of the board.
+    pub const fn set_rows(&mut self, rows: i64) {
+        self.rows = rows;
+    }
+
+    /// Sets the number of columns of the board.
+    pub const fn set_cols(&mut self, cols: i64) {
+        self.cols = cols;
+    }
+
     /// Returns the size of each tile.
     pub const fn tile_size() -> f32 {
         1.0
