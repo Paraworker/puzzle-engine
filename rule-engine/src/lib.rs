@@ -4,7 +4,7 @@ use crate::{
     initial_layout::InitialLayout,
     piece::{PieceColor, PieceModel, PieceRuleSet, PieceRules},
     player::{PlayerRuleSet, PlayerRules},
-    utils::{ron_from_file, ron_to_file},
+    utils::{from_ron_file, to_ron_file},
 };
 use ron::de::SpannedError;
 use serde::{Deserialize, Serialize};
@@ -58,14 +58,14 @@ impl GameRules {
     where
         P: AsRef<Path>,
     {
-        ron_from_file(path)
+        from_ron_file(path)
     }
 
     pub fn save<P>(&self, path: P) -> Result<(), RulesError>
     where
         P: AsRef<Path>,
     {
-        ron_to_file(self, path)
+        to_ron_file(self, path)
     }
 }
 

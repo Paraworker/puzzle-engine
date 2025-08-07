@@ -1,8 +1,10 @@
 use crate::{
+    RulesError,
     expr::{Context, integer::IntExpr},
     piece::{PieceColor, PieceModel},
     player::PlayerState,
     position::Pos,
+    utils::{from_ron_str, to_ron_str},
 };
 use serde::{Deserialize, Serialize};
 
@@ -88,5 +90,15 @@ impl BoolExpr {
             BoolExpr::ToPlaceColorEqual(color) => ctx.to_place_color_equal(*color),
             BoolExpr::PlayerStateEqual(color, state) => ctx.player_state_equal(*color, *state),
         }
+    }
+
+    /// Parses a ron string into a boolean expression.
+    pub fn from_ron_str(str: &str) -> Result<Self, RulesError> {
+        from_ron_str(str)
+    }
+
+    /// Converts a boolean expression into a ron string.
+    pub fn to_ron_str(&self) -> Result<String, RulesError> {
+        to_ron_str(self)
     }
 }
