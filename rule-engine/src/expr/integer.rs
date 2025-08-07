@@ -1,4 +1,8 @@
-use crate::{RulesError, expr::Context};
+use crate::{
+    RulesError,
+    expr::Context,
+    utils::{from_ron_str, to_ron_str},
+};
 use serde::{Deserialize, Serialize};
 
 /// Integer expression.
@@ -63,6 +67,16 @@ impl IntExpr {
             IntExpr::ToPlaceRow => ctx.to_place_row(),
             IntExpr::ToPlaceCol => ctx.to_place_col(),
         }
+    }
+
+    /// Parses a ron string into a boolean expression.
+    pub fn from_ron_str(str: &str) -> Result<Self, RulesError> {
+        from_ron_str(str)
+    }
+
+    /// Converts a boolean expression into a ron string.
+    pub fn to_ron_str(&self) -> Result<String, RulesError> {
+        to_ron_str(self)
     }
 
     /// Evaluates the division operation.
