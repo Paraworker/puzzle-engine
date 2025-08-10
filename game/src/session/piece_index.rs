@@ -69,7 +69,7 @@ impl PlacedPieceIndex {
     }
 
     /// Returns the entry of a position key
-    pub fn entry(&mut self, pos: Pos) -> Entry {
+    pub fn entry(&mut self, pos: Pos) -> Entry<'_> {
         match self.0.entry(pos) {
             hash_map::Entry::Occupied(o) => Entry::Occupied(Occupied(o)),
             hash_map::Entry::Vacant(v) => Entry::Vacant(Vacant(v)),
