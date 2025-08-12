@@ -36,6 +36,8 @@ pub enum PieceColor {
     Red,
     Yellow,
     Green,
+    Cyan,
+    Purple,
 }
 
 impl fmt::Display for PieceColor {
@@ -46,6 +48,8 @@ impl fmt::Display for PieceColor {
             PieceColor::Red => "Red",
             PieceColor::Yellow => "Yellow",
             PieceColor::Green => "Green",
+            PieceColor::Cyan => "Cyan",
+            PieceColor::Purple => "Purple",
         };
         write!(f, "{text}")
     }

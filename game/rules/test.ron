@@ -86,6 +86,14 @@
             win_condition: False,
             lose_condition: False,
         ),
+        Purple: (
+            win_condition: False,
+            lose_condition: False,
+        ),
+        Cyan: (
+            win_condition: False,
+            lose_condition: False,
+        ),
     },
     initial_layout: [
         (
@@ -100,27 +108,27 @@
         ),
         (
             model: Cylinder,
-            color: White,
+            color: Red,
             pos: (2, 2),
         ),
         (
             model: Capsule,
-            color: Red,
+            color: Yellow,
             pos: (3, 3),
         ),
         (
             model: Cone,
-            color: Yellow,
+            color: Green,
             pos: (4, 4),
         ),
         (
             model: Torus,
-            color: Green,
+            color: Purple,
             pos: (5, 5),
         ),
         (
             model: Tetrahedron,
-            color: Green,
+            color: Cyan,
             pos: (6, 6),
         ),
     ],
