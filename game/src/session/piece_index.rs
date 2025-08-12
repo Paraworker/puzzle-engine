@@ -5,24 +5,34 @@ use std::collections::{HashMap, hash_map};
 /// Entities associated with a piece.
 #[derive(Debug, Clone)]
 pub struct PieceEntities {
-    base: Entity,
-    highlighted: Entity,
+    control: Entity,
+    mesh_base: Entity,
+    mesh_highlight: Entity,
 }
 
 impl PieceEntities {
     /// Creates a new `PieceEntities`.
-    pub fn new(base: Entity, highlighted: Entity) -> Self {
-        Self { base, highlighted }
+    pub fn new(control: Entity, mesh_base: Entity, mesh_highlight: Entity) -> Self {
+        Self {
+            control,
+            mesh_base,
+            mesh_highlight,
+        }
     }
 
-    /// Returns the base entity.
-    pub fn base(&self) -> Entity {
-        self.base
+    /// Returns the control entity.
+    pub fn control(&self) -> Entity {
+        self.control
     }
 
-    /// Returns the highlighted entity.
-    pub fn highlighted(&self) -> Entity {
-        self.highlighted
+    /// Returns the base mesh entity.
+    pub fn mesh_base(&self) -> Entity {
+        self.mesh_base
+    }
+
+    /// Returns the highlight mesh entity.
+    pub fn mesh_highlight(&self) -> Entity {
+        self.mesh_highlight
     }
 }
 

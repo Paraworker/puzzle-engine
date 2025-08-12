@@ -104,19 +104,24 @@
             pos: (2, 2),
         ),
         (
-            model: Cylinder,
+            model: Capsule,
             color: Red,
             pos: (3, 3),
         ),
         (
-            model: Sphere,
+            model: Cone,
             color: Yellow,
             pos: (4, 4),
         ),
         (
-            model: Cube,
+            model: Torus,
             color: Green,
             pos: (5, 5),
+        ),
+        (
+            model: Tetrahedron,
+            color: Green,
+            pos: (6, 6),
         ),
     ],
     game_over_condition: False,
