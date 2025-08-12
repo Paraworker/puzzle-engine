@@ -8,6 +8,11 @@ pub enum PieceModel {
     Cube,
     Sphere,
     Cylinder,
+    Capsule,
+    Cone,
+    Torus,
+    Tetrahedron,
+    Cuboid,
 }
 
 impl fmt::Display for PieceModel {
@@ -16,6 +21,11 @@ impl fmt::Display for PieceModel {
             PieceModel::Cube => "Cube",
             PieceModel::Sphere => "Sphere",
             PieceModel::Cylinder => "Cylinder",
+            PieceModel::Capsule => "Capsule",
+            PieceModel::Cone => "Cone",
+            PieceModel::Torus => "Torus",
+            PieceModel::Tetrahedron => "Tetrahedron",
+            PieceModel::Cuboid => "Cuboid",
         };
         write!(f, "{name}")
     }

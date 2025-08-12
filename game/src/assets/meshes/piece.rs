@@ -1,6 +1,6 @@
 use bevy::{
     asset::{Assets, Handle},
-    math::primitives::{Cuboid, Cylinder, Sphere},
+    math::primitives::{Capsule3d, Cone, Cuboid, Cylinder, Sphere, Tetrahedron, Torus},
     platform::collections::HashMap,
     render::mesh::Mesh,
 };
@@ -18,6 +18,11 @@ impl PieceMeshes {
                 (PieceModel::Cube, meshes.add(Cuboid::default())),
                 (PieceModel::Sphere, meshes.add(Sphere::default())),
                 (PieceModel::Cylinder, meshes.add(Cylinder::default())),
+                (PieceModel::Cone, meshes.add(Cone::default())),
+                (PieceModel::Capsule, meshes.add(Capsule3d::default())),
+                (PieceModel::Torus, meshes.add(Torus::new(0.25, 0.5))),
+                (PieceModel::Tetrahedron, meshes.add(Tetrahedron::default())),
+                (PieceModel::Cuboid, meshes.add(Cuboid::default())),
             ]),
         }
     }
