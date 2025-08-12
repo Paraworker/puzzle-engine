@@ -2,7 +2,7 @@ use bevy::{
     asset::{Assets, Handle},
     color::{
         Color,
-        palettes::tailwind::{GREEN_300, RED_300, YELLOW_300},
+        palettes::tailwind::{CYAN_300, GREEN_300, PURPLE_300, RED_300, YELLOW_300},
     },
     pbr::StandardMaterial,
 };
@@ -23,6 +23,8 @@ impl PieceMaterials {
                 (PieceColor::Red, materials.add(Color::from(RED_300))),
                 (PieceColor::Yellow, materials.add(Color::from(YELLOW_300))),
                 (PieceColor::Green, materials.add(Color::from(GREEN_300))),
+                (PieceColor::Cyan, materials.add(Color::from(CYAN_300))),
+                (PieceColor::Purple, materials.add(Color::from(PURPLE_300))),
             ]),
         }
     }
