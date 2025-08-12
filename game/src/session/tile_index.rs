@@ -5,24 +5,24 @@ use std::collections::HashMap;
 /// Entities associated with a tile.
 #[derive(Debug, Clone)]
 pub struct TileEntities {
-    base: Entity,
+    root: Entity,
     source_or_target: Entity,
     placeable: Entity,
 }
 
 impl TileEntities {
     /// Creates a new `TileEntities`.
-    pub fn new(base: Entity, source_or_target: Entity, placeable: Entity) -> Self {
+    pub fn new(root: Entity, source_or_target: Entity, placeable: Entity) -> Self {
         Self {
-            base,
+            root,
             source_or_target,
             placeable,
         }
     }
 
-    /// Returns the base entity.
-    pub fn base(&self) -> Entity {
-        self.base
+    /// Returns the root entity.
+    pub fn root(&self) -> Entity {
+        self.root
     }
 
     /// Returns the source or target entity.

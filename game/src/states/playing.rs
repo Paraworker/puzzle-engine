@@ -2,16 +2,17 @@ use crate::{
     GameError,
     assets::GameAssets,
     expr_contexts::{game_over::GameOverContext, win_or_lose::WinOrLoseContext},
-    piece::{HighlightPiece, MovingPiece, PlacedPiece, PlacingPiece},
+    piece::{MovingPiece, PlacedPiece, PlacingPiece},
     session::{
         GameSession,
         piece_index::{Entry, PieceEntities, PlacedPieceIndex},
         player::Players,
         state::SessionState,
-        tile_index::TileEntities,
+        tile_index::{TileEntities, TileIndex},
+        turn::TurnController,
     },
     states::{GameState, game_setup::LoadedRules},
-    tile::{PlaceableTile, SourceOrTargetTile, Tile},
+    tile::Tile,
 };
 use bevy::{input::mouse::MouseWheel, prelude::*, render::view::RenderLayers};
 use bevy_egui::{
@@ -111,17 +112,8 @@ fn on_enter(
     // Disable the automatic creation of a primary context to set it up manually for the camera we need.
     egui_global_settings.auto_create_primary_context = false;
 
-    // Create game session
-    let mut session = GameSession::new(&rules);
-
     // Board
-    spawn_board(
-        &mut commands,
-        &mut meshes,
-        &mut session,
-        &assets,
-        &rules.board,
-    );
+    let (board, tiles) = spawn_board(&mut commands, &mut meshes, &assets, &rules.board);
 
     // Light
     commands.spawn((
@@ -152,20 +144,34 @@ fn on_enter(
         PlayingMarker,
     ));
 
+    let mut players = Players::new(&rules.players, &rules.pieces);
+    let mut placed_pieces = PlacedPieceIndex::new();
+
     // Initial pieces
     for piece in rules.initial_layout.pieces() {
         spawn_placed_piece(
             &mut commands,
             &assets,
             &rules.board,
-            &mut session.players,
-            &mut session.placed_pieces,
+            board,
+            &mut players,
+            &mut placed_pieces,
             piece.model(),
             piece.color(),
             piece.pos(),
         )
         .unwrap();
     }
+
+    // Create game session
+    let session = GameSession {
+        state: SessionState::Selecting,
+        board,
+        tiles,
+        placed_pieces,
+        players,
+        turn: TurnController::new(),
+    };
 
     // Insert resources
     commands.insert_resource(TopPanelText(session.turn.turn_message(&session.players)));
@@ -241,14 +247,7 @@ fn on_button_pressed(
     mut pressed: EventReader<Pointer<Pressed>>,
     mut egui: EguiContexts,
     mut commands: Commands,
-    mut source_or_target_tile_query: Query<
-        &mut Visibility,
-        (With<SourceOrTargetTile>, Without<PlaceableTile>),
-    >,
-    mut placeable_tile_query: Query<
-        &mut Visibility,
-        (With<PlaceableTile>, Without<SourceOrTargetTile>),
-    >,
+    mut visibility_query: Query<&mut Visibility>,
     placed_piece_query: Query<&PlacedPiece>,
     assets: Res<GameAssets>,
     rules: Res<LoadedRules>,
@@ -267,7 +266,7 @@ fn on_button_pressed(
                 // Unhighlight placeable tiles
                 for pos in placing.placeable_tiles() {
                     if let Ok(mut visibility) =
-                        placeable_tile_query.get_mut(session.tiles.get(pos).unwrap().placeable())
+                        visibility_query.get_mut(session.tiles.get(pos).unwrap().placeable())
                     {
                         *visibility = Visibility::Hidden;
                     }
@@ -282,6 +281,7 @@ fn on_button_pressed(
                         &mut commands,
                         &assets,
                         &rules.board,
+                        session.board,
                         &mut session.players,
                         &mut session.placed_pieces,
                         placing.model(),
@@ -291,7 +291,7 @@ fn on_button_pressed(
                     .unwrap();
 
                     // Unhighlight the to place tile
-                    if let Ok(mut visibility) = source_or_target_tile_query
+                    if let Ok(mut visibility) = visibility_query
                         .get_mut(session.tiles.get(to_place).unwrap().source_or_target())
                     {
                         *visibility = Visibility::Hidden;
@@ -317,30 +317,7 @@ fn on_button_released(
     mut commands: Commands,
     placed_piece_query: Query<&PlacedPiece>,
     moving_piece_query: Query<&MovingPiece>,
-    mut highlight_piece_query: Query<
-        &mut Visibility,
-        (
-            With<HighlightPiece>,
-            Without<SourceOrTargetTile>,
-            Without<PlaceableTile>,
-        ),
-    >,
-    mut source_or_target_tile_query: Query<
-        &mut Visibility,
-        (
-            With<SourceOrTargetTile>,
-            Without<PlaceableTile>,
-            Without<HighlightPiece>,
-        ),
-    >,
-    mut placeable_tile_query: Query<
-        &mut Visibility,
-        (
-            With<PlaceableTile>,
-            Without<HighlightPiece>,
-            Without<SourceOrTargetTile>,
-        ),
-    >,
+    mut visibility_query: Query<&mut Visibility>,
     rules: Res<LoadedRules>,
     mut session: ResMut<GameSession>,
     mut top_panel_text: ResMut<TopPanelText>,
@@ -354,16 +331,14 @@ fn on_button_released(
     if let SessionState::Moving(entities) = &session.state {
         for event in released.read() {
             if event.button == PointerButton::Primary {
-                if let Ok(moving) = moving_piece_query.get(entities.control()) {
+                if let Ok(moving) = moving_piece_query.get(entities.root()) {
                     // Unhighlight the moving piece
-                    if let Ok(mut visibility) =
-                        highlight_piece_query.get_mut(entities.mesh_highlight())
-                    {
+                    if let Ok(mut visibility) = visibility_query.get_mut(entities.highlight()) {
                         *visibility = Visibility::Hidden;
                     }
 
                     // Unhighlight the move initial tile
-                    if let Ok(mut visibility) = source_or_target_tile_query.get_mut(
+                    if let Ok(mut visibility) = visibility_query.get_mut(
                         session
                             .tiles
                             .get(moving.initial_pos())
@@ -375,8 +350,8 @@ fn on_button_released(
 
                     // Unhighlight placeable tiles
                     for pos in moving.placeable_tiles() {
-                        if let Ok(mut visibility) = placeable_tile_query
-                            .get_mut(session.tiles.get(pos).unwrap().placeable())
+                        if let Ok(mut visibility) =
+                            visibility_query.get_mut(session.tiles.get(pos).unwrap().placeable())
                         {
                             *visibility = Visibility::Hidden;
                         }
@@ -391,7 +366,7 @@ fn on_button_released(
 
                     // Update component
                     commands
-                        .entity(entities.control())
+                        .entity(entities.root())
                         .insert(PlacedPiece::new(
                             moving.model(),
                             moving.color(),
@@ -423,19 +398,14 @@ fn on_button_released(
 fn spawn_board(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
-    session: &mut GameSession,
     assets: &GameAssets,
     board: &BoardRuleSet,
-) {
+) -> (Entity, TileIndex) {
     fn on_tile_hovered(
         trigger: Trigger<Pointer<Over>>,
         mut moving_query: Query<(&mut Transform, &mut MovingPiece)>,
         mut tile_query: Query<&Tile>,
-        mut source_or_target_query: Query<
-            &mut Visibility,
-            (With<SourceOrTargetTile>, Without<PlaceableTile>),
-        >,
-        mut placeable_tile_query: Query<&mut Visibility, With<PlaceableTile>>,
+        mut visibility_query: Query<&mut Visibility>,
         rules: Res<LoadedRules>,
         mut session: ResMut<GameSession>,
     ) {
@@ -445,8 +415,7 @@ fn spawn_board(
                     return;
                 };
 
-                let Ok((mut transform, mut moving)) = moving_query.get_mut(entities.control())
-                else {
+                let Ok((mut transform, mut moving)) = moving_query.get_mut(entities.root()) else {
                     return;
                 };
 
@@ -456,7 +425,7 @@ fn spawn_board(
                 }
 
                 // Update transform
-                *transform = pos_to_world(tile.pos(), &rules.board, 0.0);
+                *transform = pos_to_world(tile.pos(), &rules.board);
             }
             SessionState::Placing(placing) => {
                 let Ok(tile) = tile_query.get_mut(trigger.target()) else {
@@ -471,14 +440,12 @@ fn spawn_board(
                 let entities = session.tiles.get(tile.pos()).unwrap();
 
                 // Unhighlight placable
-                if let Ok(mut visibility) = placeable_tile_query.get_mut(entities.placeable()) {
+                if let Ok(mut visibility) = visibility_query.get_mut(entities.placeable()) {
                     *visibility = Visibility::Hidden;
                 }
 
                 // Highlight to place
-                if let Ok(mut visibility) =
-                    source_or_target_query.get_mut(entities.source_or_target())
-                {
+                if let Ok(mut visibility) = visibility_query.get_mut(entities.source_or_target()) {
                     *visibility = Visibility::Visible;
                 }
             }
@@ -488,11 +455,7 @@ fn spawn_board(
 
     fn on_tile_out(
         _trigger: Trigger<Pointer<Out>>,
-        mut source_or_target_query: Query<
-            &mut Visibility,
-            (With<SourceOrTargetTile>, Without<PlaceableTile>),
-        >,
-        mut placeable_tile_query: Query<&mut Visibility, With<PlaceableTile>>,
+        mut visibility_query: Query<&mut Visibility>,
         mut session: ResMut<GameSession>,
     ) {
         let session = session.as_mut();
@@ -502,14 +465,12 @@ fn spawn_board(
                 let entities = session.tiles.get(to_place).unwrap();
 
                 // Highlight placable
-                if let Ok(mut visibility) = placeable_tile_query.get_mut(entities.placeable()) {
+                if let Ok(mut visibility) = visibility_query.get_mut(entities.placeable()) {
                     *visibility = Visibility::Visible;
                 }
 
                 // Unhighlight to place
-                if let Ok(mut visibility) =
-                    source_or_target_query.get_mut(entities.source_or_target())
-                {
+                if let Ok(mut visibility) = visibility_query.get_mut(entities.source_or_target()) {
                     *visibility = Visibility::Hidden;
                 }
 
@@ -518,6 +479,34 @@ fn spawn_board(
         }
     }
 
+    let mut tiles = TileIndex::new();
+
+    // Spawn board root
+    let board_root = commands
+        .spawn((
+            Transform::default(),
+            GlobalTransform::default(),
+            PlayingMarker,
+        ))
+        .id();
+
+    // Spawn tiles transform
+    let tiles_transform = commands
+        .spawn((
+            Transform::from_translation(Vec3::new(0.0, -BoardRuleSet::tile_height() / 2.0, 0.0)),
+            GlobalTransform::default(),
+        ))
+        .id();
+
+    commands.entity(board_root).add_child(tiles_transform);
+
+    let tile_mesh = meshes.add(Cuboid::new(
+        BoardRuleSet::tile_size(),
+        BoardRuleSet::tile_height(),
+        BoardRuleSet::tile_size(),
+    ));
+
+    // Spawn tiles
     for col in 0..board.cols() {
         for row in 0..board.rows() {
             // Tile position
@@ -530,73 +519,61 @@ fn spawn_board(
                 assets.materials.common.tile_black.clone()
             };
 
-            // Spawn base tile entity
-            let base = commands
+            let tile_root = commands
                 .spawn((
-                    Mesh3d(meshes.add(Cuboid::new(
-                        BoardRuleSet::tile_size(),
-                        BoardRuleSet::tile_height(),
-                        BoardRuleSet::tile_size(),
-                    ))),
+                    Mesh3d(tile_mesh.clone()),
                     MeshMaterial3d(base_color),
-                    pos_to_world(pos, board, -BoardRuleSet::tile_height() / 2.0),
+                    pos_to_world(pos, board),
                     GlobalTransform::default(),
                     Tile::new(pos),
-                    PlayingMarker,
                 ))
                 .observe(on_tile_hovered)
                 .observe(on_tile_out)
                 .id();
 
-            // Spawn source or target entity
             let source_or_target = commands
                 .spawn((
-                    Mesh3d(meshes.add(Cuboid::new(
-                        BoardRuleSet::tile_size(),
-                        BoardRuleSet::tile_height(),
-                        BoardRuleSet::tile_size(),
-                    ))),
+                    Mesh3d(tile_mesh.clone()),
                     MeshMaterial3d(assets.materials.common.highlight_source_or_target.clone()),
                     Transform::default(),
                     GlobalTransform::default(),
                     Visibility::Hidden,
-                    SourceOrTargetTile,
                 ))
                 .id();
 
-            // Spawn placeable entity
             let placeable = commands
                 .spawn((
-                    Mesh3d(meshes.add(Cuboid::new(
-                        BoardRuleSet::tile_size(),
-                        BoardRuleSet::tile_height(),
-                        BoardRuleSet::tile_size(),
-                    ))),
+                    Mesh3d(tile_mesh.clone()),
                     MeshMaterial3d(assets.materials.common.highlight_placeable.clone()),
                     Transform::default(),
                     GlobalTransform::default(),
                     Visibility::Hidden,
-                    PlaceableTile,
                 ))
                 .id();
 
+            commands.entity(tiles_transform).add_child(tile_root);
+
             commands
-                .entity(base)
+                .entity(tile_root)
                 .add_children(&[source_or_target, placeable]);
 
             // Add to tile index
-            session
-                .tiles
-                .add(pos, TileEntities::new(base, source_or_target, placeable));
+            tiles.add(
+                pos,
+                TileEntities::new(tile_root, source_or_target, placeable),
+            );
         }
     }
+
+    (board_root, tiles)
 }
 
 /// Spawns a piece on the board at the specified position with the given model and color.
 fn spawn_placed_piece(
     commands: &mut Commands,
     assets: &GameAssets,
-    board: &BoardRuleSet,
+    board_rule_set: &BoardRuleSet,
+    board_entity: Entity,
     players: &mut Players,
     placed_pieces: &mut PlacedPieceIndex,
     model: PieceModel,
@@ -609,30 +586,7 @@ fn spawn_placed_piece(
         child_query: Query<&ChildOf>,
         placed_piece_query: Query<&PlacedPiece>,
         tile_query: Query<&Tile>,
-        mut highlight_piece_query: Query<
-            &mut Visibility,
-            (
-                With<HighlightPiece>,
-                Without<SourceOrTargetTile>,
-                Without<PlaceableTile>,
-            ),
-        >,
-        mut source_or_target_query: Query<
-            &mut Visibility,
-            (
-                With<SourceOrTargetTile>,
-                Without<HighlightPiece>,
-                Without<PlaceableTile>,
-            ),
-        >,
-        mut placeable_query: Query<
-            &mut Visibility,
-            (
-                With<PlaceableTile>,
-                Without<HighlightPiece>,
-                Without<SourceOrTargetTile>,
-            ),
-        >,
+        mut visibility_query: Query<&mut Visibility>,
         mut session: ResMut<GameSession>,
         rules: Res<LoadedRules>,
     ) {
@@ -683,13 +637,12 @@ fn spawn_placed_piece(
             // Highlight visual elements (non-fatal)
             {
                 // Highlight the moving piece
-                if let Ok(mut visibility) = highlight_piece_query.get_mut(entities.mesh_highlight())
-                {
+                if let Ok(mut visibility) = visibility_query.get_mut(entities.highlight()) {
                     *visibility = Visibility::Visible;
                 }
 
                 // Highlight move initial tile
-                if let Ok(mut visibility) = source_or_target_query
+                if let Ok(mut visibility) = visibility_query
                     .get_mut(session.tiles.get(placed.pos()).unwrap().source_or_target())
                 {
                     *visibility = Visibility::Visible;
@@ -698,7 +651,7 @@ fn spawn_placed_piece(
                 // Highlight placeable tiles
                 for pos in moving.placeable_tiles() {
                     if let Ok(mut visibility) =
-                        placeable_query.get_mut(session.tiles.get(pos).unwrap().placeable())
+                        visibility_query.get_mut(session.tiles.get(pos).unwrap().placeable())
                     {
                         *visibility = Visibility::Visible;
                     }
@@ -707,7 +660,7 @@ fn spawn_placed_piece(
 
             // Apply component state change
             commands
-                .entity(entities.control())
+                .entity(entities.root())
                 .insert(moving)
                 .remove::<PlacedPiece>();
 
@@ -726,15 +679,15 @@ fn spawn_placed_piece(
 
     let (mesh, local_transform) = assets.meshes.piece.get(model);
 
-    let control = commands
+    let piece_root = commands
         .spawn((
-            pos_to_world(pos, board, 0.0),
+            pos_to_world(pos, board_rule_set),
             GlobalTransform::default(),
             PlacedPiece::new(model, color, pos),
         ))
         .id();
 
-    let mesh_base = commands
+    let base_mesh = commands
         .spawn((
             Mesh3d(mesh.clone()),
             MeshMaterial3d(assets.materials.piece.get(color).clone()),
@@ -744,23 +697,22 @@ fn spawn_placed_piece(
         .observe(on_piece_pressed)
         .id();
 
-    let mesh_highlight = commands
+    let highlight = commands
         .spawn((
             Mesh3d(mesh.clone()),
             MeshMaterial3d(assets.materials.common.highlight_source_or_target.clone()),
             local_transform.clone(),
             GlobalTransform::default(),
             Visibility::Hidden,
-            HighlightPiece,
         ))
         .id();
 
-    commands
-        .entity(control)
-        .add_children(&[mesh_base, mesh_highlight]);
+    commands.entity(board_entity).add_child(piece_root);
+    commands.entity(piece_root).add_child(base_mesh);
+    commands.entity(base_mesh).add_child(highlight);
 
     // Add to placed piece index
-    entry.insert(PieceEntities::new(control, mesh_base, mesh_highlight));
+    entry.insert(PieceEntities::new(piece_root, base_mesh, highlight));
 
     Ok(())
 }
@@ -768,22 +720,21 @@ fn spawn_placed_piece(
 /// Despawns a piece at the specified position.
 fn despawn_placed_piece(commands: &mut Commands, index: &mut PlacedPieceIndex, pos: Pos) {
     if let Some(entities) = index.remove(pos) {
-        commands.entity(entities.control()).despawn();
+        commands.entity(entities.root()).despawn();
     }
 }
 
 /// Converts a logical board position to world space translation.
 ///
 /// (0, 0) is the bottom-left tile on the board.
-/// `y` is the vertical translation and should be provided.
-fn pos_to_world(pos: Pos, board: &BoardRuleSet, y: f32) -> Transform {
+fn pos_to_world(pos: Pos, board: &BoardRuleSet) -> Transform {
     const fn half_len(cols_or_rows: i64) -> f32 {
         (cols_or_rows as f32 - 1.0) * BoardRuleSet::tile_size() / 2.0
     }
 
     Transform::from_translation(Vec3::new(
         pos.col() as f32 * BoardRuleSet::tile_size() - half_len(board.cols()),
-        y,
+        0.0,
         half_len(board.rows()) - pos.row() as f32 * BoardRuleSet::tile_size(),
     ))
 }
@@ -880,7 +831,7 @@ fn stock_panel(
     mut egui: EguiContexts,
     tile_query: Query<&Tile>,
     placed_piece_query: Query<&PlacedPiece>,
-    mut placeable_query: Query<&mut Visibility, With<PlaceableTile>>,
+    mut visibility_query: Query<&mut Visibility>,
     rules: Res<LoadedRules>,
     mut session: ResMut<GameSession>,
 ) {
@@ -924,7 +875,7 @@ fn stock_panel(
 
                             // Highlight placeable tiles
                             for pos in placing.placeable_tiles() {
-                                if let Ok(mut visibility) = placeable_query
+                                if let Ok(mut visibility) = visibility_query
                                     .get_mut(session.tiles.get(pos).unwrap().placeable())
                                 {
                                     *visibility = Visibility::Visible;

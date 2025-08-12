@@ -36,7 +36,7 @@ fn query_model_at_pos_equal(
         return Ok(false);
     };
 
-    let placed = query.get(entities.control()).unwrap();
+    let placed = query.get(entities.root()).unwrap();
 
     Ok(placed.model() == model)
 }
@@ -51,7 +51,7 @@ fn query_color_at_pos_equal(
         return Ok(false);
     };
 
-    let placed = query.get(entities.control()).unwrap();
+    let placed = query.get(entities.root()).unwrap();
 
     Ok(placed.color() == color)
 }

@@ -1,9 +1,6 @@
-use crate::{
-    session::{
-        piece_index::PlacedPieceIndex, player::Players, state::SessionState, tile_index::TileIndex,
-        turn::TurnController,
-    },
-    states::game_setup::LoadedRules,
+use crate::session::{
+    piece_index::PlacedPieceIndex, player::Players, state::SessionState, tile_index::TileIndex,
+    turn::TurnController,
 };
 use bevy::prelude::*;
 
@@ -16,20 +13,9 @@ pub mod turn;
 #[derive(Debug, Resource)]
 pub struct GameSession {
     pub state: SessionState,
+    pub board: Entity,
     pub tiles: TileIndex,
     pub placed_pieces: PlacedPieceIndex,
     pub players: Players,
     pub turn: TurnController,
-}
-
-impl GameSession {
-    pub fn new(rules: &LoadedRules) -> Self {
-        Self {
-            state: SessionState::Selecting,
-            tiles: TileIndex::new(),
-            placed_pieces: PlacedPieceIndex::new(),
-            players: Players::new(&rules.players, &rules.pieces),
-            turn: TurnController::new(),
-        }
-    }
 }
