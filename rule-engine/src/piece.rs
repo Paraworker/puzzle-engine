@@ -12,7 +12,6 @@ pub enum PieceModel {
     Cone,
     Torus,
     Tetrahedron,
-    Cuboid,
 }
 
 impl fmt::Display for PieceModel {
@@ -25,7 +24,6 @@ impl fmt::Display for PieceModel {
             PieceModel::Cone => "Cone",
             PieceModel::Torus => "Torus",
             PieceModel::Tetrahedron => "Tetrahedron",
-            PieceModel::Cuboid => "Cuboid",
         };
         write!(f, "{name}")
     }

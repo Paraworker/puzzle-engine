@@ -2,7 +2,7 @@ use crate::{
     GameError,
     assets::GameAssets,
     expr_contexts::{game_over::GameOverContext, win_or_lose::WinOrLoseContext},
-    piece::{HighlightedPiece, MovingPiece, PlacedPiece, PlacingPiece},
+    piece::{HighlightPiece, MovingPiece, PlacedPiece, PlacingPiece},
     session::{
         GameSession,
         piece_index::{Entry, PieceEntities, PlacedPieceIndex},
@@ -317,10 +317,10 @@ fn on_button_released(
     mut commands: Commands,
     placed_piece_query: Query<&PlacedPiece>,
     moving_piece_query: Query<&MovingPiece>,
-    mut highlighted_piece_query: Query<
+    mut highlight_piece_query: Query<
         &mut Visibility,
         (
-            With<HighlightedPiece>,
+            With<HighlightPiece>,
             Without<SourceOrTargetTile>,
             Without<PlaceableTile>,
         ),
@@ -330,14 +330,14 @@ fn on_button_released(
         (
             With<SourceOrTargetTile>,
             Without<PlaceableTile>,
-            Without<HighlightedPiece>,
+            Without<HighlightPiece>,
         ),
     >,
     mut placeable_tile_query: Query<
         &mut Visibility,
         (
             With<PlaceableTile>,
-            Without<HighlightedPiece>,
+            Without<HighlightPiece>,
             Without<SourceOrTargetTile>,
         ),
     >,
@@ -354,10 +354,10 @@ fn on_button_released(
     if let SessionState::Moving(entities) = &session.state {
         for event in released.read() {
             if event.button == PointerButton::Primary {
-                if let Ok(moving) = moving_piece_query.get(entities.base()) {
+                if let Ok(moving) = moving_piece_query.get(entities.control()) {
                     // Unhighlight the moving piece
                     if let Ok(mut visibility) =
-                        highlighted_piece_query.get_mut(entities.highlighted())
+                        highlight_piece_query.get_mut(entities.mesh_highlight())
                     {
                         *visibility = Visibility::Hidden;
                     }
@@ -391,7 +391,7 @@ fn on_button_released(
 
                     // Update component
                     commands
-                        .entity(entities.base())
+                        .entity(entities.control())
                         .insert(PlacedPiece::new(
                             moving.model(),
                             moving.color(),
@@ -445,7 +445,8 @@ fn spawn_board(
                     return;
                 };
 
-                let Ok((mut transform, mut moving)) = moving_query.get_mut(entities.base()) else {
+                let Ok((mut transform, mut moving)) = moving_query.get_mut(entities.control())
+                else {
                     return;
                 };
 
@@ -454,8 +455,8 @@ fn spawn_board(
                     return;
                 }
 
-                // Update translation
-                transform.translation = piece_pos_to_world(tile.pos(), &rules.board);
+                // Update transform
+                *transform = pos_to_world(tile.pos(), &rules.board, 0.0);
             }
             SessionState::Placing(placing) => {
                 let Ok(tile) = tile_query.get_mut(trigger.target()) else {
@@ -538,11 +539,7 @@ fn spawn_board(
                         BoardRuleSet::tile_size(),
                     ))),
                     MeshMaterial3d(base_color),
-                    Transform::from_translation(pos_to_world(
-                        pos,
-                        board,
-                        -BoardRuleSet::tile_height() / 2.0,
-                    )),
+                    pos_to_world(pos, board, -BoardRuleSet::tile_height() / 2.0),
                     GlobalTransform::default(),
                     Tile::new(pos),
                     PlayingMarker,
@@ -595,11 +592,6 @@ fn spawn_board(
     }
 }
 
-/// Calculates the world translation for placing a piece to a specific position.
-fn piece_pos_to_world(to: Pos, board: &BoardRuleSet) -> Vec3 {
-    pos_to_world(to, board, BoardRuleSet::tile_size() / 4.0)
-}
-
 /// Spawns a piece on the board at the specified position with the given model and color.
 fn spawn_placed_piece(
     commands: &mut Commands,
@@ -614,12 +606,13 @@ fn spawn_placed_piece(
     fn on_piece_pressed(
         trigger: Trigger<Pointer<Pressed>>,
         mut commands: Commands,
+        child_query: Query<&ChildOf>,
         placed_piece_query: Query<&PlacedPiece>,
         tile_query: Query<&Tile>,
-        mut highlighted_piece_query: Query<
+        mut highlight_piece_query: Query<
             &mut Visibility,
             (
-                With<HighlightedPiece>,
+                With<HighlightPiece>,
                 Without<SourceOrTargetTile>,
                 Without<PlaceableTile>,
             ),
@@ -628,7 +621,7 @@ fn spawn_placed_piece(
             &mut Visibility,
             (
                 With<SourceOrTargetTile>,
-                Without<HighlightedPiece>,
+                Without<HighlightPiece>,
                 Without<PlaceableTile>,
             ),
         >,
@@ -636,7 +629,7 @@ fn spawn_placed_piece(
             &mut Visibility,
             (
                 With<PlaceableTile>,
-                Without<HighlightedPiece>,
+                Without<HighlightPiece>,
                 Without<SourceOrTargetTile>,
             ),
         >,
@@ -649,8 +642,13 @@ fn spawn_placed_piece(
                 return;
             }
 
+            // Try to fetch the child component of the pressed entity
+            let Ok(child) = child_query.get(trigger.target()) else {
+                return;
+            };
+
             // Try to fetch the selected placed piece
-            let Ok(placed) = placed_piece_query.get(trigger.target()) else {
+            let Ok(placed) = placed_piece_query.get(child.parent()) else {
                 return;
             };
 
@@ -685,7 +683,7 @@ fn spawn_placed_piece(
             // Highlight visual elements (non-fatal)
             {
                 // Highlight the moving piece
-                if let Ok(mut visibility) = highlighted_piece_query.get_mut(entities.highlighted())
+                if let Ok(mut visibility) = highlight_piece_query.get_mut(entities.mesh_highlight())
                 {
                     *visibility = Visibility::Visible;
                 }
@@ -709,7 +707,7 @@ fn spawn_placed_piece(
 
             // Apply component state change
             commands
-                .entity(entities.base())
+                .entity(entities.control())
                 .insert(moving)
                 .remove::<PlacedPiece>();
 
@@ -726,38 +724,43 @@ fn spawn_placed_piece(
     // Decrease the piece stock
     players.get_by_color_mut(color).decrease_stock(model)?;
 
-    let mesh = assets.meshes.piece.get(model);
+    let (mesh, local_transform) = assets.meshes.piece.get(model);
 
-    let base = commands
+    let control = commands
+        .spawn((
+            pos_to_world(pos, board, 0.0),
+            GlobalTransform::default(),
+            PlacedPiece::new(model, color, pos),
+        ))
+        .id();
+
+    let mesh_base = commands
         .spawn((
             Mesh3d(mesh.clone()),
             MeshMaterial3d(assets.materials.piece.get(color).clone()),
-            Transform {
-                translation: piece_pos_to_world(pos, board),
-                scale: Vec3::splat(BoardRuleSet::tile_size() * 0.5),
-                ..default()
-            },
+            local_transform.clone(),
             GlobalTransform::default(),
-            PlacedPiece::new(model, color, pos),
         ))
         .observe(on_piece_pressed)
         .id();
 
-    let highlighted = commands
+    let mesh_highlight = commands
         .spawn((
             Mesh3d(mesh.clone()),
             MeshMaterial3d(assets.materials.common.highlight_source_or_target.clone()),
-            Transform::default(),
+            local_transform.clone(),
             GlobalTransform::default(),
             Visibility::Hidden,
-            HighlightedPiece,
+            HighlightPiece,
         ))
         .id();
 
-    commands.entity(base).add_child(highlighted);
+    commands
+        .entity(control)
+        .add_children(&[mesh_base, mesh_highlight]);
 
     // Add to placed piece index
-    entry.insert(PieceEntities::new(base, highlighted));
+    entry.insert(PieceEntities::new(control, mesh_base, mesh_highlight));
 
     Ok(())
 }
@@ -765,7 +768,7 @@ fn spawn_placed_piece(
 /// Despawns a piece at the specified position.
 fn despawn_placed_piece(commands: &mut Commands, index: &mut PlacedPieceIndex, pos: Pos) {
     if let Some(entities) = index.remove(pos) {
-        commands.entity(entities.base()).despawn();
+        commands.entity(entities.control()).despawn();
     }
 }
 
@@ -773,16 +776,16 @@ fn despawn_placed_piece(commands: &mut Commands, index: &mut PlacedPieceIndex, p
 ///
 /// (0, 0) is the bottom-left tile on the board.
 /// `y` is the vertical translation and should be provided.
-fn pos_to_world(pos: Pos, board: &BoardRuleSet, y: f32) -> Vec3 {
+fn pos_to_world(pos: Pos, board: &BoardRuleSet, y: f32) -> Transform {
     const fn half_len(cols_or_rows: i64) -> f32 {
         (cols_or_rows as f32 - 1.0) * BoardRuleSet::tile_size() / 2.0
     }
 
-    Vec3::new(
+    Transform::from_translation(Vec3::new(
         pos.col() as f32 * BoardRuleSet::tile_size() - half_len(board.cols()),
         y,
         half_len(board.rows()) - pos.row() as f32 * BoardRuleSet::tile_size(),
-    )
+    ))
 }
 
 /// Finishes the current turn, evaluates win/loss conditions, and prepares for the next turn or ends the game.

@@ -160,7 +160,7 @@ impl MovingPiece {
 }
 
 #[derive(Debug, Component)]
-pub struct HighlightedPiece;
+pub struct HighlightPiece;
 
 #[derive(Debug)]
 pub struct PlacingPiece {
