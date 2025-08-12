@@ -44,6 +44,26 @@
                 Equal(ToPlaceCol, Const(6)),
             ),
         ),
+        Capsule: (
+            count: Finite(100),
+            movement: True,
+            placement: True,
+        ),
+        Cone: (
+            count: Finite(100),
+            movement: True,
+            placement: True,
+        ),
+        Torus: (
+            count: Finite(100),
+            movement: True,
+            placement: True,
+        ),
+        Tetrahedron: (
+            count: Finite(100),
+            movement: True,
+            placement: True,
+        ),
     },
     players: {
         Black: (
