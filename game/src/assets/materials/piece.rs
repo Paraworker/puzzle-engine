@@ -18,8 +18,8 @@ impl PieceMaterials {
     pub fn new(materials: &mut Assets<StandardMaterial>) -> Self {
         PieceMaterials {
             map: HashMap::from([
-                (PieceColor::White, materials.add(Color::srgb(0.9, 0.9, 0.9))),
-                (PieceColor::Black, materials.add(Color::srgb(0.1, 0.1, 0.1))),
+                (PieceColor::White, materials.add(Color::srgb(0.8, 0.8, 0.8))),
+                (PieceColor::Black, materials.add(Color::srgb(0.3, 0.3, 0.3))),
                 (PieceColor::Red, materials.add(Color::from(RED_300))),
                 (PieceColor::Yellow, materials.add(Color::from(YELLOW_300))),
                 (PieceColor::Green, materials.add(Color::from(GREEN_300))),
