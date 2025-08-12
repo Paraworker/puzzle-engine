@@ -18,11 +18,3 @@ impl Tile {
         self.pos
     }
 }
-
-/// Component for a source or target entity.
-#[derive(Debug, Component)]
-pub struct SourceOrTargetTile;
-
-/// Component for a Placeable entity.
-#[derive(Debug, Component)]
-pub struct PlaceableTile;

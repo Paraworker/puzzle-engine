@@ -159,9 +159,6 @@ impl MovingPiece {
     }
 }
 
-#[derive(Debug, Component)]
-pub struct HighlightPiece;
-
 #[derive(Debug)]
 pub struct PlacingPiece {
     model: PieceModel,
