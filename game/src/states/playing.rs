@@ -412,6 +412,7 @@ fn spawn_board(
 ) -> (Entity, TileIndex) {
     fn on_tile_hovered(
         trigger: Trigger<Pointer<Over>>,
+        child_query: Query<&ChildOf>,
         mut moving_query: Query<(&mut Transform, &mut MovingPiece)>,
         mut tile_query: Query<&Tile>,
         mut visibility_query: Query<&mut Visibility>,
@@ -420,7 +421,11 @@ fn spawn_board(
     ) {
         match &mut session.state {
             SessionState::Moving(entities) => {
-                let Ok(tile) = tile_query.get_mut(trigger.target()) else {
+                let Ok(child) = child_query.get(trigger.target()) else {
+                    return;
+                };
+
+                let Ok(tile) = tile_query.get_mut(child.parent()) else {
                     return;
                 };
 
@@ -434,10 +439,14 @@ fn spawn_board(
                 }
 
                 // Update transform
-                *transform = pos_to_world(tile.pos(), &rules.board);
+                *transform = pos_translation(tile.pos(), &rules.board);
             }
             SessionState::Placing(placing) => {
-                let Ok(tile) = tile_query.get_mut(trigger.target()) else {
+                let Ok(child) = child_query.get(trigger.target()) else {
+                    return;
+                };
+
+                let Ok(tile) = tile_query.get_mut(child.parent()) else {
                     return;
                 };
 
@@ -530,11 +539,18 @@ fn spawn_board(
 
             let tile_root = commands
                 .spawn((
-                    Mesh3d(tile_mesh.clone()),
-                    MeshMaterial3d(base_color),
-                    pos_to_world(pos, board),
+                    pos_translation(pos, board),
                     GlobalTransform::default(),
                     Tile::new(pos),
+                ))
+                .id();
+
+            let base_mesh = commands
+                .spawn((
+                    Mesh3d(tile_mesh.clone()),
+                    MeshMaterial3d(base_color),
+                    Transform::default(),
+                    GlobalTransform::default(),
                 ))
                 .observe(on_tile_hovered)
                 .observe(on_tile_out)
@@ -546,6 +562,7 @@ fn spawn_board(
                     MeshMaterial3d(assets.materials.common.highlight_source_or_target.clone()),
                     Transform::default(),
                     GlobalTransform::default(),
+                    Pickable::IGNORE,
                     Visibility::Hidden,
                 ))
                 .id();
@@ -556,6 +573,7 @@ fn spawn_board(
                     MeshMaterial3d(assets.materials.common.highlight_placeable.clone()),
                     Transform::default(),
                     GlobalTransform::default(),
+                    Pickable::IGNORE,
                     Visibility::Hidden,
                 ))
                 .id();
@@ -564,12 +582,12 @@ fn spawn_board(
 
             commands
                 .entity(tile_root)
-                .add_children(&[source_or_target, placeable]);
+                .add_children(&[base_mesh, source_or_target, placeable]);
 
             // Add to tile index
             tiles.add(
                 pos,
-                TileEntities::new(tile_root, source_or_target, placeable),
+                TileEntities::new(tile_root, base_mesh, source_or_target, placeable),
             );
         }
     }
@@ -690,7 +708,7 @@ fn spawn_placed_piece(
 
     let piece_root = commands
         .spawn((
-            pos_to_world(pos, board_rule_set),
+            pos_translation(pos, board_rule_set),
             GlobalTransform::default(),
             PlacedPiece::new(model, color, pos),
         ))
@@ -712,13 +730,15 @@ fn spawn_placed_piece(
             MeshMaterial3d(assets.materials.common.highlight_source_or_target.clone()),
             local_transform.clone(),
             GlobalTransform::default(),
+            Pickable::IGNORE,
             Visibility::Hidden,
         ))
         .id();
 
     commands.entity(board_entity).add_child(piece_root);
-    commands.entity(piece_root).add_child(base_mesh);
-    commands.entity(base_mesh).add_child(highlight);
+    commands
+        .entity(piece_root)
+        .add_children(&[base_mesh, highlight]);
 
     // Add to placed piece index
     entry.insert(PieceEntities::new(piece_root, base_mesh, highlight));
@@ -733,10 +753,10 @@ fn despawn_placed_piece(commands: &mut Commands, index: &mut PlacedPieceIndex, p
     }
 }
 
-/// Converts a logical board position to world space translation.
+/// Converts a logical board position to board space translation.
 ///
 /// (0, 0) is the bottom-left tile on the board.
-fn pos_to_world(pos: Pos, board: &BoardRuleSet) -> Transform {
+fn pos_translation(pos: Pos, board: &BoardRuleSet) -> Transform {
     const fn half_len(cols_or_rows: i64) -> f32 {
         (cols_or_rows as f32 - 1.0) * BoardRuleSet::tile_size() / 2.0
     }

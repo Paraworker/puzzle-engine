@@ -1,8 +1,4 @@
-use bevy::{
-    asset::{Assets, Handle},
-    color::Color,
-    pbr::StandardMaterial,
-};
+use bevy::prelude::*;
 
 #[derive(Debug)]
 pub struct CommonMaterials {
@@ -17,8 +13,18 @@ impl CommonMaterials {
         CommonMaterials {
             tile_black: materials.add(Color::srgb(0.2, 0.2, 0.2)),
             tile_white: materials.add(Color::srgb(0.8, 0.8, 0.8)),
-            highlight_source_or_target: materials.add(Color::srgba(0.4, 0.6, 1.0, 0.6)),
-            highlight_placeable: materials.add(Color::srgba(1.0, 0.9, 0.2, 0.6)),
+            highlight_source_or_target: materials.add(StandardMaterial {
+                base_color: Color::srgba(0.4, 0.6, 1.0, 0.5),
+                alpha_mode: AlphaMode::Blend,
+                unlit: true,
+                ..default()
+            }),
+            highlight_placeable: materials.add(StandardMaterial {
+                base_color: Color::srgba(1.0, 0.9, 0.2, 0.5),
+                alpha_mode: AlphaMode::Blend,
+                unlit: true,
+                ..default()
+            }),
         }
     }
 }
