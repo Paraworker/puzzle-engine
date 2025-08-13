@@ -7,42 +7,42 @@
     pieces: {
         Cube: (
             count: Finite(100),
-            movement: Or(
+            movement: Or([
                 Equal(TargetRow, SourceRow),
                 Equal(TargetCol, SourceCol),
-            ),
+            ]),
             placement: Not(PosOccupied(ToPlaceRow, ToPlaceCol)),
         ),
         Sphere: (
             count: Finite(100),
             movement: True,
-            placement: Or(
+            placement: Or([
                 Equal(ToPlaceRow, Const(5)),
                 Equal(ToPlaceCol, Const(5)),
-            ),
+            ]),
         ),
         Cylinder: (
             count: Infinite,
-            movement: Or(
-                And(
-                    Or(
+            movement: Or([
+                And([
+                    Or([
                         Equal(Sub(TargetRow, SourceRow), Const(1)),
                         Equal(Sub(TargetRow, SourceRow), Const(-1)),
-                    ),
+                    ]),
                     Equal(TargetCol, SourceCol),
-                ),
-                And(
-                    Or(
+                ]),
+                And([
+                    Or([
                         Equal(Sub(TargetCol, SourceCol), Const(1)),
                         Equal(Sub(TargetCol, SourceCol), Const(-1)),
-                    ),
+                    ]),
                     Equal(TargetRow, SourceRow),
-                ),
-            ),
-            placement: Or(
+                ]),
+            ]),
+            placement: Or([
                 Equal(ToPlaceRow, Const(6)),
                 Equal(ToPlaceCol, Const(6)),
-            ),
+            ]),
         ),
         Capsule: (
             count: Finite(100),
