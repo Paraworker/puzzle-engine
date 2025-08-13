@@ -3,6 +3,7 @@ use crate::session::{
     turn::TurnController,
 };
 use bevy::prelude::*;
+use rule_engine::position::Pos;
 
 pub mod piece_index;
 pub mod player;
@@ -18,4 +19,5 @@ pub struct GameSession {
     pub placed_pieces: PlacedPieceIndex,
     pub players: Players,
     pub turn: TurnController,
+    pub last_action: Option<Pos>,
 }

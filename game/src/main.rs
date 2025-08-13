@@ -22,6 +22,8 @@ pub enum GameError {
     NoActivePlayer,
     #[error("piece already exists at position: {0}")]
     DuplicatePiece(Pos),
+    #[error("no last action")]
+    NoLastAction,
     #[error("rules error: {0}")]
     Rules(#[from] RulesError),
     #[error("config format error: {0}")]

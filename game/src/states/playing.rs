@@ -171,6 +171,7 @@ fn on_enter(
         placed_pieces,
         players,
         turn: TurnController::new(),
+        last_action: None,
     };
 
     // Insert resources
@@ -297,6 +298,10 @@ fn on_button_pressed(
                         *visibility = Visibility::Hidden;
                     }
 
+                    // Update last action position
+                    session.last_action = Some(to_place);
+
+                    // Finish this turn
                     finish_turn(&rules, session, placed_piece_query, &mut top_panel_text);
                 } else {
                     // Placement cancelled.
@@ -380,6 +385,10 @@ fn on_button_released(
                         .add(moving.current_pos(), entities.clone());
 
                     if moving.moved() {
+                        // Update last action position
+                        session.last_action = Some(moving.current_pos());
+
+                        // Finish this turn
                         finish_turn(&rules, session, placed_piece_query, &mut top_panel_text);
                     } else {
                         // Movement cancelled.
@@ -756,6 +765,7 @@ fn finish_turn(
 
         let ctx = WinOrLoseContext {
             turn: &session.turn,
+            last_action: &session.last_action,
             placed_piece_index: &session.placed_pieces,
             placed_piece_query,
         };
