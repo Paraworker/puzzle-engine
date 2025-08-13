@@ -19,6 +19,8 @@ pub enum IntExpr {
     Mul(Box<IntExpr>, Box<IntExpr>),
     /// Division
     Div(Box<IntExpr>, Box<IntExpr>),
+    /// Absolute value
+    Abs(Box<IntExpr>),
 
     /// Query turn information
     ///
@@ -65,6 +67,7 @@ impl IntExpr {
             IntExpr::Sub(lhs, rhs) => Ok(lhs.evaluate(ctx)? - rhs.evaluate(ctx)?),
             IntExpr::Mul(lhs, rhs) => Ok(lhs.evaluate(ctx)? * rhs.evaluate(ctx)?),
             IntExpr::Div(lhs, rhs) => Self::div(lhs, rhs, ctx),
+            IntExpr::Abs(expr) => Ok(expr.evaluate(ctx)?.abs()),
             IntExpr::TurnNumber => ctx.turn_number(),
             IntExpr::RoundNumber => ctx.round_number(),
             IntExpr::LastActionRow => ctx.last_action_row(),
