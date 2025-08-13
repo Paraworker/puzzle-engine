@@ -22,7 +22,8 @@ pub(crate) fn to_ron_str<T>(value: &T) -> Result<String, RulesError>
 where
     T: Serialize,
 {
-    Ok(to_string_pretty(value, PrettyConfig::default())?)
+    let pretty = PrettyConfig::new().separate_tuple_members(true);
+    Ok(to_string_pretty(value, pretty)?)
 }
 
 pub(crate) fn from_ron_file<P, T>(path: P) -> Result<T, RulesError>

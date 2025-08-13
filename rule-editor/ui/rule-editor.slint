@@ -1,16 +1,23 @@
-import { TabWidget, LineEdit, Button, ListView } from "std-widgets.slint";
+import { TabWidget, LineEdit, Button } from "std-widgets.slint";
 import { TextEditor } from "text-editor.slint";
 
-component NamePage inherits VerticalLayout {
+component NamePage inherits HorizontalLayout {
     in-out property <string> rules_name;
 
     padding: 16px;
     spacing: 12px;
     alignment: center;
 
-    HorizontalLayout {
-        min-width: 400px;
+    VerticalLayout {
         alignment: center;
+        spacing: 4px;
+
+        Text {
+            text: "Rules Name";
+            horizontal-alignment: left;
+            vertical-alignment: center;
+        }
+
         LineEdit {
             placeholder-text: "Enter rules name here";
             width: 400px;
@@ -29,23 +36,41 @@ component BoardPage inherits HorizontalLayout {
     alignment: center;
 
     VerticalLayout {
-        min-width: 400px;
         alignment: center;
         spacing: 12px;
-        LineEdit {
-            placeholder-text: "Enter board row number here";
-            input-type: number;
-            width: 400px;
-            height: 30px;
-            text <=> root.board_rows;
+
+        VerticalLayout {
+            spacing: 4px;
+
+            Text {
+                text: "Row Number";
+                horizontal-alignment: left;
+            }
+            
+            LineEdit {
+                placeholder-text: "Enter board row number here";
+                input-type: number;
+                width: 400px;
+                height: 30px;
+                text <=> root.board_rows;
+            }
         }
 
-        LineEdit {
-            placeholder-text: "Enter board column number here";
-            input-type: number;
-            width: 400px;
-            height: 30px;
-            text <=> root.board_cols;
+        VerticalLayout {
+            spacing: 4px;
+
+            Text {
+                text: "Colum Number";
+                horizontal-alignment: left;
+            }
+
+            LineEdit {
+                placeholder-text: "Enter board column number here";
+                input-type: number;
+                width: 400px;
+                height: 30px;
+                text <=> root.board_cols;
+            }
         }
     }
 }
