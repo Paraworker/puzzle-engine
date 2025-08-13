@@ -31,6 +31,10 @@ pub enum RulesError {
     DuplicateModel,
     #[error("division by zero")]
     DivisionByZero,
+    #[error("logical AND invalid arity")]
+    AndInvalidArity,
+    #[error("logical OR invalid arity")]
+    OrInvalidArity,
     #[error("unsupported variable")]
     UnsupportedVariable,
     #[error("piece count is depleted")]

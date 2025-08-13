@@ -16,8 +16,8 @@ pub enum BoolExpr {
     False,
 
     /// Logical operators
-    And(Box<BoolExpr>, Box<BoolExpr>),
-    Or(Box<BoolExpr>, Box<BoolExpr>),
+    And(Vec<BoolExpr>),
+    Or(Vec<BoolExpr>),
     Not(Box<BoolExpr>),
 
     /// Arithmetic comparison operators
@@ -71,8 +71,8 @@ impl BoolExpr {
         match self {
             BoolExpr::True => Ok(true),
             BoolExpr::False => Ok(false),
-            BoolExpr::And(lhs, rhs) => Ok(lhs.evaluate(ctx)? && rhs.evaluate(ctx)?),
-            BoolExpr::Or(lhs, rhs) => Ok(lhs.evaluate(ctx)? || rhs.evaluate(ctx)?),
+            BoolExpr::And(vec) => Self::and(vec, ctx),
+            BoolExpr::Or(vec) => Self::or(vec, ctx),
             BoolExpr::Not(expr) => Ok(!expr.evaluate(ctx)?),
             BoolExpr::Equal(lhs, rhs) => Ok(lhs.evaluate(ctx)? == rhs.evaluate(ctx)?),
             BoolExpr::NotEqual(lhs, rhs) => Ok(lhs.evaluate(ctx)? != rhs.evaluate(ctx)?),
@@ -106,5 +106,41 @@ impl BoolExpr {
     /// Converts into a ron string.
     pub fn to_ron_str(&self) -> Result<String, RulesError> {
         to_ron_str(self)
+    }
+
+    fn and<C>(vec: &Vec<BoolExpr>, ctx: &C) -> Result<bool, C::Error>
+    where
+        C: Context,
+    {
+        if vec.len() < 2 {
+            return Err(RulesError::AndInvalidArity.into());
+        }
+
+        for expr in vec {
+            if !expr.evaluate(ctx)? {
+                // Short-circuit
+                return Ok(false);
+            }
+        }
+
+        Ok(true)
+    }
+
+    fn or<C>(vec: &Vec<BoolExpr>, ctx: &C) -> Result<bool, C::Error>
+    where
+        C: Context,
+    {
+        if vec.len() < 2 {
+            return Err(RulesError::OrInvalidArity.into());
+        }
+
+        for expr in vec {
+            if expr.evaluate(ctx)? {
+                // Short-circuit
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
     }
 }
