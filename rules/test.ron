@@ -25,17 +25,11 @@
             count: Infinite,
             movement: Or([
                 And([
-                    Or([
-                        Equal(Sub(TargetRow, SourceRow), Const(1)),
-                        Equal(Sub(TargetRow, SourceRow), Const(-1)),
-                    ]),
+                    Equal(Abs(Sub(TargetRow, SourceRow)), Const(1)),
                     Equal(TargetCol, SourceCol),
                 ]),
                 And([
-                    Or([
-                        Equal(Sub(TargetCol, SourceCol), Const(1)),
-                        Equal(Sub(TargetCol, SourceCol), Const(-1)),
-                    ]),
+                    Equal(Abs(Sub(TargetCol, SourceCol)), Const(1)),
                     Equal(TargetRow, SourceRow),
                 ]),
             ]),
