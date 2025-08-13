@@ -20,14 +20,21 @@ pub enum IntExpr {
     /// Division
     Div(Box<IntExpr>, Box<IntExpr>),
 
-    /// Query turn info
+    /// Query turn information
     ///
     /// - TurnNumber: The current turn number.
     /// - RoundNumber: The current round number.
     TurnNumber,
     RoundNumber,
 
-    /// Movement expression only
+    /// Query last action information
+    ///
+    /// - LastActionCol: The column of the last action.
+    /// - LastActionRow: The row of the last action.
+    LastActionCol,
+    LastActionRow,
+
+    /// Movement expression only variables
     ///
     /// - SourceRow: The source tile row.
     /// - SourceCol: The source tile column.
@@ -38,7 +45,7 @@ pub enum IntExpr {
     TargetRow,
     TargetCol,
 
-    /// Placement expression only
+    /// Placement expression only variables
     ///
     /// - ToPlaceRow: The row where the piece is being placed.
     /// - ToPlaceCol: The column where the piece is being placed.
@@ -60,6 +67,8 @@ impl IntExpr {
             IntExpr::Div(lhs, rhs) => Self::div(lhs, rhs, ctx),
             IntExpr::TurnNumber => ctx.turn_number(),
             IntExpr::RoundNumber => ctx.round_number(),
+            IntExpr::LastActionRow => ctx.last_action_row(),
+            IntExpr::LastActionCol => ctx.last_action_col(),
             IntExpr::SourceRow => ctx.source_row(),
             IntExpr::SourceCol => ctx.source_col(),
             IntExpr::TargetRow => ctx.target_row(),

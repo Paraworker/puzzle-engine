@@ -27,6 +27,19 @@ pub trait Context {
     /// Query whether a position is occupied by a piece of a specific color.
     fn color_at_pos_equal(&self, pos: Pos, color: PieceColor) -> Result<bool, Self::Error>;
 
+    /// Query whether the first action has been performed.
+    fn has_last_action(&self) -> Result<bool, Self::Error>;
+
+    /// Query the row of the last action position.
+    ///
+    /// If no last action has been performed, return an error.
+    fn last_action_row(&self) -> Result<i64, Self::Error>;
+
+    /// Query the column of the last action position.
+    ///
+    /// If no last action has been performed, return an error.
+    fn last_action_col(&self) -> Result<i64, Self::Error>;
+
     /// Query whether the moving piece is equal to a specific model.
     ///
     /// Only support in movement.

@@ -55,3 +55,21 @@ fn query_color_at_pos_equal(
 
     Ok(placed.color() == color)
 }
+
+fn query_has_last_action(last_action: &Option<Pos>) -> Result<bool, GameError> {
+    Ok(last_action.is_some())
+}
+
+fn query_last_action_row(last_action: &Option<Pos>) -> Result<i64, GameError> {
+    match last_action {
+        Some(pos) => Ok(pos.row()),
+        None => Err(GameError::NoLastAction),
+    }
+}
+
+fn query_last_action_col(last_action: &Option<Pos>) -> Result<i64, GameError> {
+    match last_action {
+        Some(pos) => Ok(pos.col()),
+        None => Err(GameError::NoLastAction),
+    }
+}

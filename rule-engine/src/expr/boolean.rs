@@ -37,6 +37,11 @@ pub enum BoolExpr {
     ModelAtPosEqual((IntExpr, IntExpr), PieceModel),
     ColorAtPosEqual((IntExpr, IntExpr), PieceColor),
 
+    /// Query last action information
+    ///
+    /// - HasLastAction: If the first action has been performed.
+    HasLastAction,
+
     /// Movement expression only
     ///
     /// - MovingModelEqual: If the moving piece's model is equal to the given model.
@@ -84,6 +89,7 @@ impl BoolExpr {
             BoolExpr::ColorAtPosEqual((row, col), color) => {
                 ctx.color_at_pos_equal(Pos::new(row.evaluate(ctx)?, col.evaluate(ctx)?), *color)
             }
+            BoolExpr::HasLastAction => ctx.has_last_action(),
             BoolExpr::MovingModelEqual(model) => ctx.moving_model_equal(*model),
             BoolExpr::MovingColorEqual(color) => ctx.moving_color_equal(*color),
             BoolExpr::ToPlaceModelEqual(model) => ctx.to_place_model_equal(*model),
