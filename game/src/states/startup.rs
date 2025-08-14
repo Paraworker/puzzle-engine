@@ -1,4 +1,4 @@
-use crate::{assets::GameAssets, settings::Settings, states::GameState};
+use crate::{assets::GameAssets, settings::Settings, states::AppState};
 use bevy::{
     app::{App, Plugin, Startup},
     asset::Assets,
@@ -20,7 +20,7 @@ fn on_startup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut next_state: ResMut<NextState<GameState>>,
+    mut next_state: ResMut<NextState<AppState>>,
 ) {
     // Load setting
     commands.insert_resource(Settings::load("game/settings.ron").unwrap());
@@ -29,5 +29,5 @@ fn on_startup(
     commands.insert_resource(GameAssets::new(&mut materials, &mut meshes));
 
     // Switch to the `Menu` state once the startup is complete
-    next_state.set(GameState::Menu);
+    next_state.set(AppState::Menu);
 }
