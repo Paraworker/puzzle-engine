@@ -1,0 +1,291 @@
+(
+    name: "Gomoku (Five in a Row)",
+    board: (
+        rows: 15,
+        cols: 15,
+    ),
+    pieces: {
+        Sphere: (
+            count: Infinite,
+            movement: False,
+            placement: Not(PosOccupied(ToPlaceRow, ToPlaceCol)),
+        ),
+    },
+    players: {
+        Black: (
+            win_condition: And([
+                ColorAtPosEqual((LastActionRow, LastActionCol), Black),
+                Or([
+                    // Horizontal
+                    And([
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-4))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-3))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-2))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-1))), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-3))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-2))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-1))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 1))), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-2))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-1))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 1))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 2))), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-1))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 1))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 2))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 3))), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 1))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 2))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 3))), Black),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 4))), Black),
+                    ]),
+
+                    // Vertical
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-4)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-3)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), LastActionCol), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-3)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), LastActionCol), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), LastActionCol), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 3)), LastActionCol), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 3)), LastActionCol), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 4)), LastActionCol), Black),
+                    ]),
+
+                    // Diagonal ↘
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-4)), Add(LastActionCol, Const(-4))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-3)), Add(LastActionCol, Const(-3))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), Add(LastActionCol, Const(-2))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), Add(LastActionCol, Const(-1))), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-3)), Add(LastActionCol, Const(-3))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), Add(LastActionCol, Const(-2))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), Add(LastActionCol, Const(-1))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const( 1))), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), Add(LastActionCol, Const(-2))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), Add(LastActionCol, Const(-1))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const( 1))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), Add(LastActionCol, Const( 2))), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), Add(LastActionCol, Const(-1))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const( 1))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), Add(LastActionCol, Const( 2))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 3)), Add(LastActionCol, Const( 3))), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const( 1))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), Add(LastActionCol, Const( 2))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 3)), Add(LastActionCol, Const( 3))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 4)), Add(LastActionCol, Const( 4))), Black),
+                    ]),
+
+                    // Diagonal ↙
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-4)), Add(LastActionCol, Const( 4))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-3)), Add(LastActionCol, Const( 3))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), Add(LastActionCol, Const( 2))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), Add(LastActionCol, Const( 1))), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-3)), Add(LastActionCol, Const( 3))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), Add(LastActionCol, Const( 2))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), Add(LastActionCol, Const( 1))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const(-1))), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), Add(LastActionCol, Const( 2))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), Add(LastActionCol, Const( 1))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const(-1))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), Add(LastActionCol, Const(-2))), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), Add(LastActionCol, Const( 1))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const(-1))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), Add(LastActionCol, Const(-2))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 3)), Add(LastActionCol, Const(-3))), Black),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const(-1))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), Add(LastActionCol, Const(-2))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 3)), Add(LastActionCol, Const(-3))), Black),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 4)), Add(LastActionCol, Const(-4))), Black),
+                    ]),
+                ]),
+            ]),
+            lose_condition: False,
+        ),
+        White: (
+            win_condition: And([
+                ColorAtPosEqual((LastActionRow, LastActionCol), White),
+                Or([
+                    // Horizontal
+                    And([
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-4))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-3))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-2))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-1))), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-3))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-2))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-1))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 1))), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-2))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-1))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 1))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 2))), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const(-1))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 1))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 2))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 3))), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 1))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 2))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 3))), White),
+                        ColorAtPosEqual((LastActionRow, Add(LastActionCol, Const( 4))), White),
+                    ]),
+
+                    // Vertical
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-4)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-3)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), LastActionCol), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-3)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), LastActionCol), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), LastActionCol), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 3)), LastActionCol), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 3)), LastActionCol), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 4)), LastActionCol), White),
+                    ]),
+
+                    // Diagonal ↘
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-4)), Add(LastActionCol, Const(-4))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-3)), Add(LastActionCol, Const(-3))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), Add(LastActionCol, Const(-2))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), Add(LastActionCol, Const(-1))), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-3)), Add(LastActionCol, Const(-3))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), Add(LastActionCol, Const(-2))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const( 1))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), Add(LastActionCol, Const( 2))), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), Add(LastActionCol, Const(-2))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), Add(LastActionCol, Const(-1))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const( 1))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), Add(LastActionCol, Const( 2))), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), Add(LastActionCol, Const(-1))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const( 1))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), Add(LastActionCol, Const( 2))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 3)), Add(LastActionCol, Const( 3))), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const( 1))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), Add(LastActionCol, Const( 2))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 3)), Add(LastActionCol, Const( 3))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 4)), Add(LastActionCol, Const( 4))), White),
+                    ]),
+
+                    // Diagonal ↙
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-4)), Add(LastActionCol, Const( 4))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-3)), Add(LastActionCol, Const( 3))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), Add(LastActionCol, Const( 2))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), Add(LastActionCol, Const( 1))), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-3)), Add(LastActionCol, Const( 3))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), Add(LastActionCol, Const( 2))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const(-1))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), Add(LastActionCol, Const(-2))), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-2)), Add(LastActionCol, Const( 2))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), Add(LastActionCol, Const( 1))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const(-1))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), Add(LastActionCol, Const(-2))), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const(-1)), Add(LastActionCol, Const( 1))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const(-1))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), Add(LastActionCol, Const(-2))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 3)), Add(LastActionCol, Const(-3))), White),
+                    ]),
+                    And([
+                        ColorAtPosEqual((Add(LastActionRow, Const( 1)), Add(LastActionCol, Const(-1))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 2)), Add(LastActionCol, Const(-2))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 3)), Add(LastActionCol, Const(-3))), White),
+                        ColorAtPosEqual((Add(LastActionRow, Const( 4)), Add(LastActionCol, Const(-4))), White),
+                    ]),
+                ]),
+            ]),
+            lose_condition: False,
+        ),
+    },
+    initial_layout: [],
+    game_over_condition: Or([
+        PlayerStateEqual(Black, Won),
+        PlayerStateEqual(White, Won),
+    ]),
+)
