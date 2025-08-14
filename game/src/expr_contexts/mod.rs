@@ -1,7 +1,9 @@
 use crate::{
     GameError,
-    piece::PlacedPiece,
-    session::{piece_index::PlacedPieceIndex, turn::TurnController},
+    states::playing::{
+        piece::PlacedPiece,
+        session::{piece_index::PlacedPieceIndex, turn::TurnController},
+    },
 };
 use bevy::prelude::*;
 use rule_engine::{

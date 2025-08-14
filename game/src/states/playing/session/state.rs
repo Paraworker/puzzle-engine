@@ -1,4 +1,4 @@
-use crate::{piece::PlacingPiece, session::piece_index::PieceEntities};
+use crate::states::playing::{piece::PlacingPiece, session::piece_index::PieceEntities};
 
 #[derive(Debug)]
 pub enum SessionState {
@@ -13,6 +13,9 @@ pub enum SessionState {
     /// Stores the placing piece data.
     Placing(PlacingPiece),
 
-    /// The player is reviewing the board in a read-only state.
-    Reviewing,
+    /// The turn has ended, evaluating win/loss conditions.
+    TurnEnd,
+
+    /// The game has ended, player is reviewing in a read-only state.
+    GameOver,
 }

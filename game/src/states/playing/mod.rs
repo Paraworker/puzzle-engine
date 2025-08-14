@@ -2,17 +2,23 @@ use crate::{
     GameError,
     assets::GameAssets,
     expr_contexts::{game_over::GameOverContext, win_or_lose::WinOrLoseContext},
-    piece::{MovingPiece, PlacedPiece, PlacingPiece},
-    session::{
-        GameSession,
-        piece_index::{Entry, PieceEntities, PlacedPieceIndex},
-        player::Players,
-        state::SessionState,
-        tile_index::{TileEntities, TileIndex},
-        turn::TurnController,
+    states::{
+        GameState,
+        game_setup::LoadedRules,
+        playing::{
+            camera::PlayingCamera,
+            piece::{MovingPiece, PlacedPiece, PlacingPiece},
+            session::{
+                GameSession,
+                piece_index::{Entry, PieceEntities, PlacedPieceIndex},
+                player::Players,
+                state::SessionState,
+                tile_index::{TileEntities, TileIndex},
+                turn::TurnController,
+            },
+            tile::Tile,
+        },
     },
-    states::{GameState, game_setup::LoadedRules},
-    tile::Tile,
 };
 use bevy::{input::mouse::MouseWheel, prelude::*, render::view::RenderLayers};
 use bevy_egui::{
@@ -26,6 +32,11 @@ use rule_engine::{
     position::Pos,
 };
 
+pub mod camera;
+pub mod piece;
+pub mod session;
+pub mod tile;
+
 pub struct PlayingPlugin;
 
 impl Plugin for PlayingPlugin {
@@ -38,6 +49,7 @@ impl Plugin for PlayingPlugin {
                     on_pointer_drag,
                     on_button_pressed,
                     on_button_released,
+                    evaluate_turn,
                 )
                     .run_if(in_state(GameState::Playing)),
             )
@@ -54,53 +66,6 @@ struct TopPanelText(String);
 
 #[derive(Component)]
 struct PlayingMarker;
-
-#[derive(Component)]
-struct PlayingCamera {
-    /// Distance from focus point
-    radius: f32,
-    /// Horizontal rotation angle (in radians)
-    azimuth: f32,
-    /// Vertical rotation angle (in radians)
-    elevation: f32,
-}
-
-impl PlayingCamera {
-    const FOCUS: Vec3 = Vec3::ZERO;
-
-    fn new() -> Self {
-        Self {
-            radius: 10.0,
-            azimuth: 0.0,
-            elevation: std::f32::consts::FRAC_PI_6, // 30°,
-        }
-    }
-
-    fn transform(&self) -> Transform {
-        let x = self.radius * self.elevation.cos() * self.azimuth.sin();
-        let y = self.radius * self.elevation.sin();
-        let z = self.radius * self.elevation.cos() * self.azimuth.cos();
-
-        Transform::from_translation(Vec3::new(x, y, z)).looking_at(Self::FOCUS, Vec3::Y)
-    }
-
-    fn zoom(&mut self, delta: f32) {
-        const ZOOM_SPEED: f32 = 0.2;
-        const MIN_DISTANCE: f32 = 5.0;
-        const MAX_DISTANCE: f32 = 40.0;
-
-        self.radius -= delta * ZOOM_SPEED;
-        self.radius = self.radius.clamp(MIN_DISTANCE, MAX_DISTANCE);
-    }
-
-    fn drag(&mut self, delta_x: f32, delta_y: f32) {
-        self.azimuth -= delta_x * 0.01;
-        self.elevation += delta_y * 0.01;
-        self.elevation = self
-            .elevation
-            .clamp(0.1, std::f32::consts::FRAC_PI_2 - 0.05);
-    }
-}
 
 fn on_enter(
     mut commands: Commands,
@@ -203,7 +168,7 @@ fn on_mouse_wheel(
     }
 
     match session.state {
-        SessionState::Selecting | SessionState::Reviewing => {
+        SessionState::Selecting | SessionState::GameOver => {
             for ev in scroll_evr.read() {
                 for (mut transform, mut camera) in &mut query {
                     camera.zoom(ev.y);
@@ -229,7 +194,7 @@ fn on_pointer_drag(
     }
 
     match session.state {
-        SessionState::Selecting | SessionState::Reviewing => {
+        SessionState::Selecting | SessionState::GameOver => {
             for drag in drag_events.read() {
                 for (mut transform, mut cam) in camera_query.iter_mut() {
                     cam.drag(drag.delta.x, drag.delta.y);
@@ -249,11 +214,9 @@ fn on_button_pressed(
     mut egui: EguiContexts,
     mut commands: Commands,
     mut visibility_query: Query<&mut Visibility>,
-    placed_piece_query: Query<&PlacedPiece>,
     assets: Res<GameAssets>,
     rules: Res<LoadedRules>,
     mut session: ResMut<GameSession>,
-    mut top_panel_text: ResMut<TopPanelText>,
 ) {
     if egui.ctx_mut().unwrap().wants_pointer_input() {
         return;
@@ -302,7 +265,7 @@ fn on_button_pressed(
                     session.last_action = Some(to_place);
 
                     // Finish this turn
-                    finish_turn(&rules, session, placed_piece_query, &mut top_panel_text);
+                    session.state = SessionState::TurnEnd;
                 } else {
                     // Placement cancelled.
                     session.state = SessionState::Selecting;
@@ -320,12 +283,9 @@ fn on_button_released(
     mut released: EventReader<Pointer<Released>>,
     mut egui: EguiContexts,
     mut commands: Commands,
-    placed_piece_query: Query<&PlacedPiece>,
     moving_piece_query: Query<&MovingPiece>,
     mut visibility_query: Query<&mut Visibility>,
-    rules: Res<LoadedRules>,
     mut session: ResMut<GameSession>,
-    mut top_panel_text: ResMut<TopPanelText>,
 ) {
     if egui.ctx_mut().unwrap().wants_pointer_input() {
         return;
@@ -389,7 +349,7 @@ fn on_button_released(
                         session.last_action = Some(moving.current_pos());
 
                         // Finish this turn
-                        finish_turn(&rules, session, placed_piece_query, &mut top_panel_text);
+                        session.state = SessionState::TurnEnd;
                     } else {
                         // Movement cancelled.
                         session.state = SessionState::Selecting;
@@ -768,13 +728,19 @@ fn pos_translation(pos: Pos, board: &BoardRuleSet) -> Transform {
     ))
 }
 
-/// Finishes the current turn, evaluates win/loss conditions, and prepares for the next turn or ends the game.
-fn finish_turn(
-    rules: &LoadedRules,
-    session: &mut GameSession,
+/// A system that evaluates win/loss conditions, and prepares for the next turn or ends the game.
+fn evaluate_turn(
     placed_piece_query: Query<&PlacedPiece>,
-    top_panel_text: &mut TopPanelText,
+    mut session: ResMut<GameSession>,
+    mut top_panel_text: ResMut<TopPanelText>,
+    rules: Res<LoadedRules>,
 ) {
+    let SessionState::TurnEnd = session.state else {
+        return;
+    };
+
+    let session = session.as_mut();
+
     // Check win and lose condition for each active player.
     for (piece_color, player) in session
         .players
@@ -814,8 +780,8 @@ fn finish_turn(
         // Update top panel text.
         top_panel_text.0 = format!("Game Over: {}", session.players.player_states_message());
 
-        // Switch to [`SessionSate::Reviewing`].
-        session.state = SessionState::Reviewing;
+        // Switch to [`SessionSate::GameOver`].
+        session.state = SessionState::GameOver;
     } else {
         // Advance the turn
         match session.turn.advance_turn(&session.players) {
@@ -831,8 +797,8 @@ fn finish_turn(
                     session.players.player_states_message()
                 );
 
-                // Switch to [`SessionSate::Reviewing`].
-                session.state = SessionState::Reviewing;
+                // Switch to [`SessionSate::GameOver`].
+                session.state = SessionState::GameOver;
             }
             Err(_) => {
                 panic!("Unexpected error occurred");

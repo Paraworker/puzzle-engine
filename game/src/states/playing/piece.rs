@@ -1,8 +1,7 @@
 use crate::{
     GameError,
     expr_contexts::{movement::MovementContext, placement::PlacementContext},
-    session::GameSession,
-    tile::Tile,
+    states::playing::{session::GameSession, tile::Tile},
 };
 use bevy::prelude::*;
 use rule_engine::{
