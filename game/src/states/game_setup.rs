@@ -1,4 +1,4 @@
-use crate::{settings::Settings, states::GameState};
+use crate::{settings::Settings, states::AppState};
 use bevy::prelude::*;
 use rule_engine::GameRules;
 use std::ops::Deref;
@@ -11,9 +11,9 @@ pub struct GameSetupPlugin;
 
 impl Plugin for GameSetupPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::GameSetup), on_enter)
-            .add_systems(Update, update.run_if(in_state(GameState::GameSetup)))
-            .add_systems(OnExit(GameState::GameSetup), on_exit);
+        app.add_systems(OnEnter(AppState::GameSetup), on_enter)
+            .add_systems(Update, update.run_if(in_state(AppState::GameSetup)))
+            .add_systems(OnExit(AppState::GameSetup), on_exit);
     }
 }
 
@@ -76,7 +76,7 @@ fn on_exit(mut commands: Commands, entities: Query<Entity, With<GameSetupMarker>
 }
 
 fn update(
-    mut next_state: ResMut<NextState<GameState>>,
+    mut next_state: ResMut<NextState<AppState>>,
     mut interaction_query: Query<
         (&Interaction, &mut BackgroundColor, &mut BorderColor),
         (Changed<Interaction>, With<Button>),
@@ -88,7 +88,7 @@ fn update(
                 *color = PRESSED_BUTTON.into();
                 border_color.0 = Color::WHITE;
 
-                next_state.set(GameState::Loading);
+                next_state.set(AppState::Loading);
             }
             Interaction::Hovered => {
                 *color = HOVERED_BUTTON.into();

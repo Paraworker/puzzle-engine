@@ -1,4 +1,4 @@
-use crate::states::GameState;
+use crate::states::AppState;
 use bevy::prelude::*;
 
 const BUTTON_NORMAL: Color = Color::srgba(0.15, 0.15, 0.15, 0.6);
@@ -16,9 +16,9 @@ pub struct MenuPlugin;
 
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Menu), on_enter)
-            .add_systems(Update, update.run_if(in_state(GameState::Menu)))
-            .add_systems(OnExit(GameState::Menu), on_exit);
+        app.add_systems(OnEnter(AppState::Menu), on_enter)
+            .add_systems(Update, update.run_if(in_state(AppState::Menu)))
+            .add_systems(OnExit(AppState::Menu), on_exit);
     }
 }
 
@@ -30,7 +30,7 @@ fn update(
         (&Interaction, &mut BackgroundColor, &mut BorderColor),
         (Changed<Interaction>, With<Button>),
     >,
-    mut next_state: ResMut<NextState<GameState>>,
+    mut next_state: ResMut<NextState<AppState>>,
 ) {
     for (interaction, mut color, mut border_color) in &mut interaction_query {
         match *interaction {
@@ -38,7 +38,7 @@ fn update(
                 *color = BUTTON_PRESSED.into();
                 border_color.0 = BUTTON_BORDER_PRESSED;
 
-                next_state.set(GameState::GameSetup);
+                next_state.set(AppState::GameSetup);
             }
             Interaction::Hovered => {
                 *color = BUTTON_HOVERED.into();

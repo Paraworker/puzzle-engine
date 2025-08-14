@@ -1,7 +1,4 @@
-use crate::states::{
-    GameState, game_setup::GameSetupPlugin, loading::LoadingPlugin, menu::MenuPlugin,
-    playing::PlayingPlugin, startup::StartupPlugin,
-};
+use crate::states::AppStatePlugin;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use ron::de::SpannedError;
@@ -44,13 +41,8 @@ fn new_window_plugin() -> WindowPlugin {
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins.set(new_window_plugin()))
-        .init_state::<GameState>()
         .add_plugins(MeshPickingPlugin)
         .add_plugins(EguiPlugin::default())
-        .add_plugins(StartupPlugin)
-        .add_plugins(MenuPlugin)
-        .add_plugins(GameSetupPlugin)
-        .add_plugins(LoadingPlugin)
-        .add_plugins(PlayingPlugin)
+        .add_plugins(AppStatePlugin)
         .run();
 }
