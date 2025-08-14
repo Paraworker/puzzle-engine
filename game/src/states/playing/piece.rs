@@ -201,13 +201,13 @@ impl PlacingPiece {
         self.color
     }
 
-    /// Attempts to place this piece to the given position.
+    /// Sets the position where the piece is to be placed.
     ///
     /// Returns `true` and updates the to place pos if the position is valid,
     /// meaning it is in the set of placeable positions.
     ///
     /// Returns `false` if the position is not allowed.
-    pub fn try_place_at(&mut self, pos: Pos) -> bool {
+    pub fn set_to_place_pos(&mut self, pos: Pos) -> bool {
         if !self.placeable.contains(&pos) {
             return false;
         }
@@ -217,9 +217,9 @@ impl PlacingPiece {
         true
     }
 
-    /// Clears the position where the piece is to be placed.
-    pub fn clear_to_place(&mut self) {
-        self.to_place = None;
+    /// Clears the to place position and returns it.
+    pub fn clear_to_place_pos(&mut self) -> Option<Pos> {
+        self.to_place.take()
     }
 
     /// Returns the position where the piece is to be placed.
