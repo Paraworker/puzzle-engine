@@ -41,7 +41,9 @@ pub struct PlayingPlugin;
 impl Plugin for PlayingPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(GamePhasePlugin)
-            .add_event::<PlayingEvent>()
+            .add_event::<TileEnter>()
+            .add_event::<TileOut>()
+            .add_event::<PiecePressed>()
             .add_systems(OnEnter(AppState::Playing), on_enter)
             .add_systems(OnExit(AppState::Playing), on_exit)
             .add_systems(
@@ -52,11 +54,13 @@ impl Plugin for PlayingPlugin {
 }
 
 #[derive(Event)]
-pub enum PlayingEvent {
-    TileHovered(Entity),
-    TileOut(Entity),
-    PiecePressed(Entity, PointerButton),
-}
+pub struct TileEnter(pub Entity);
+
+#[derive(Event)]
+pub struct TileOut(pub Entity);
+
+#[derive(Event)]
+pub struct PiecePressed(pub Entity, pub PointerButton);
 
 #[derive(Resource)]
 struct TopPanelText(String);
@@ -159,12 +163,12 @@ fn spawn_board(
     assets: &GameAssets,
     board: &BoardRuleSet,
 ) -> (Entity, TileIndex) {
-    fn on_tile_hovered(trigger: Trigger<Pointer<Over>>, mut ev: EventWriter<PlayingEvent>) {
-        ev.write(PlayingEvent::TileHovered(trigger.target()));
+    fn on_tile_enter(trigger: Trigger<Pointer<Over>>, mut ev: EventWriter<TileEnter>) {
+        ev.write(TileEnter(trigger.target()));
     }
 
-    fn on_tile_out(trigger: Trigger<Pointer<Out>>, mut ev: EventWriter<PlayingEvent>) {
-        ev.write(PlayingEvent::TileOut(trigger.target()));
+    fn on_tile_out(trigger: Trigger<Pointer<Out>>, mut ev: EventWriter<TileOut>) {
+        ev.write(TileOut(trigger.target()));
     }
 
     let mut tiles = TileIndex::new();
@@ -222,7 +226,7 @@ fn spawn_board(
                     Transform::default(),
                     GlobalTransform::default(),
                 ))
-                .observe(on_tile_hovered)
+                .observe(on_tile_enter)
                 .observe(on_tile_out)
                 .id();
 
@@ -277,8 +281,8 @@ fn spawn_placed_piece(
     color: PieceColor,
     pos: Pos,
 ) -> Result<(), GameError> {
-    fn on_piece_pressed(trigger: Trigger<Pointer<Pressed>>, mut ev: EventWriter<PlayingEvent>) {
-        ev.write(PlayingEvent::PiecePressed(trigger.target(), trigger.button));
+    fn on_piece_pressed(trigger: Trigger<Pointer<Pressed>>, mut ev: EventWriter<PiecePressed>) {
+        ev.write(PiecePressed(trigger.target(), trigger.button));
     }
 
     let Entry::Vacant(entry) = placed_pieces.entry(pos) else {

@@ -1,7 +1,7 @@
 use crate::states::{
     game_setup::LoadedRules,
     playing::{
-        PlayingEvent, despawn_placed_piece,
+        TileEnter, despawn_placed_piece,
         phases::GamePhase,
         piece::{MovingPiece, PlacedPiece},
         pos_translation,
@@ -9,7 +9,7 @@ use crate::states::{
         tile::Tile,
     },
 };
-use bevy::{ecs::event, prelude::*};
+use bevy::prelude::*;
 use bevy_egui::EguiContexts;
 
 #[derive(Resource)]
@@ -22,7 +22,7 @@ impl Plugin for MovingPlugin {
         app.add_systems(OnEnter(GamePhase::Moving), on_enter)
             .add_systems(
                 Update,
-                (on_button_released, on_playing_event).run_if(in_state(GamePhase::Moving)),
+                (on_button_released, on_tile_enter).run_if(in_state(GamePhase::Moving)),
             )
             .add_systems(OnExit(GamePhase::Moving), on_exit);
     }
@@ -121,38 +121,19 @@ fn on_button_released(
     }
 }
 
-fn on_playing_event(
-    mut events: EventReader<PlayingEvent>,
+fn on_tile_enter(
+    mut enter: EventReader<TileEnter>,
     child_query: Query<&ChildOf>,
     mut moving_piece_query: Query<(&mut Transform, &mut MovingPiece)>,
     tile_query: Query<&Tile>,
     rules: Res<LoadedRules>,
     data: Res<MovingData>,
 ) {
-    for event in events.read() {
-        match event {
-            PlayingEvent::TileHovered(entity) => on_tile_hovered(
-                *entity,
-                child_query,
-                &mut moving_piece_query,
-                tile_query,
-                &rules,
-                &data,
-            ),
-            _ => {}
-        }
-    }
-}
+    let Some(event) = enter.read().last() else {
+        return;
+    };
 
-fn on_tile_hovered(
-    entity: Entity,
-    child_query: Query<&ChildOf>,
-    moving_piece_query: &mut Query<(&mut Transform, &mut MovingPiece)>,
-    tile_query: Query<&Tile>,
-    rules: &LoadedRules,
-    data: &MovingData,
-) {
-    let Ok(child) = child_query.get(entity) else {
+    let Ok(child) = child_query.get(event.0) else {
         return;
     };
 

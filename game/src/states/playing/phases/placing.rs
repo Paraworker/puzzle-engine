@@ -3,13 +3,18 @@ use crate::{
     states::{
         game_setup::LoadedRules,
         playing::{
-            PlayingEvent, despawn_placed_piece, phases::GamePhase, piece::PlacingPiece,
-            session::GameSession, spawn_placed_piece, tile::Tile,
+            TileEnter, TileOut, despawn_placed_piece,
+            phases::GamePhase,
+            piece::PlacingPiece,
+            session::{GameSession, tile_index::TileIndex},
+            spawn_placed_piece,
+            tile::Tile,
         },
     },
 };
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
+use rule_engine::position::Pos;
 
 #[derive(Resource)]
 pub struct PlacingData(pub PlacingPiece);
@@ -21,7 +26,8 @@ impl Plugin for PlacingPlugin {
         app.add_systems(OnEnter(GamePhase::Placing), on_enter)
             .add_systems(
                 Update,
-                (on_button_pressed, on_playing_event).run_if(in_state(GamePhase::Placing)),
+                (on_button_pressed, on_tile_enter, on_tile_out)
+                    .run_if(in_state(GamePhase::Placing)),
             )
             .add_systems(OnExit(GamePhase::Placing), on_exit);
     }
@@ -105,82 +111,87 @@ fn on_button_pressed(
     }
 }
 
-fn on_playing_event(
-    mut events: EventReader<PlayingEvent>,
+fn on_tile_enter(
+    mut enter: EventReader<TileEnter>,
     child_query: Query<&ChildOf>,
     tile_query: Query<&Tile>,
     mut visibility_query: Query<&mut Visibility>,
     mut data: ResMut<PlacingData>,
     session: Res<GameSession>,
 ) {
-    for event in events.read() {
-        match event {
-            PlayingEvent::TileHovered(entity) => on_tile_hovered(
-                *entity,
-                child_query,
-                tile_query,
-                &mut visibility_query,
-                &mut data,
-                &session,
-            ),
-            PlayingEvent::TileOut(_) => on_tile_out(&mut visibility_query, &mut data, &session),
-            _ => {}
-        }
-    }
-}
-
-fn on_tile_hovered(
-    entity: Entity,
-    child_query: Query<&ChildOf>,
-    tile_query: Query<&Tile>,
-    visibility_query: &mut Query<&mut Visibility>,
-    data: &mut PlacingData,
-    session: &GameSession,
-) {
-    let Ok(child) = child_query.get(entity) else {
+    let Some(event) = enter.read().last() else {
         return;
     };
 
-    let Ok(tile) = tile_query.get(child.parent()) else {
-        return;
-    };
+    let child = child_query.get(event.0).unwrap();
+    let tile = tile_query.get(child.parent()).unwrap();
 
-    // Attempt to place the piece
-    if !data.0.try_place_at(tile.pos()) {
-        return;
-    }
-
-    let entities = session.tiles.get(tile.pos()).unwrap();
-
-    // Unhighlight placable
-    if let Ok(mut visibility) = visibility_query.get_mut(entities.placeable()) {
-        *visibility = Visibility::Hidden;
-    }
-
-    // Highlight to place
-    if let Ok(mut visibility) = visibility_query.get_mut(entities.source_or_target()) {
-        *visibility = Visibility::Visible;
-    }
+    apply_to_place(
+        &mut visibility_query,
+        &session.tiles,
+        &mut data,
+        Some(tile.pos()),
+    );
 }
 
 fn on_tile_out(
-    visibility_query: &mut Query<&mut Visibility>,
-    data: &mut PlacingData,
-    session: &GameSession,
+    mut out: EventReader<TileOut>,
+    child_query: Query<&ChildOf>,
+    tile_query: Query<&Tile>,
+    mut visibility_query: Query<&mut Visibility>,
+    mut data: ResMut<PlacingData>,
+    session: Res<GameSession>,
 ) {
-    if let Some(to_place) = data.0.to_place_pos() {
-        let entities = session.tiles.get(to_place).unwrap();
+    let Some(to_place) = data.0.to_place_pos() else {
+        return;
+    };
 
-        // Highlight placable
-        if let Ok(mut visibility) = visibility_query.get_mut(entities.placeable()) {
-            *visibility = Visibility::Visible;
+    for event in out.read() {
+        let child = child_query.get(event.0).unwrap();
+        let tile = tile_query.get(child.parent()).unwrap();
+
+        if tile.pos() == to_place {
+            apply_to_place(&mut visibility_query, &session.tiles, &mut data, None);
+            break;
         }
+    }
+}
+
+fn apply_to_place(
+    visibility_query: &mut Query<&mut Visibility>,
+    tiles: &TileIndex,
+    data: &mut PlacingData,
+    new_to_place: Option<Pos>,
+) {
+    // Clear the previous to place position if any
+    if let Some(old) = data.0.clear_to_place_pos() {
+        let entities = tiles.get(old).unwrap();
 
         // Unhighlight to place
         if let Ok(mut visibility) = visibility_query.get_mut(entities.source_or_target()) {
             *visibility = Visibility::Hidden;
         }
 
-        data.0.clear_to_place();
+        // Highlight placable
+        if let Ok(mut visibility) = visibility_query.get_mut(entities.placeable()) {
+            *visibility = Visibility::Visible;
+        }
+    }
+
+    // Set the new to place position if any
+    if let Some(pos) = new_to_place {
+        if data.0.set_to_place_pos(pos) {
+            let entities = tiles.get(pos).unwrap();
+
+            // Unhighlight placable
+            if let Ok(mut visibility) = visibility_query.get_mut(entities.placeable()) {
+                *visibility = Visibility::Hidden;
+            }
+
+            // Highlight to place
+            if let Ok(mut visibility) = visibility_query.get_mut(entities.source_or_target()) {
+                *visibility = Visibility::Visible;
+            }
+        }
     }
 }

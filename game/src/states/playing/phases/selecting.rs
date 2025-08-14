@@ -1,7 +1,7 @@
 use crate::states::{
     game_setup::LoadedRules,
     playing::{
-        PlayingEvent, TopPanelText,
+        PiecePressed, TopPanelText,
         camera::PlayingCamera,
         phases::{GamePhase, moving::MovingData},
         piece::{MovingPiece, PlacedPiece},
@@ -19,7 +19,7 @@ impl Plugin for SelectingPlugin {
         app.add_systems(OnEnter(GamePhase::Selecting), on_enter)
             .add_systems(
                 Update,
-                (on_mouse_wheel, on_pointer_drag, on_playing_event)
+                (on_mouse_wheel, on_pointer_drag, on_piece_pressed)
                     .run_if(in_state(GamePhase::Selecting)),
             )
             .add_systems(OnExit(GamePhase::Selecting), on_exit);
@@ -74,8 +74,8 @@ fn on_pointer_drag(
     }
 }
 
-fn on_playing_event(
-    mut events: EventReader<PlayingEvent>,
+fn on_piece_pressed(
+    mut pressed: EventReader<PiecePressed>,
     mut commands: Commands,
     child_query: Query<&ChildOf>,
     placed_piece_query: Query<&PlacedPiece>,
@@ -85,44 +85,17 @@ fn on_playing_event(
     mut next_phase: ResMut<NextState<GamePhase>>,
     rules: Res<LoadedRules>,
 ) {
-    for event in events.read() {
-        match event {
-            PlayingEvent::PiecePressed(entity, button) => on_piece_pressed(
-                *entity,
-                *button,
-                &mut commands,
-                child_query,
-                placed_piece_query,
-                tile_query,
-                &mut visibility_query,
-                &mut session,
-                &mut next_phase,
-                &rules,
-            ),
-            _ => {}
-        }
-    }
-}
+    let Some(event) = pressed.read().last() else {
+        return;
+    };
 
-fn on_piece_pressed(
-    entity: Entity,
-    button: PointerButton,
-    commands: &mut Commands,
-    child_query: Query<&ChildOf>,
-    placed_piece_query: Query<&PlacedPiece>,
-    tile_query: Query<&Tile>,
-    visibility_query: &mut Query<&mut Visibility>,
-    session: &mut GameSession,
-    next_phase: &mut NextState<GamePhase>,
-    rules: &LoadedRules,
-) {
     // Skip if the pointer event is not primary click
-    if button != PointerButton::Primary {
+    if event.1 != PointerButton::Primary {
         return;
     }
 
     // Try to fetch the child component of the pressed entity
-    let Ok(child) = child_query.get(entity) else {
+    let Ok(child) = child_query.get(event.0) else {
         return;
     };
 
@@ -146,7 +119,7 @@ fn on_piece_pressed(
         placed.model(),
         placed.color(),
         placed.pos(),
-        session,
+        &mut session,
         placed_piece_query,
         rules.pieces.get_by_model(placed.model()).movement(),
         tile_query,
