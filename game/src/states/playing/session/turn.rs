@@ -1,4 +1,4 @@
-use crate::{GameError, session::player::Players};
+use crate::{GameError, states::playing::session::player::Players};
 use rule_engine::player::PlayerState;
 
 /// Controls the turn-based flow of the game.

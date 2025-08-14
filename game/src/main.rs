@@ -10,11 +10,8 @@ use thiserror::Error;
 
 mod assets;
 mod expr_contexts;
-mod piece;
-mod session;
 mod settings;
 mod states;
-mod tile;
 
 #[derive(Debug, Error)]
 pub enum GameError {

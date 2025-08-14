@@ -5,8 +5,10 @@ use crate::{
         query_last_action_row, query_model_at_pos_equal, query_pos_occupied, query_round_number,
         query_turn_number,
     },
-    piece::PlacedPiece,
-    session::{piece_index::PlacedPieceIndex, turn::TurnController},
+    states::playing::{
+        piece::PlacedPiece,
+        session::{piece_index::PlacedPieceIndex, turn::TurnController},
+    },
 };
 use bevy::prelude::*;
 use rule_engine::{
