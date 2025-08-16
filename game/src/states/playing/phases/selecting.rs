@@ -1,13 +1,9 @@
-use crate::states::{
-    game_setup::LoadedRules,
-    playing::{
-        PiecePressed, TopPanelText,
-        camera::PlayingCamera,
-        phases::{GamePhase, moving::MovingData},
-        piece::{MovingPiece, PlacedPiece},
-        session::GameSession,
-        tile::Tile,
-    },
+use crate::states::playing::{
+    PiecePressed, TopPanelText,
+    camera::PlayingCamera,
+    phases::{GamePhase, moving::MovingEntities},
+    piece::{MovingPiece, PlacedPiece},
+    session::GameSession,
 };
 use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy_egui::EguiContexts;
@@ -79,11 +75,8 @@ fn on_piece_pressed(
     mut commands: Commands,
     child_query: Query<&ChildOf>,
     placed_piece_query: Query<&PlacedPiece>,
-    tile_query: Query<&Tile>,
-    mut visibility_query: Query<&mut Visibility>,
     mut session: ResMut<GameSession>,
     mut next_phase: ResMut<NextState<GamePhase>>,
-    rules: Res<LoadedRules>,
 ) {
     let Some(event) = pressed.read().last() else {
         return;
@@ -114,55 +107,22 @@ fn on_piece_pressed(
         return;
     }
 
-    // Try to create a move context from the selected piece
-    let Ok(moving) = MovingPiece::new(
-        placed.model(),
-        placed.color(),
-        placed.pos(),
-        &mut session,
-        placed_piece_query,
-        rules.pieces.get_by_model(placed.model()).movement(),
-        tile_query,
-    ) else {
-        return;
-    };
-
     // Take the piece entities from the placed piece index
     let Some(entities) = session.placed_pieces.remove(placed.pos()) else {
         return;
     };
 
-    // Highlight visual elements (non-fatal)
-    {
-        // Highlight the moving piece
-        if let Ok(mut visibility) = visibility_query.get_mut(entities.highlight()) {
-            *visibility = Visibility::Visible;
-        }
-
-        // Highlight move initial tile
-        if let Ok(mut visibility) =
-            visibility_query.get_mut(session.tiles.get(placed.pos()).unwrap().source_or_target())
-        {
-            *visibility = Visibility::Visible;
-        }
-
-        // Highlight placeable tiles
-        for pos in moving.placeable_tiles() {
-            if let Ok(mut visibility) =
-                visibility_query.get_mut(session.tiles.get(pos).unwrap().placeable())
-            {
-                *visibility = Visibility::Visible;
-            }
-        }
-    }
-
     // Apply component state change
     commands
         .entity(entities.root())
-        .insert(moving)
+        .insert(MovingPiece::new(
+            placed.model(),
+            placed.color(),
+            placed.pos(),
+        ))
         .remove::<PlacedPiece>();
 
     // Enter moving state
-    commands.insert_resource(MovingData(entities));
+    commands.insert_resource(MovingEntities(entities));
     next_phase.set(GamePhase::Moving);
 }

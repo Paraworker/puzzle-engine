@@ -5,7 +5,7 @@ use crate::{
         playing::{
             TileEnter, TileOut, despawn_placed_piece,
             phases::GamePhase,
-            piece::PlacingPiece,
+            piece::{PlacedPiece, PlacingPiece},
             session::{GameSession, tile_index::TileIndex},
             spawn_placed_piece,
             tile::Tile,
@@ -15,9 +15,6 @@ use crate::{
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
 use rule_engine::pos::Pos;
-
-#[derive(Resource)]
-pub struct PlacingData(pub PlacingPiece);
 
 pub struct PlacingPlugin;
 
@@ -33,12 +30,46 @@ impl Plugin for PlacingPlugin {
     }
 }
 
-fn on_enter() {
-    // no-op
+fn on_enter(
+    mut visibility_query: Query<&mut Visibility>,
+    tile_query: Query<&Tile>,
+    rules: Res<LoadedRules>,
+    placed_piece_query: Query<&PlacedPiece>,
+    session: Res<GameSession>,
+    mut data: ResMut<PlacingPiece>,
+) {
+    let placement = rules.pieces.get_by_model(data.model()).placement();
+
+    // Collect placeable tiles
+    data.collect_placeable(&session, placed_piece_query, tile_query, placement)
+        .unwrap();
+
+    // Highlight placeable tiles
+    for pos in data.placeable_tiles() {
+        if let Ok(mut visibility) =
+            visibility_query.get_mut(session.tiles.get(pos).unwrap().placeable())
+        {
+            *visibility = Visibility::Visible;
+        }
+    }
 }
 
-fn on_exit(mut commands: Commands) {
-    commands.remove_resource::<PlacingData>();
+fn on_exit(
+    mut commands: Commands,
+    mut visibility_query: Query<&mut Visibility>,
+    session: Res<GameSession>,
+    data: Res<PlacingPiece>,
+) {
+    // Unhighlight placeable tiles
+    for pos in data.placeable_tiles() {
+        if let Ok(mut visibility) =
+            visibility_query.get_mut(session.tiles.get(pos).unwrap().placeable())
+        {
+            *visibility = Visibility::Hidden;
+        }
+    }
+
+    commands.remove_resource::<PlacingPiece>();
 }
 
 /// A system that triggered when the primary button is pressed.
@@ -49,7 +80,7 @@ fn on_button_pressed(
     mut visibility_query: Query<&mut Visibility>,
     assets: Res<GameAssets>,
     rules: Res<LoadedRules>,
-    data: Res<PlacingData>,
+    data: Res<PlacingPiece>,
     mut session: ResMut<GameSession>,
     mut next_phase: ResMut<NextState<GamePhase>>,
 ) {
@@ -61,16 +92,7 @@ fn on_button_pressed(
 
     for event in pressed.read() {
         if event.button == PointerButton::Primary {
-            // Unhighlight placeable tiles
-            for pos in data.0.placeable_tiles() {
-                if let Ok(mut visibility) =
-                    visibility_query.get_mut(session.tiles.get(pos).unwrap().placeable())
-                {
-                    *visibility = Visibility::Hidden;
-                }
-            }
-
-            if let Some(to_place) = data.0.to_place_pos() {
+            if let Some(to_place) = data.to_place_pos() {
                 // If the to place position is already occupied, remove the existing piece (i.e. capture it)
                 despawn_placed_piece(&mut commands, &mut session.placed_pieces, to_place);
 
@@ -82,8 +104,8 @@ fn on_button_pressed(
                     session.board,
                     &mut session.players,
                     &mut session.placed_pieces,
-                    data.0.model(),
-                    data.0.color(),
+                    data.model(),
+                    data.color(),
                     to_place,
                 )
                 .unwrap();
@@ -101,7 +123,7 @@ fn on_button_pressed(
                 // Finish this turn
                 next_phase.set(GamePhase::TurnEnd);
             } else {
-                // Placement cancelled.
+                // Cancelled.
                 next_phase.set(GamePhase::Selecting);
             }
 
@@ -116,7 +138,7 @@ fn on_tile_enter(
     child_query: Query<&ChildOf>,
     tile_query: Query<&Tile>,
     mut visibility_query: Query<&mut Visibility>,
-    mut data: ResMut<PlacingData>,
+    mut data: ResMut<PlacingPiece>,
     session: Res<GameSession>,
 ) {
     let Some(event) = enter.read().last() else {
@@ -139,10 +161,10 @@ fn on_tile_out(
     child_query: Query<&ChildOf>,
     tile_query: Query<&Tile>,
     mut visibility_query: Query<&mut Visibility>,
-    mut data: ResMut<PlacingData>,
+    mut data: ResMut<PlacingPiece>,
     session: Res<GameSession>,
 ) {
-    let Some(to_place) = data.0.to_place_pos() else {
+    let Some(to_place) = data.to_place_pos() else {
         return;
     };
 
@@ -160,11 +182,11 @@ fn on_tile_out(
 fn apply_to_place(
     visibility_query: &mut Query<&mut Visibility>,
     tiles: &TileIndex,
-    data: &mut PlacingData,
+    data: &mut PlacingPiece,
     new_to_place: Option<Pos>,
 ) {
     // Clear the previous to place position if any
-    if let Some(old) = data.0.clear_to_place_pos() {
+    if let Some(old) = data.clear_to_place_pos() {
         let entities = tiles.get(old).unwrap();
 
         // Unhighlight to place
@@ -180,7 +202,7 @@ fn apply_to_place(
 
     // Set the new to place position if any
     if let Some(pos) = new_to_place {
-        if data.0.set_to_place_pos(pos) {
+        if data.set_to_place_pos(pos) {
             let entities = tiles.get(pos).unwrap();
 
             // Unhighlight placable

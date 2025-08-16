@@ -46,35 +46,71 @@ pub struct MovingPiece {
     color: PieceColor,
     initial: Pos,
     current: Pos,
-    placeable: HashSet<Pos>,
+    movable: HashSet<Pos>,
 }
 
 impl MovingPiece {
     /// Creates a new moving piece.
-    pub fn new(
-        model: PieceModel,
-        color: PieceColor,
-        initial: Pos,
-        session: &mut GameSession,
-        placed_piece_query: Query<&PlacedPiece>,
-        movement: &BoolExpr,
-        tile_query: Query<&Tile>,
-    ) -> Result<Self, GameError> {
-        Ok(Self {
+    pub fn new(model: PieceModel, color: PieceColor, initial: Pos) -> Self {
+        Self {
             model,
             color,
             initial,
             current: initial,
-            placeable: Self::collect_placeable(
-                model,
-                color,
-                initial,
+            movable: HashSet::new(),
+        }
+    }
+
+    /// Collects movable positions based on the given movement expression.
+    pub fn collect_movable(
+        &mut self,
+        session: &GameSession,
+        placed_piece_query: Query<&PlacedPiece>,
+        tile_query: Query<&Tile>,
+        movement: &BoolExpr,
+    ) -> Result<(), GameError> {
+        for tile in tile_query {
+            // Skip source tile
+            if self.initial == tile.pos() {
+                continue;
+            }
+
+            let ctx = MovementContext {
                 session,
                 placed_piece_query,
-                movement,
-                tile_query,
-            )?,
-        })
+                moving_model: self.model,
+                moving_color: self.color,
+                source_pos: self.initial,
+                target_pos: tile.pos(),
+            };
+
+            if movement.evaluate(&ctx)? {
+                self.movable.insert(tile.pos());
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn movable_tiles(&self) -> impl Iterator<Item = Pos> {
+        self.movable.iter().cloned()
+    }
+
+    /// Attempts to set current pos to the given position.
+    ///
+    /// Returns `true` and updates the current position if the position is valid,
+    /// meaning it is either in the set of placeable positions or
+    /// the original position (i.e., the piece was not moved).
+    ///
+    /// Returns `false` if the position is not allowed.
+    pub fn set_current_pos(&mut self, pos: Pos) -> bool {
+        if !self.movable.contains(&pos) && self.initial != pos {
+            return false;
+        }
+
+        self.current = pos;
+
+        true
     }
 
     /// Returns the piece model.
@@ -101,64 +137,9 @@ impl MovingPiece {
     pub fn moved(&self) -> bool {
         self.initial != self.current
     }
-
-    /// Attempts to move this piece to the given position.
-    ///
-    /// Returns `true` and updates the current position if the position is valid,
-    /// meaning it is either in the set of placeable positions or
-    /// the original position (i.e., the piece was not moved).
-    ///
-    /// Returns `false` if the position is not allowed.
-    pub fn try_move_to(&mut self, pos: Pos) -> bool {
-        if !self.placeable.contains(&pos) && self.initial != pos {
-            return false;
-        }
-
-        self.current = pos;
-
-        true
-    }
-
-    pub fn placeable_tiles(&self) -> impl Iterator<Item = Pos> {
-        self.placeable.iter().cloned()
-    }
-
-    fn collect_placeable(
-        model: PieceModel,
-        color: PieceColor,
-        source_pos: Pos,
-        session: &GameSession,
-        placed_piece_query: Query<&PlacedPiece>,
-        movement: &BoolExpr,
-        tile_query: Query<&Tile>,
-    ) -> Result<HashSet<Pos>, GameError> {
-        let mut placeable = HashSet::new();
-
-        for tile in tile_query {
-            // Skip source tile
-            if source_pos == tile.pos() {
-                continue;
-            }
-
-            let ctx = MovementContext {
-                session,
-                placed_piece_query,
-                moving_model: model,
-                moving_color: color,
-                source_pos,
-                target_pos: tile.pos(),
-            };
-
-            if movement.evaluate(&ctx)? {
-                placeable.insert(tile.pos());
-            }
-        }
-
-        Ok(placeable)
-    }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Resource)]
 pub struct PlacingPiece {
     model: PieceModel,
     color: PieceColor,
@@ -168,27 +149,43 @@ pub struct PlacingPiece {
 
 impl PlacingPiece {
     /// Creates a new placing piece.
-    pub fn new(
-        model: PieceModel,
-        color: PieceColor,
-        session: &GameSession,
-        placed_piece_query: Query<&PlacedPiece>,
-        placement: &BoolExpr,
-        tile_query: Query<&Tile>,
-    ) -> Result<Self, GameError> {
-        Ok(Self {
+    pub fn new(model: PieceModel, color: PieceColor) -> Self {
+        Self {
             model,
             color,
             to_place: None,
-            placeable: Self::collect_placeable(
-                model,
-                color,
-                session,
+            placeable: HashSet::new(),
+        }
+    }
+
+    /// Collects placeable positions based on the given placement expression.
+    pub fn collect_placeable(
+        &mut self,
+        session: &GameSession,
+        placed_piece_query: Query<&PlacedPiece>,
+        tile_query: Query<&Tile>,
+        placement: &BoolExpr,
+    ) -> Result<(), GameError> {
+        for tile in tile_query {
+            let ctx = PlacementContext {
                 placed_piece_query,
-                placement,
-                tile_query,
-            )?,
-        })
+                session,
+                to_place_model: self.model,
+                to_place_color: self.color,
+                to_place_pos: tile.pos(),
+            };
+
+            if placement.evaluate(&ctx)? {
+                self.placeable.insert(tile.pos());
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Returns the set of placeable positions.
+    pub fn placeable_tiles(&self) -> impl Iterator<Item = Pos> {
+        self.placeable.iter().cloned()
     }
 
     /// Returns the piece model.
@@ -225,37 +222,5 @@ impl PlacingPiece {
     /// Returns the position where the piece is to be placed.
     pub fn to_place_pos(&self) -> Option<Pos> {
         self.to_place
-    }
-
-    /// Returns the set of placeable positions.
-    pub fn placeable_tiles(&self) -> impl Iterator<Item = Pos> {
-        self.placeable.iter().cloned()
-    }
-
-    fn collect_placeable(
-        model: PieceModel,
-        color: PieceColor,
-        session: &GameSession,
-        placed_piece_query: Query<&PlacedPiece>,
-        placement: &BoolExpr,
-        tile_query: Query<&Tile>,
-    ) -> Result<HashSet<Pos>, GameError> {
-        let mut placeable = HashSet::new();
-
-        for tile in tile_query {
-            let ctx = PlacementContext {
-                placed_piece_query,
-                session,
-                to_place_model: model,
-                to_place_color: color,
-                to_place_pos: tile.pos(),
-            };
-
-            if placement.evaluate(&ctx)? {
-                placeable.insert(tile.pos());
-            }
-        }
-
-        Ok(placeable)
     }
 }
