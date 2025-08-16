@@ -27,10 +27,18 @@ impl fmt::Display for PlayerState {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PlayerRules {
-    /// A boolean expression that defines whether a player can win.
-    win_condition: BoolExpr,
-    /// A boolean expression that defines whether a player can lose.
+    /// A boolean expression that defines whether the player loses.
+    ///
+    /// In evaluation order, this is usually checked **before** `win_condition`.
+    /// If the `lose_condition` is satisfied, the player is considered to have lost
+    /// regardless of whether the `win_condition` also holds.
     lose_condition: BoolExpr,
+
+    /// A boolean expression that defines whether the player wins.
+    ///
+    /// Typically, evaluated only if `lose_condition` is not satisfied.
+    /// This ensures that an invalid or failing state cannot be counted as a win.
+    win_condition: BoolExpr,
 }
 
 impl Default for PlayerRules {
@@ -43,14 +51,14 @@ impl Default for PlayerRules {
 }
 
 impl PlayerRules {
-    /// Returns the win condition expression.
-    pub fn win_condition(&self) -> &BoolExpr {
-        &self.win_condition
-    }
-
     /// Returns the lose condition expression.
     pub fn lose_condition(&self) -> &BoolExpr {
         &self.lose_condition
+    }
+
+    /// Returns the win condition expression.
+    pub fn win_condition(&self) -> &BoolExpr {
+        &self.win_condition
     }
 }
 
