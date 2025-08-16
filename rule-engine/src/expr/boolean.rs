@@ -1,7 +1,7 @@
 use crate::{
     RulesError,
-    expr::{Context, integer::IntExpr},
-    piece::{PieceColor, PieceModel},
+    expr::{Context, color::ColorExpr, integer::IntExpr, model::ModelExpr},
+    piece::PieceColor,
     player::PlayerState,
     pos::Pos,
     utils::{from_ron_str, to_ron_str},
@@ -28,35 +28,23 @@ pub enum BoolExpr {
     LessOrEqual(IntExpr, IntExpr),
     GreaterOrEqual(IntExpr, IntExpr),
 
+    /// Color operators
+    ColorEqual(ColorExpr, ColorExpr),
+
+    /// Model operators
+    ModelEqual(ModelExpr, ModelExpr),
+
     /// Query board state
     ///
     /// - PosOccupied: If the given position is occupied by any piece.
-    /// - ModelAtPosEqual: If the piece at the given position is equal to the given model.
-    /// - ColorAtPosEqual: If the piece at the given position is equal to the given color.
     PosOccupied(IntExpr, IntExpr),
-    ModelAtPosEqual((IntExpr, IntExpr), PieceModel),
-    ColorAtPosEqual((IntExpr, IntExpr), PieceColor),
 
     /// Query last action information
     ///
     /// - HasLastAction: If the first action has been performed.
     HasLastAction,
 
-    /// Movement expression only
-    ///
-    /// - MovingModelEqual: If the moving piece's model is equal to the given model.
-    /// - MovingColorEqual: If the moving piece's color is equal to the given color.
-    MovingModelEqual(PieceModel),
-    MovingColorEqual(PieceColor),
-
-    /// Placement expression only
-    ///
-    /// - ToPlaceModelEqual: If the model of the piece being placed is equal to the given model.
-    /// - ToPlaceColorEqual: If the color of the piece being placed is equal to the given color.
-    ToPlaceModelEqual(PieceModel),
-    ToPlaceColorEqual(PieceColor),
-
-    /// Game over expression only
+    /// Game over only
     ///
     /// - PlayerStateEqual: If the player's state is equal to the given state.
     PlayerStateEqual(PieceColor, PlayerState),
@@ -80,20 +68,12 @@ impl BoolExpr {
             BoolExpr::GreaterThan(lhs, rhs) => Ok(lhs.evaluate(ctx)? > rhs.evaluate(ctx)?),
             BoolExpr::LessOrEqual(lhs, rhs) => Ok(lhs.evaluate(ctx)? <= rhs.evaluate(ctx)?),
             BoolExpr::GreaterOrEqual(lhs, rhs) => Ok(lhs.evaluate(ctx)? >= rhs.evaluate(ctx)?),
+            BoolExpr::ColorEqual(lhs, rhs) => Ok(lhs.evaluate(ctx)? == rhs.evaluate(ctx)?),
+            BoolExpr::ModelEqual(lhs, rhs) => Ok(lhs.evaluate(ctx)? == rhs.evaluate(ctx)?),
             BoolExpr::PosOccupied(row, col) => {
                 ctx.pos_occupied(Pos::new(row.evaluate(ctx)?, col.evaluate(ctx)?))
             }
-            BoolExpr::ModelAtPosEqual((row, col), model) => {
-                ctx.model_at_pos_equal(Pos::new(row.evaluate(ctx)?, col.evaluate(ctx)?), *model)
-            }
-            BoolExpr::ColorAtPosEqual((row, col), color) => {
-                ctx.color_at_pos_equal(Pos::new(row.evaluate(ctx)?, col.evaluate(ctx)?), *color)
-            }
             BoolExpr::HasLastAction => ctx.has_last_action(),
-            BoolExpr::MovingModelEqual(model) => ctx.moving_model_equal(*model),
-            BoolExpr::MovingColorEqual(color) => ctx.moving_color_equal(*color),
-            BoolExpr::ToPlaceModelEqual(model) => ctx.to_place_model_equal(*model),
-            BoolExpr::ToPlaceColorEqual(color) => ctx.to_place_color_equal(*color),
             BoolExpr::PlayerStateEqual(color, state) => ctx.player_state_equal(*color, *state),
         }
     }

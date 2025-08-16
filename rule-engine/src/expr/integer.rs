@@ -51,7 +51,7 @@ pub enum IntExpr {
         (Box<IntExpr>, Box<IntExpr>),
     ),
 
-    /// Movement expression only variables
+    /// Movement only variables
     ///
     /// - SourceRow: The source tile row.
     /// - SourceCol: The source tile column.
@@ -62,7 +62,7 @@ pub enum IntExpr {
     TargetRow,
     TargetCol,
 
-    /// Placement expression only variables
+    /// Placement only variables
     ///
     /// - ToPlaceRow: The row where the piece is being placed.
     /// - ToPlaceCol: The column where the piece is being placed.

@@ -7,29 +7,25 @@ use crate::{
 };
 
 pub mod boolean;
+pub mod color;
 pub mod integer;
+pub mod model;
 
 /// Context for evaluating expressions.
 pub trait Context {
     type Error: From<RulesError>;
+
+    /// Query whether a position is occupied.
+    fn pos_occupied(&self, pos: Pos) -> Result<bool, Self::Error>;
+
+    /// Query whether the first action has been performed.
+    fn has_last_action(&self) -> Result<bool, Self::Error>;
 
     /// Query the current turn number.
     fn turn_number(&self) -> Result<i64, Self::Error>;
 
     /// Query the current round number.
     fn round_number(&self) -> Result<i64, Self::Error>;
-
-    /// Query whether a position is occupied.
-    fn pos_occupied(&self, pos: Pos) -> Result<bool, Self::Error>;
-
-    /// Query whether a position is occupied by a piece of a specific model.
-    fn model_at_pos_equal(&self, pos: Pos, model: PieceModel) -> Result<bool, Self::Error>;
-
-    /// Query whether a position is occupied by a piece of a specific color.
-    fn color_at_pos_equal(&self, pos: Pos, color: PieceColor) -> Result<bool, Self::Error>;
-
-    /// Query whether the first action has been performed.
-    fn has_last_action(&self) -> Result<bool, Self::Error>;
 
     /// Query the row of the last action position.
     ///
@@ -51,17 +47,23 @@ pub trait Context {
         rect: Rect,
     ) -> Result<i64, Self::Error>;
 
-    /// Query whether the moving piece is equal to a specific model.
+    /// Query the model of the piece at a specific position.
+    fn model_at_pos(&self, pos: Pos) -> Result<PieceModel, Self::Error>;
+
+    /// Query the color of the piece at a specific position.
+    fn color_at_pos(&self, pos: Pos) -> Result<PieceColor, Self::Error>;
+
+    /// Query the model of the piece being moved.
     ///
     /// Only support in movement.
-    fn moving_model_equal(&self, _model: PieceModel) -> Result<bool, Self::Error> {
+    fn moving_model(&self) -> Result<PieceModel, Self::Error> {
         Err(RulesError::UnsupportedVariable.into())
     }
 
-    /// Query whether the moving piece is equal to a specific color.
+    /// Query the color of the piece being moved.
     ///
     /// Only support in movement.
-    fn moving_color_equal(&self, _color: PieceColor) -> Result<bool, Self::Error> {
+    fn moving_color(&self) -> Result<PieceColor, Self::Error> {
         Err(RulesError::UnsupportedVariable.into())
     }
 
@@ -96,14 +98,14 @@ pub trait Context {
     /// Query the model of the piece to place.
     ///
     /// Only support in placement.
-    fn to_place_model_equal(&self, _model: PieceModel) -> Result<bool, Self::Error> {
+    fn to_place_model(&self) -> Result<PieceModel, Self::Error> {
         Err(RulesError::UnsupportedVariable.into())
     }
 
     /// Query the color of the piece to place.
     ///
     /// Only support in placement.
-    fn to_place_color_equal(&self, _color: PieceColor) -> Result<bool, Self::Error> {
+    fn to_place_color(&self) -> Result<PieceColor, Self::Error> {
         Err(RulesError::UnsupportedVariable.into())
     }
 
