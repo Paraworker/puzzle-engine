@@ -26,7 +26,7 @@ fn evaluate_turn(
 ) {
     let session = session.as_mut();
 
-    // Check win and lose condition for each active player.
+    // Check lose and win conditions for each active player.
     for (piece_color, player) in session
         .players
         .iter_mut()
@@ -41,17 +41,17 @@ fn evaluate_turn(
             placed_piece_query,
         };
 
-        // Check win condition
-        if player_rules.win_condition().evaluate(&ctx).unwrap() {
-            player.set_state(PlayerState::Won);
+        // Check lose condition first
+        if player_rules.lose_condition().evaluate(&ctx).unwrap() {
+            player.set_state(PlayerState::Lost);
 
-            // If the player has won, we don't check it's lose condition.
+            // If the player has lost, we don't need to check win condition.
             continue;
         }
 
-        // Check lose condition
-        if player_rules.lose_condition().evaluate(&ctx).unwrap() {
-            player.set_state(PlayerState::Lost);
+        // Check win condition
+        if player_rules.win_condition().evaluate(&ctx).unwrap() {
+            player.set_state(PlayerState::Won);
         }
     }
 
