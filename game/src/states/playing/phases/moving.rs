@@ -11,6 +11,8 @@ use crate::states::{
 };
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
+use bevy_tweening::{Animator, Tween, lens::TransformPositionLens};
+use std::time::Duration;
 
 #[derive(Resource)]
 pub struct MovingEntities(pub PieceEntities);
@@ -166,8 +168,9 @@ fn on_button_released(
 
 fn on_tile_enter(
     mut enter: EventReader<TileEnter>,
+    mut commands: Commands,
     child_query: Query<&ChildOf>,
-    mut moving_piece_query: Query<(&mut Transform, &mut MovingPiece)>,
+    mut moving_piece_query: Query<(&Transform, &mut MovingPiece)>,
     tile_query: Query<&Tile>,
     rules: Res<LoadedRules>,
     data: Res<MovingEntities>,
@@ -184,7 +187,7 @@ fn on_tile_enter(
         return;
     };
 
-    let Ok((mut transform, mut moving)) = moving_piece_query.get_mut(data.0.root()) else {
+    let Ok((transform, mut moving)) = moving_piece_query.get_mut(data.0.root()) else {
         return;
     };
 
@@ -193,6 +196,15 @@ fn on_tile_enter(
         return;
     }
 
-    // Update transform
-    *transform = pos_translation(tile.pos(), &rules.board);
+    let start = transform.translation;
+    let end = pos_translation(tile.pos(), &rules.board).translation;
+
+    // Build a tween to animate the piece movement
+    let tween = Tween::new(
+        EaseFunction::CubicInOut,
+        Duration::from_millis(200),
+        TransformPositionLens { start, end },
+    );
+
+    commands.entity(data.0.root()).insert(Animator::new(tween));
 }
