@@ -27,13 +27,7 @@
         ),
         Sphere: (
             count: Finite(100),
-            movement: And([
-                Or([
-                    Equal(TargetRow, SourceRow),
-                    Equal(TargetCol, SourceCol),
-                ]),
-                Equal(CountInRect((SourceRow, SourceCol), (TargetRow, TargetCol)), Const(0)),
-            ]),
+            movement: True,
             placement: Or([
                 Equal(ToPlaceRow, Const(5)),
                 Equal(ToPlaceCol, Const(5)),

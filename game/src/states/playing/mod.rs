@@ -6,7 +6,7 @@ use crate::{
         game_setup::LoadedRules,
         playing::{
             camera::PlayingCamera,
-            phases::{GamePhase, GamePhasePlugin, placing::PlacingData},
+            phases::{GamePhase, GamePhasePlugin},
             piece::{PlacedPiece, PlacingPiece},
             session::{
                 GameSession,
@@ -412,27 +412,8 @@ fn stock_panel(
                             matches!(phase.get(), GamePhase::Selecting) && !count.is_depleted();
 
                         if ui.add_enabled(enabled, button).clicked() {
-                            let placing = PlacingPiece::new(
-                                model,
-                                piece_color,
-                                session,
-                                placed_piece_query,
-                                rules.pieces.get_by_model(model).placement(),
-                                tile_query,
-                            )
-                            .unwrap();
-
-                            // Highlight placeable tiles
-                            for pos in placing.placeable_tiles() {
-                                if let Ok(mut visibility) = visibility_query
-                                    .get_mut(session.tiles.get(pos).unwrap().placeable())
-                                {
-                                    *visibility = Visibility::Visible;
-                                }
-                            }
-
                             // Enter placing state
-                            commands.insert_resource(PlacingData(placing));
+                            commands.insert_resource(PlacingPiece::new(model, piece_color));
                             next_phase.set(GamePhase::Placing);
                         }
                     }
