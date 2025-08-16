@@ -8,6 +8,7 @@ description = "A customizable rule-based puzzle game"
 [dependencies]
 bevy = "0.16"
 bevy_egui = "0.35"
+bevy_tweening = "0.13"
 indexmap = { version = "2.10", features = ["serde"] }
 ron = "0.10"
 rule-engine = { path = "../rule-engine" }
