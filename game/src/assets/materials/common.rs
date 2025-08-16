@@ -11,7 +11,7 @@ pub struct CommonMaterials {
 impl CommonMaterials {
     pub fn new(materials: &mut Assets<StandardMaterial>) -> Self {
         CommonMaterials {
-            tile_black: materials.add(Color::srgb(0.2, 0.2, 0.2)),
+            tile_black: materials.add(Color::srgb(0.4, 0.4, 0.4)),
             tile_white: materials.add(Color::srgb(0.8, 0.8, 0.8)),
             highlight_source_or_target: materials.add(StandardMaterial {
                 base_color: Color::srgba(0.4, 0.6, 1.0, 0.5),
