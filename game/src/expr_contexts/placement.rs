@@ -1,9 +1,9 @@
 use crate::{
     GameError,
     expr_contexts::{
-        query_color_at_pos_equal, query_count_in_rect, query_has_last_action,
-        query_last_action_col, query_last_action_row, query_model_at_pos_equal,
-        query_piece_count_in_rect, query_pos_occupied, query_round_number, query_turn_number,
+        query_color_at_pos, query_count_in_rect, query_count_piece_in_rect, query_has_last_action,
+        query_last_action_col, query_last_action_row, query_model_at_pos, query_pos_occupied,
+        query_round_number, query_turn_number,
     },
     states::playing::{piece::PlacedPiece, session::GameSession},
 };
@@ -27,38 +27,20 @@ pub struct PlacementContext<'s, 'world, 'state, 'data> {
 impl Context for PlacementContext<'_, '_, '_, '_> {
     type Error = GameError;
 
+    fn pos_occupied(&self, pos: Pos) -> Result<bool, Self::Error> {
+        query_pos_occupied(&self.session.placed_pieces, pos)
+    }
+
+    fn has_last_action(&self) -> Result<bool, Self::Error> {
+        query_has_last_action(&self.session.last_action)
+    }
+
     fn turn_number(&self) -> Result<i64, Self::Error> {
         query_turn_number(&self.session.turn)
     }
 
     fn round_number(&self) -> Result<i64, Self::Error> {
         query_round_number(&self.session.turn)
-    }
-
-    fn pos_occupied(&self, pos: Pos) -> Result<bool, Self::Error> {
-        query_pos_occupied(&self.session.placed_pieces, pos)
-    }
-
-    fn model_at_pos_equal(&self, pos: Pos, model: PieceModel) -> Result<bool, Self::Error> {
-        query_model_at_pos_equal(
-            &self.session.placed_pieces,
-            self.placed_piece_query,
-            pos,
-            model,
-        )
-    }
-
-    fn color_at_pos_equal(&self, pos: Pos, color: PieceColor) -> Result<bool, Self::Error> {
-        query_color_at_pos_equal(
-            &self.session.placed_pieces,
-            self.placed_piece_query,
-            pos,
-            color,
-        )
-    }
-
-    fn has_last_action(&self) -> Result<bool, Self::Error> {
-        query_has_last_action(&self.session.last_action)
     }
 
     fn last_action_row(&self) -> Result<i64, Self::Error> {
@@ -78,7 +60,7 @@ impl Context for PlacementContext<'_, '_, '_, '_> {
         piece: (PieceModel, PieceColor),
         rect: Rect,
     ) -> Result<i64, Self::Error> {
-        query_piece_count_in_rect(
+        query_count_piece_in_rect(
             piece,
             rect,
             &self.session.placed_pieces,
@@ -86,12 +68,20 @@ impl Context for PlacementContext<'_, '_, '_, '_> {
         )
     }
 
-    fn to_place_model_equal(&self, model: PieceModel) -> Result<bool, Self::Error> {
-        Ok(self.to_place_model == model)
+    fn model_at_pos(&self, pos: Pos) -> Result<PieceModel, Self::Error> {
+        query_model_at_pos(&self.session.placed_pieces, self.placed_piece_query, pos)
     }
 
-    fn to_place_color_equal(&self, color: PieceColor) -> Result<bool, Self::Error> {
-        Ok(self.to_place_color == color)
+    fn color_at_pos(&self, pos: Pos) -> Result<PieceColor, Self::Error> {
+        query_color_at_pos(&self.session.placed_pieces, self.placed_piece_query, pos)
+    }
+
+    fn to_place_model(&self) -> Result<PieceModel, Self::Error> {
+        Ok(self.to_place_model)
+    }
+
+    fn to_place_color(&self) -> Result<PieceColor, Self::Error> {
+        Ok(self.to_place_color)
     }
 
     fn to_place_row(&self) -> Result<i64, Self::Error> {

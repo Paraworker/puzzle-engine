@@ -17,50 +17,20 @@ pub mod movement;
 pub mod placement;
 pub mod win_or_lose;
 
+fn query_pos_occupied(index: &PlacedPieceIndex, pos: Pos) -> Result<bool, GameError> {
+    Ok(index.get(pos).is_some())
+}
+
+fn query_has_last_action(last_action: &Option<Pos>) -> Result<bool, GameError> {
+    Ok(last_action.is_some())
+}
+
 fn query_turn_number(turn: &TurnController) -> Result<i64, GameError> {
     Ok(turn.turn_number())
 }
 
 fn query_round_number(turn: &TurnController) -> Result<i64, GameError> {
     Ok(turn.round_number())
-}
-
-fn query_pos_occupied(index: &PlacedPieceIndex, pos: Pos) -> Result<bool, GameError> {
-    Ok(index.get(pos).is_some())
-}
-
-fn query_model_at_pos_equal(
-    index: &PlacedPieceIndex,
-    query: Query<&PlacedPiece>,
-    pos: Pos,
-    model: PieceModel,
-) -> Result<bool, GameError> {
-    let Some(entities) = index.get(pos) else {
-        return Ok(false);
-    };
-
-    let placed = query.get(entities.root()).unwrap();
-
-    Ok(placed.model() == model)
-}
-
-fn query_color_at_pos_equal(
-    index: &PlacedPieceIndex,
-    query: Query<&PlacedPiece>,
-    pos: Pos,
-    color: PieceColor,
-) -> Result<bool, GameError> {
-    let Some(entities) = index.get(pos) else {
-        return Ok(false);
-    };
-
-    let placed = query.get(entities.root()).unwrap();
-
-    Ok(placed.color() == color)
-}
-
-fn query_has_last_action(last_action: &Option<Pos>) -> Result<bool, GameError> {
-    Ok(last_action.is_some())
 }
 
 fn query_last_action_row(last_action: &Option<Pos>) -> Result<i64, GameError> {
@@ -81,7 +51,7 @@ fn query_count_in_rect(rect: Rect, index: &PlacedPieceIndex) -> Result<i64, Game
     Ok(index.positions().filter(|pos| rect.contains(*pos)).count() as i64)
 }
 
-fn query_piece_count_in_rect(
+fn query_count_piece_in_rect(
     piece: (PieceModel, PieceColor),
     rect: Rect,
     index: &PlacedPieceIndex,
@@ -97,4 +67,28 @@ fn query_piece_count_in_rect(
             placed.model() == want_model && placed.color() == want_color
         })
         .count() as i64)
+}
+
+fn query_model_at_pos(
+    index: &PlacedPieceIndex,
+    query: Query<&PlacedPiece>,
+    pos: Pos,
+) -> Result<PieceModel, GameError> {
+    let Some(entities) = index.get(pos) else {
+        return Err(GameError::NoPieceAtPos(pos));
+    };
+
+    Ok(query.get(entities.root()).unwrap().model())
+}
+
+fn query_color_at_pos(
+    index: &PlacedPieceIndex,
+    query: Query<&PlacedPiece>,
+    pos: Pos,
+) -> Result<PieceColor, GameError> {
+    let Some(entities) = index.get(pos) else {
+        return Err(GameError::NoPieceAtPos(pos));
+    };
+
+    Ok(query.get(entities.root()).unwrap().color())
 }

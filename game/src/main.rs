@@ -18,6 +18,8 @@ pub enum GameError {
     DuplicatePiece(Pos),
     #[error("no last action")]
     NoLastAction,
+    #[error("no piece at position: {0}")]
+    NoPieceAtPos(Pos),
     #[error("rules error: {0}")]
     Rules(#[from] RulesError),
     #[error("config format error: {0}")]
