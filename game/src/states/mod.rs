@@ -1,9 +1,10 @@
 use crate::states::{
-    game_setup::GameSetupPlugin, loading::LoadingPlugin, menu::MenuPlugin, playing::PlayingPlugin,
-    startup::StartupPlugin,
+    error::ErrorPlugin, game_setup::GameSetupPlugin, loading::LoadingPlugin, menu::MenuPlugin,
+    playing::PlayingPlugin, startup::StartupPlugin,
 };
 use bevy::prelude::*;
 
+pub mod error;
 pub mod game_setup;
 pub mod loading;
 pub mod menu;
@@ -18,6 +19,7 @@ pub enum AppState {
     GameSetup,
     Loading,
     Playing,
+    Error,
 }
 
 pub struct AppStatePlugin;
@@ -29,6 +31,7 @@ impl Plugin for AppStatePlugin {
             .add_plugins(MenuPlugin)
             .add_plugins(GameSetupPlugin)
             .add_plugins(LoadingPlugin)
-            .add_plugins(PlayingPlugin);
+            .add_plugins(PlayingPlugin)
+            .add_plugins(ErrorPlugin);
     }
 }
