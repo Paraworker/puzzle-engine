@@ -2,7 +2,7 @@ use crate::states::playing::session::{
     piece_index::PlacedPieceIndex, player::Players, tile_index::TileIndex, turn::TurnController,
 };
 use bevy::prelude::*;
-use rule_engine::position::Pos;
+use rule_engine::pos::Pos;
 
 pub mod piece_index;
 pub mod player;

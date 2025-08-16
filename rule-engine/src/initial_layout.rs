@@ -1,19 +1,28 @@
 use crate::{
     RulesError,
     piece::{PieceColor, PieceModel},
-    position::Pos,
+    pos::Pos,
     utils::{from_ron_str, to_ron_str},
 };
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InitialPiece {
-    pub model: PieceModel,
-    pub color: PieceColor,
-    pub pos: Pos,
+    model: PieceModel,
+    color: PieceColor,
+    pos: (i64, i64),
 }
 
 impl InitialPiece {
+    /// Creates a new initial piece.
+    pub fn new(model: PieceModel, color: PieceColor, pos: Pos) -> Self {
+        Self {
+            model,
+            color,
+            pos: (pos.row(), pos.col()),
+        }
+    }
+
     /// Returns the model of the piece.
     pub fn model(&self) -> PieceModel {
         self.model
@@ -26,7 +35,7 @@ impl InitialPiece {
 
     /// Returns the position of the piece.
     pub fn pos(&self) -> Pos {
-        self.pos
+        self.pos.into()
     }
 }
 

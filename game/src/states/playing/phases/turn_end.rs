@@ -57,7 +57,7 @@ fn evaluate_turn(
 
     let ctx = GameOverContext {
         session,
-        query: placed_piece_query,
+        placed_piece_query,
     };
 
     // Check game over condition

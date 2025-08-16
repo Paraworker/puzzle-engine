@@ -3,7 +3,7 @@ use crate::{
     expr::{Context, integer::IntExpr},
     piece::{PieceColor, PieceModel},
     player::PlayerState,
-    position::Pos,
+    pos::Pos,
     utils::{from_ron_str, to_ron_str},
 };
 use serde::{Deserialize, Serialize};

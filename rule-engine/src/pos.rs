@@ -1,9 +1,7 @@
 use std::fmt;
 
-use serde::{Deserialize, Serialize};
-
 /// Tile position on the board
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Pos(i64, i64);
 
 impl Pos {
@@ -20,6 +18,18 @@ impl Pos {
     /// Returns the column index of the tile position.
     pub const fn col(&self) -> i64 {
         self.1
+    }
+}
+
+impl From<(i64, i64)> for Pos {
+    fn from(tuple: (i64, i64)) -> Self {
+        Self(tuple.0, tuple.1)
+    }
+}
+
+impl From<Pos> for (i64, i64) {
+    fn from(pos: Pos) -> Self {
+        (pos.row(), pos.col())
     }
 }
 

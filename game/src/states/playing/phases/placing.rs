@@ -14,7 +14,7 @@ use crate::{
 };
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
-use rule_engine::position::Pos;
+use rule_engine::pos::Pos;
 
 #[derive(Resource)]
 pub struct PlacingData(pub PlacingPiece);

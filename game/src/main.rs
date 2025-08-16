@@ -2,7 +2,7 @@ use crate::states::AppStatePlugin;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use ron::de::SpannedError;
-use rule_engine::{RulesError, position::Pos};
+use rule_engine::{RulesError, pos::Pos};
 use thiserror::Error;
 
 mod assets;
