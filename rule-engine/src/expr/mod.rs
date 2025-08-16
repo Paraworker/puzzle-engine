@@ -2,7 +2,8 @@ use crate::{
     RulesError,
     piece::{PieceColor, PieceModel},
     player::PlayerState,
-    position::Pos,
+    pos::Pos,
+    rect::Rect,
 };
 
 pub mod boolean;
@@ -39,6 +40,16 @@ pub trait Context {
     ///
     /// If no last action has been performed, return an error.
     fn last_action_col(&self) -> Result<i64, Self::Error>;
+
+    /// Query the number of pieces in a rectangle defined by two positions.
+    fn count_in_rect(&self, rect: Rect) -> Result<i64, Self::Error>;
+
+    /// Query the number of pieces of a specific model and color in a rectangle defined by two positions.
+    fn count_piece_in_rect(
+        &self,
+        piece: (PieceModel, PieceColor),
+        rect: Rect,
+    ) -> Result<i64, Self::Error>;
 
     /// Query whether the moving piece is equal to a specific model.
     ///

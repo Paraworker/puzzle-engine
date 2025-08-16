@@ -4,7 +4,7 @@ use crate::{
     initial_layout::{InitialLayout, InitialPiece},
     piece::{PieceColor, PieceModel, PieceRuleSet, PieceRules},
     player::{PlayerRuleSet, PlayerRules},
-    position::Pos,
+    pos::Pos,
     utils::{from_ron_file, to_ron_file},
 };
 use ron::de::SpannedError;
@@ -18,8 +18,10 @@ pub mod expr;
 pub mod initial_layout;
 pub mod piece;
 pub mod player;
-pub mod position;
-pub mod utils;
+pub mod pos;
+pub mod rect;
+
+mod utils;
 
 #[derive(Debug, Error)]
 pub enum RulesError {
@@ -89,23 +91,23 @@ impl Default for GameRules {
             .unwrap();
 
         // Add some initial pieces.
-        initial_layout.add(InitialPiece {
-            model: PieceModel::Cube,
-            color: PieceColor::White,
-            pos: Pos::new(0, 0),
-        });
+        initial_layout.add(InitialPiece::new(
+            PieceModel::Cube,
+            PieceColor::White,
+            Pos::new(0, 0),
+        ));
 
-        initial_layout.add(InitialPiece {
-            model: PieceModel::Cube,
-            color: PieceColor::White,
-            pos: Pos::new(1, 1),
-        });
+        initial_layout.add(InitialPiece::new(
+            PieceModel::Cube,
+            PieceColor::White,
+            Pos::new(1, 1),
+        ));
 
-        initial_layout.add(InitialPiece {
-            model: PieceModel::Cube,
-            color: PieceColor::White,
-            pos: Pos::new(2, 2),
-        });
+        initial_layout.add(InitialPiece::new(
+            PieceModel::Cube,
+            PieceColor::White,
+            Pos::new(2, 2),
+        ));
 
         Self {
             name: "Default Rules".into(),

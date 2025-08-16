@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use rule_engine::position::Pos;
+use rule_engine::pos::Pos;
 use std::collections::HashMap;
 
 /// Entities associated with a tile.
@@ -66,5 +66,20 @@ impl TileIndex {
     /// Returns the tile entities at the given position.
     pub fn get(&self, pos: Pos) -> Option<&TileEntities> {
         self.0.get(&pos)
+    }
+
+    /// Returns an iterator over the position and entities.
+    pub fn iter(&self) -> impl Iterator<Item = (Pos, &TileEntities)> {
+        self.0.iter().map(|(pos, entities)| (*pos, entities))
+    }
+
+    /// Returns an iterator over the position.
+    pub fn positions(&self) -> impl Iterator<Item = Pos> {
+        self.0.keys().cloned()
+    }
+
+    /// Returns an iterator over the entities.
+    pub fn entities(&self) -> impl Iterator<Item = &TileEntities> {
+        self.0.values()
     }
 }

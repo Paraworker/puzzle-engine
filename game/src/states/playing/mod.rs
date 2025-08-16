@@ -27,7 +27,7 @@ use bevy_egui::{
 use rule_engine::{
     board::BoardRuleSet,
     piece::{PieceColor, PieceModel},
-    position::Pos,
+    pos::Pos,
 };
 
 pub mod camera;

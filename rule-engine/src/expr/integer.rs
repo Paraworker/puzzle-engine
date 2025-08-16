@@ -1,6 +1,9 @@
 use crate::{
     RulesError,
     expr::Context,
+    piece::{PieceColor, PieceModel},
+    pos::Pos,
+    rect::Rect,
     utils::{from_ron_str, to_ron_str},
 };
 use serde::{Deserialize, Serialize};
@@ -31,10 +34,22 @@ pub enum IntExpr {
 
     /// Query last action information
     ///
-    /// - LastActionCol: The column of the last action.
     /// - LastActionRow: The row of the last action.
-    LastActionCol,
+    /// - LastActionCol: The column of the last action.
     LastActionRow,
+    LastActionCol,
+
+    /// Query piece count
+    ///
+    /// - CountInRect: The number of pieces in the given rectangle.
+    /// - CountPieceInRect: The number of pieces with the given model and color in the given rectangle.
+    ///
+    CountInRect((Box<IntExpr>, Box<IntExpr>), (Box<IntExpr>, Box<IntExpr>)),
+    CountPieceInRect(
+        (PieceModel, PieceColor),
+        (Box<IntExpr>, Box<IntExpr>),
+        (Box<IntExpr>, Box<IntExpr>),
+    ),
 
     /// Movement expression only variables
     ///
@@ -72,6 +87,10 @@ impl IntExpr {
             IntExpr::RoundNumber => ctx.round_number(),
             IntExpr::LastActionRow => ctx.last_action_row(),
             IntExpr::LastActionCol => ctx.last_action_col(),
+            IntExpr::CountInRect(pos1, pos2) => Self::count_in_rect(pos1, pos2, ctx),
+            IntExpr::CountPieceInRect(piece, pos1, pos2) => {
+                Self::count_piece_in_rect(*piece, pos1, pos2, ctx)
+            }
             IntExpr::SourceRow => ctx.source_row(),
             IntExpr::SourceCol => ctx.source_col(),
             IntExpr::TargetRow => ctx.target_row(),
@@ -104,5 +123,37 @@ impl IntExpr {
         } else {
             Ok(num / denom)
         }
+    }
+
+    fn count_in_rect<C>(
+        pos1: &(Box<IntExpr>, Box<IntExpr>),
+        pos2: &(Box<IntExpr>, Box<IntExpr>),
+        ctx: &C,
+    ) -> Result<i64, C::Error>
+    where
+        C: Context,
+    {
+        ctx.count_in_rect(Rect::new(
+            Pos::new(pos1.0.evaluate(ctx)?, pos1.1.evaluate(ctx)?),
+            Pos::new(pos2.0.evaluate(ctx)?, pos2.1.evaluate(ctx)?),
+        ))
+    }
+
+    fn count_piece_in_rect<C>(
+        piece: (PieceModel, PieceColor),
+        pos1: &(Box<IntExpr>, Box<IntExpr>),
+        pos2: &(Box<IntExpr>, Box<IntExpr>),
+        ctx: &C,
+    ) -> Result<i64, C::Error>
+    where
+        C: Context,
+    {
+        ctx.count_piece_in_rect(
+            piece,
+            Rect::new(
+                Pos::new(pos1.0.evaluate(ctx)?, pos1.1.evaluate(ctx)?),
+                Pos::new(pos2.0.evaluate(ctx)?, pos2.1.evaluate(ctx)?),
+            ),
+        )
     }
 }

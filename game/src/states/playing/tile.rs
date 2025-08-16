@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use rule_engine::position::Pos;
+use rule_engine::pos::Pos;
 
 /// Component for a base tile entity.
 #[derive(Debug, Clone, Component)]

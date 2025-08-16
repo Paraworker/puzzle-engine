@@ -1,17 +1,18 @@
 use crate::{
     GameError,
     expr_contexts::{
-        query_color_at_pos_equal, query_has_last_action, query_last_action_col,
-        query_last_action_row, query_model_at_pos_equal, query_pos_occupied, query_round_number,
-        query_turn_number,
+        query_color_at_pos_equal, query_count_in_rect, query_has_last_action,
+        query_last_action_col, query_last_action_row, query_model_at_pos_equal,
+        query_piece_count_in_rect, query_pos_occupied, query_round_number, query_turn_number,
     },
     states::playing::{piece::PlacedPiece, session::GameSession},
 };
-use bevy::prelude::*;
+use bevy::ecs::system::Query;
 use rule_engine::{
     expr::Context,
     piece::{PieceColor, PieceModel},
-    position::Pos,
+    pos::Pos,
+    rect::Rect,
 };
 
 #[derive(Debug)]
@@ -57,16 +58,33 @@ impl Context for MovementContext<'_, '_, '_, '_> {
         )
     }
 
-    fn has_last_action(&self) -> std::result::Result<bool, Self::Error> {
+    fn has_last_action(&self) -> Result<bool, Self::Error> {
         query_has_last_action(&self.session.last_action)
     }
 
-    fn last_action_row(&self) -> std::result::Result<i64, Self::Error> {
+    fn last_action_row(&self) -> Result<i64, Self::Error> {
         query_last_action_row(&self.session.last_action)
     }
 
-    fn last_action_col(&self) -> std::result::Result<i64, Self::Error> {
+    fn last_action_col(&self) -> Result<i64, Self::Error> {
         query_last_action_col(&self.session.last_action)
+    }
+
+    fn count_in_rect(&self, rect: Rect) -> Result<i64, Self::Error> {
+        query_count_in_rect(rect, &self.session.placed_pieces)
+    }
+
+    fn count_piece_in_rect(
+        &self,
+        piece: (PieceModel, PieceColor),
+        rect: Rect,
+    ) -> Result<i64, Self::Error> {
+        query_piece_count_in_rect(
+            piece,
+            rect,
+            &self.session.placed_pieces,
+            self.placed_piece_query,
+        )
     }
 
     fn moving_model_equal(&self, model: PieceModel) -> Result<bool, Self::Error> {

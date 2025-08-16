@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use rule_engine::{
     expr::boolean::BoolExpr,
     piece::{PieceColor, PieceModel},
-    position::Pos,
+    pos::Pos,
 };
 use std::collections::HashSet;
 

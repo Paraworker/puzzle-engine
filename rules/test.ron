@@ -7,15 +7,33 @@
     pieces: {
         Cube: (
             count: Finite(100),
-            movement: Or([
-                Equal(TargetRow, SourceRow),
-                Equal(TargetCol, SourceCol),
+            movement: And([
+                Or([
+                    Equal(TargetRow, SourceRow),
+                    Equal(TargetCol, SourceCol),
+                ]),
+                Or([
+                    And([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        Equal(CountInRect((SourceRow, SourceCol), (TargetRow, TargetCol)), Const(0)),
+                    ]),
+                    And([
+                        PosOccupied(TargetRow, TargetCol),
+                        Equal(CountInRect((SourceRow, SourceCol), (TargetRow, TargetCol)), Const(1)),
+                    ]),
+                ]),
             ]),
             placement: Not(PosOccupied(ToPlaceRow, ToPlaceCol)),
         ),
         Sphere: (
             count: Finite(100),
-            movement: True,
+            movement: And([
+                Or([
+                    Equal(TargetRow, SourceRow),
+                    Equal(TargetCol, SourceCol),
+                ]),
+                Equal(CountInRect((SourceRow, SourceCol), (TargetRow, TargetCol)), Const(0)),
+            ]),
             placement: Or([
                 Equal(ToPlaceRow, Const(5)),
                 Equal(ToPlaceCol, Const(5)),

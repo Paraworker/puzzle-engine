@@ -5,10 +5,11 @@ use crate::{
         session::{piece_index::PlacedPieceIndex, turn::TurnController},
     },
 };
-use bevy::prelude::*;
+use bevy::ecs::system::Query;
 use rule_engine::{
     piece::{PieceColor, PieceModel},
-    position::Pos,
+    pos::Pos,
+    rect::Rect,
 };
 
 pub mod game_over;
@@ -74,4 +75,26 @@ fn query_last_action_col(last_action: &Option<Pos>) -> Result<i64, GameError> {
         Some(pos) => Ok(pos.col()),
         None => Err(GameError::NoLastAction),
     }
+}
+
+fn query_count_in_rect(rect: Rect, index: &PlacedPieceIndex) -> Result<i64, GameError> {
+    Ok(index.positions().filter(|pos| rect.contains(*pos)).count() as i64)
+}
+
+fn query_piece_count_in_rect(
+    piece: (PieceModel, PieceColor),
+    rect: Rect,
+    index: &PlacedPieceIndex,
+    query: Query<&PlacedPiece>,
+) -> Result<i64, GameError> {
+    let (want_model, want_color) = piece;
+
+    Ok(index
+        .iter()
+        .filter(|&(pos, _)| rect.contains(pos))
+        .filter(|&(_, entities)| {
+            let placed = query.get(entities.root()).unwrap();
+            placed.model() == want_model && placed.color() == want_color
+        })
+        .count() as i64)
 }
