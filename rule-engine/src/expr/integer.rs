@@ -1,7 +1,6 @@
 use crate::{
     RulesError,
-    expr::Context,
-    piece::{PieceColor, PieceModel},
+    expr::{Context, color::ColorExpr, model::ModelExpr},
     pos::Pos,
     rect::Rect,
     utils::{from_ron_str, to_ron_str},
@@ -46,7 +45,7 @@ pub enum IntExpr {
     ///
     CountInRect((Box<IntExpr>, Box<IntExpr>), (Box<IntExpr>, Box<IntExpr>)),
     CountPieceInRect(
-        (PieceModel, PieceColor),
+        (Box<ModelExpr>, Box<ColorExpr>),
         (Box<IntExpr>, Box<IntExpr>),
         (Box<IntExpr>, Box<IntExpr>),
     ),
@@ -89,7 +88,7 @@ impl IntExpr {
             IntExpr::LastActionCol => ctx.last_action_col(),
             IntExpr::CountInRect(pos1, pos2) => Self::count_in_rect(pos1, pos2, ctx),
             IntExpr::CountPieceInRect(piece, pos1, pos2) => {
-                Self::count_piece_in_rect(*piece, pos1, pos2, ctx)
+                Self::count_piece_in_rect(piece, pos1, pos2, ctx)
             }
             IntExpr::SourceRow => ctx.source_row(),
             IntExpr::SourceCol => ctx.source_col(),
@@ -140,7 +139,7 @@ impl IntExpr {
     }
 
     fn count_piece_in_rect<C>(
-        piece: (PieceModel, PieceColor),
+        piece: &(Box<ModelExpr>, Box<ColorExpr>),
         pos1: &(Box<IntExpr>, Box<IntExpr>),
         pos2: &(Box<IntExpr>, Box<IntExpr>),
         ctx: &C,
@@ -149,7 +148,7 @@ impl IntExpr {
         C: Context,
     {
         ctx.count_piece_in_rect(
-            piece,
+            (piece.0.evaluate(ctx)?, piece.1.evaluate(ctx)?),
             Rect::new(
                 Pos::new(pos1.0.evaluate(ctx)?, pos1.1.evaluate(ctx)?),
                 Pos::new(pos2.0.evaluate(ctx)?, pos2.1.evaluate(ctx)?),
