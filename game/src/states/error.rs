@@ -1,56 +1,29 @@
-use crate::{
-    settings::Settings,
-    states::{AppState, error::CurrentError},
-};
+use crate::{GameError, states::AppState};
 use bevy::prelude::*;
-use rule_engine::GameRules;
-use std::ops::Deref;
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
 const HOVERED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
 const PRESSED_BUTTON: Color = Color::srgb(0.35, 0.35, 0.35);
 
-pub struct GameSetupPlugin;
+pub struct ErrorPlugin;
 
-impl Plugin for GameSetupPlugin {
+impl Plugin for ErrorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::GameSetup), on_enter)
-            .add_systems(Update, update.run_if(in_state(AppState::GameSetup)))
-            .add_systems(OnExit(AppState::GameSetup), on_exit);
+        app.add_systems(OnEnter(AppState::Error), on_enter)
+            .add_systems(Update, update.run_if(in_state(AppState::Error)))
+            .add_systems(OnExit(AppState::Error), on_exit);
     }
 }
 
 #[derive(Resource)]
-pub struct LoadedRules(GameRules);
-
-impl Deref for LoadedRules {
-    type Target = GameRules;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+pub struct CurrentError(pub GameError);
 
 #[derive(Component)]
-struct GameSetupMarker;
+struct ErrorMarker;
 
-fn on_enter(
-    mut commands: Commands,
-    mut next_state: ResMut<NextState<AppState>>,
-    settings: Res<Settings>,
-) {
-    // Load rules from settings
-    let rules = match GameRules::load(settings.rules_path.as_path()) {
-        Ok(rules) => rules,
-        Err(err) => {
-            commands.insert_resource(CurrentError(err.into()));
-            next_state.set(AppState::Error);
-            return;
-        }
-    };
-
+fn on_enter(mut commands: Commands, error: Res<CurrentError>) {
     // camera
-    commands.spawn((Camera2d, GameSetupMarker));
+    commands.spawn((Camera2d, ErrorMarker));
 
     // ui
     commands
@@ -62,7 +35,7 @@ fn on_enter(
                 align_items: AlignItems::Center,
                 ..default()
             },
-            GameSetupMarker,
+            ErrorMarker,
         ))
         .with_children(|parent| {
             // logo and button
@@ -74,19 +47,19 @@ fn on_enter(
                     ..default()
                 })
                 .with_children(|parent| {
-                    parent.spawn(label(format!("Loaded Rules: {}", rules.name), 50.0));
+                    parent.spawn(label(error.0.to_string()));
                     parent.spawn(spacer(200.0));
-                    parent.spawn(button("Ready!"));
+                    parent.spawn(button());
                 });
         });
-
-    commands.insert_resource(LoadedRules(rules));
 }
 
-fn on_exit(mut commands: Commands, entities: Query<Entity, With<GameSetupMarker>>) {
+fn on_exit(mut commands: Commands, entities: Query<Entity, With<ErrorMarker>>) {
     for entity in entities {
         commands.entity(entity).despawn();
     }
+
+    commands.remove_resource::<CurrentError>();
 }
 
 fn update(
@@ -102,7 +75,7 @@ fn update(
                 *color = PRESSED_BUTTON.into();
                 border_color.0 = Color::WHITE;
 
-                next_state.set(AppState::Loading);
+                next_state.set(AppState::Menu);
             }
             Interaction::Hovered => {
                 *color = HOVERED_BUTTON.into();
@@ -116,7 +89,7 @@ fn update(
     }
 }
 
-fn label(text: impl Into<String>, font_size: f32) -> impl Bundle + 'static {
+fn label(err_msg: impl Into<String>) -> impl Bundle + 'static {
     (
         Node {
             width: Val::Auto,
@@ -126,9 +99,9 @@ fn label(text: impl Into<String>, font_size: f32) -> impl Bundle + 'static {
             ..default()
         },
         children![(
-            Text::new(text),
+            Text::new(err_msg),
             TextFont {
-                font_size,
+                font_size: 18.0,
                 ..default()
             },
             TextColor(Color::srgb(0.9, 0.9, 0.9)),
@@ -144,7 +117,7 @@ fn spacer(height: f32) -> impl Bundle + 'static {
     }
 }
 
-fn button(text: impl Into<String>) -> impl Bundle + 'static {
+fn button() -> impl Bundle + 'static {
     (
         Node {
             width: Val::Percent(100.0),
@@ -156,7 +129,7 @@ fn button(text: impl Into<String>) -> impl Bundle + 'static {
         children![(
             Button,
             Node {
-                width: Val::Px(200.0),
+                width: Val::Px(250.0),
                 height: Val::Px(80.0),
                 border: UiRect::all(Val::Px(5.0)),
                 justify_content: JustifyContent::Center,
@@ -167,7 +140,7 @@ fn button(text: impl Into<String>) -> impl Bundle + 'static {
             BorderRadius::all(Val::Px(12.0)),
             BackgroundColor(NORMAL_BUTTON),
             children![(
-                Text::new(text),
+                Text::new("Back to Menu"),
                 TextFont {
                     font_size: 28.0,
                     ..default()
