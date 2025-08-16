@@ -21,7 +21,7 @@ impl PieceMeshes {
                     (
                         meshes.add(Cuboid::default()),
                         Transform {
-                            translation: Vec3::new(0.0, BoardRuleSet::tile_size() / 5.0, 0.0),
+                            translation: Vec3::new(0.0, BoardRuleSet::tile_size() * 0.2, 0.0),
                             scale: Vec3::splat(BoardRuleSet::tile_size() * 0.4),
                             ..default()
                         },
@@ -32,7 +32,7 @@ impl PieceMeshes {
                     (
                         meshes.add(Sphere::default()),
                         Transform {
-                            translation: Vec3::new(0.0, BoardRuleSet::tile_size() / 4.0, 0.0),
+                            translation: Vec3::new(0.0, BoardRuleSet::tile_size() * 0.25, 0.0),
                             scale: Vec3::splat(BoardRuleSet::tile_size() * 0.5),
                             ..default()
                         },
@@ -43,8 +43,8 @@ impl PieceMeshes {
                     (
                         meshes.add(Cylinder::default()),
                         Transform {
-                            translation: Vec3::new(0.0, BoardRuleSet::tile_size() / 4.0, 0.0),
-                            scale: Vec3::splat(BoardRuleSet::tile_size() * 0.5),
+                            translation: Vec3::new(0.0, BoardRuleSet::tile_size() * 0.2, 0.0),
+                            scale: Vec3::splat(BoardRuleSet::tile_size() * 0.4),
                             ..default()
                         },
                     ),
@@ -54,7 +54,7 @@ impl PieceMeshes {
                     (
                         meshes.add(Cone::default()),
                         Transform {
-                            translation: Vec3::new(0.0, BoardRuleSet::tile_size() / 4.0, 0.0),
+                            translation: Vec3::new(0.0, BoardRuleSet::tile_size() * 0.25, 0.0),
                             scale: Vec3::splat(BoardRuleSet::tile_size() * 0.5),
                             ..default()
                         },
@@ -65,8 +65,8 @@ impl PieceMeshes {
                     (
                         meshes.add(Capsule3d::default()),
                         Transform {
-                            translation: Vec3::new(0.0, BoardRuleSet::tile_size() / 4.0, 0.0),
-                            scale: Vec3::splat(BoardRuleSet::tile_size() * 0.25),
+                            translation: Vec3::new(0.0, BoardRuleSet::tile_size() * 0.3, 0.0),
+                            scale: Vec3::splat(BoardRuleSet::tile_size() * 0.3),
                             ..default()
                         },
                     ),
@@ -76,7 +76,7 @@ impl PieceMeshes {
                     (
                         meshes.add(Torus::default()),
                         Transform {
-                            translation: Vec3::new(0.0, BoardRuleSet::tile_size() / 4.0, 0.0),
+                            translation: Vec3::new(0.0, BoardRuleSet::tile_size() * 0.25, 0.0),
                             scale: Vec3::splat(BoardRuleSet::tile_size() * 0.25),
                             rotation: Quat::from_rotation_x(std::f32::consts::FRAC_PI_2),
                             ..default()
@@ -88,7 +88,7 @@ impl PieceMeshes {
                     (
                         meshes.add(Tetrahedron::default()),
                         Transform {
-                            translation: Vec3::new(0.0, BoardRuleSet::tile_size() / 5.0, 0.0),
+                            translation: Vec3::new(0.0, BoardRuleSet::tile_size() * 0.2, 0.0),
                             scale: Vec3::splat(BoardRuleSet::tile_size() * 0.4),
                             ..default()
                         },

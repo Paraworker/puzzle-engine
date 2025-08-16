@@ -376,10 +376,6 @@ fn top_panel(mut egui: EguiContexts, text: Res<TopPanelText>) {
 fn stock_panel(
     mut commands: Commands,
     mut egui: EguiContexts,
-    tile_query: Query<&Tile>,
-    placed_piece_query: Query<&PlacedPiece>,
-    mut visibility_query: Query<&mut Visibility>,
-    rules: Res<LoadedRules>,
     mut session: ResMut<GameSession>,
     phase: Res<State<GamePhase>>,
     mut next_phase: ResMut<NextState<GamePhase>>,
