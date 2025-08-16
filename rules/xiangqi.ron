@@ -1,0 +1,527 @@
+(
+    name: "Xiangqi (Chinese Chess)",
+    board: (
+        rows: 10,
+        cols: 9,
+    ),
+    pieces: {
+        // Rook
+        Cube: (
+            count: Finite(2),
+            movement: And([
+                // Must move in a straight line: either same row or same column
+                Or([
+                    Equal(TargetRow, SourceRow),
+                    Equal(TargetCol, SourceCol),
+                ]),
+                
+                // Path rule: the rook cannot jump over pieces
+                Or([
+                    // (1) If the target square is empty,
+                    // then the entire rectangle between source and target must have 0 pieces.
+                    And([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        Equal(
+                            CountInRect((SourceRow, SourceCol), (TargetRow, TargetCol)),
+                            Const(0)
+                        ),
+                    ]),
+                    
+                    // (2) If the target square is occupied by an enemy piece,
+                    // then the rectangle between source and target must contain exactly 1 piece
+                    // (the enemy piece at the target).
+                    And([
+                        PosOccupied(TargetRow, TargetCol),
+                        Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                        Equal(
+                            CountInRect((SourceRow, SourceCol), (TargetRow, TargetCol)),
+                            Const(1)
+                        ),
+                    ]),
+                ]),
+            ]),
+            placement: False,
+        ),
+        // Knight (Xiangqi horse with "leg" blocking rule)
+        Sphere: (
+            count: Finite(2),
+            movement: Or([
+                // dx = +2, dy = +1; leg at (srcRow, srcCol + 1)
+                And([
+                    Equal(TargetCol, Add(SourceCol, Const(2))),
+                    Equal(TargetRow, Add(SourceRow, Const(1))),
+                    // the "leg" must be empty
+                    Not(PosOccupied(SourceRow, Add(SourceCol, Const(1)))),
+                    // target is empty OR occupied by enemy
+                    Or([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        And([
+                            PosOccupied(TargetRow, TargetCol),
+                            Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                        ]),
+                    ]),
+                ]),
+                
+                // dx = +2, dy = -1; leg at (srcRow, srcCol + 1)
+                And([
+                    Equal(TargetCol, Add(SourceCol, Const(2))),
+                    Equal(TargetRow, Add(SourceRow, Const(-1))),
+                    Not(PosOccupied(SourceRow, Add(SourceCol, Const(1)))),
+                    Or([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        And([
+                            PosOccupied(TargetRow, TargetCol),
+                            Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                        ]),
+                    ]),
+                ]),
+                
+                // dx = -2, dy = +1; leg at (srcRow, srcCol - 1)
+                And([
+                    Equal(TargetCol, Add(SourceCol, Const(-2))),
+                    Equal(TargetRow, Add(SourceRow, Const(1))),
+                    Not(PosOccupied(SourceRow, Add(SourceCol, Const(-1)))),
+                    Or([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        And([
+                            PosOccupied(TargetRow, TargetCol),
+                            Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                        ]),
+                    ]),
+                ]),
+                
+                // dx = -2, dy = -1; leg at (srcRow, srcCol - 1)
+                And([
+                    Equal(TargetCol, Add(SourceCol, Const(-2))),
+                    Equal(TargetRow, Add(SourceRow, Const(-1))),
+                    Not(PosOccupied(SourceRow, Add(SourceCol, Const(-1)))),
+                    Or([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        And([
+                            PosOccupied(TargetRow, TargetCol),
+                            Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                        ]),
+                    ]),
+                ]),
+                
+                // dx = +1, dy = +2; leg at (srcRow + 1, srcCol)
+                And([
+                    Equal(TargetCol, Add(SourceCol, Const(1))),
+                    Equal(TargetRow, Add(SourceRow, Const(2))),
+                    Not(PosOccupied(Add(SourceRow, Const(1)), SourceCol)),
+                    Or([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        And([
+                            PosOccupied(TargetRow, TargetCol),
+                            Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                        ]),
+                    ]),
+                ]),
+
+                // dx = -1, dy = +2; leg at (srcRow + 1, srcCol)
+                And([
+                    Equal(TargetCol, Add(SourceCol, Const(-1))),
+                    Equal(TargetRow, Add(SourceRow, Const(2))),
+                    Not(PosOccupied(Add(SourceRow, Const(1)), SourceCol)),
+                    Or([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        And([
+                            PosOccupied(TargetRow, TargetCol),
+                            Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                        ]),
+                    ]),
+                ]),
+
+                // dx = +1, dy = -2; leg at (srcRow - 1, srcCol)
+                And([
+                    Equal(TargetCol, Add(SourceCol, Const(1))),
+                    Equal(TargetRow, Add(SourceRow, Const(-2))),
+                    Not(PosOccupied(Add(SourceRow, Const(-1)), SourceCol)),
+                    Or([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        And([
+                            PosOccupied(TargetRow, TargetCol),
+                            Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                        ]),
+                    ]),
+                ]),
+
+                // dx = -1, dy = -2; leg at (srcRow - 1, srcCol)
+                And([
+                    Equal(TargetCol, Add(SourceCol, Const(-1))),
+                    Equal(TargetRow, Add(SourceRow, Const(-2))),
+                    Not(PosOccupied(Add(SourceRow, Const(-1)), SourceCol)),
+                    Or([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        And([
+                            PosOccupied(TargetRow, TargetCol),
+                            Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                        ]),
+                    ]),
+                ]),
+            ]),
+            placement: False,
+        ),
+        // Bishop / Elephant (cannot cross the river; blocked by the mid "eye"; move 2 diagonally)
+        Cylinder: (
+            count: Finite(2),
+            movement: Or([
+                // ↗  (dr=+2, dc=+2), mid at (r+1, c+1)
+                And([
+                    Equal(TargetRow, Add(SourceRow, Const(2))),
+                    Equal(TargetCol, Add(SourceCol, Const(2))),
+                    // mid "eye" must be empty
+                    Not(PosOccupied(Add(SourceRow, Const(1)), Add(SourceCol, Const(1)))),
+
+                    // river rule (cannot cross):
+                    // Red must stay in rows 0..4; Black must stay in rows 5..9
+                    Or([
+                        And([
+                            ColorEqual(MovingColor, Literal(Red)),
+                            LessOrEqual(TargetRow, Const(4)),
+                        ]),
+                        And([
+                            ColorEqual(MovingColor, Literal(Black)),
+                            GreaterOrEqual(TargetRow, Const(5)),
+                        ]),
+                    ]),
+
+                    // target square: empty OR enemy
+                    Or([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        And([
+                            PosOccupied(TargetRow, TargetCol),
+                            Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                        ]),
+                   ]),
+                ]),
+
+                // ↘  (dr=+2, dc=-2), mid at (r+1, c-1)
+               And([
+                    Equal(TargetRow, Add(SourceRow, Const(2))),
+                    Equal(TargetCol, Add(SourceCol, Const(-2))),
+                    Not(PosOccupied(Add(SourceRow, Const(1)), Add(SourceCol, Const(-1)))),
+                    Or([
+                        And([
+                            ColorEqual(MovingColor, Literal(Red)),
+                            LessOrEqual(TargetRow, Const(4)),
+                        ]),
+                        And([
+                            ColorEqual(MovingColor, Literal(Black)),
+                            GreaterOrEqual(TargetRow, Const(5)),
+                        ]),
+                    ]),
+                    Or([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        And([
+                            PosOccupied(TargetRow, TargetCol),
+                            Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                        ]),
+                    ]),
+                ]),
+
+                // ↙  (dr=-2, dc=-2), mid at (r-1, c-1)
+                And([
+                    Equal(TargetRow, Add(SourceRow, Const(-2))),
+                    Equal(TargetCol, Add(SourceCol, Const(-2))),
+                    Not(PosOccupied(Add(SourceRow, Const(-1)), Add(SourceCol, Const(-1)))),
+                    Or([
+                        And([
+                            ColorEqual(MovingColor, Literal(Red)),
+                            LessOrEqual(TargetRow, Const(4)),
+                        ]),
+                        And([
+                            ColorEqual(MovingColor, Literal(Black)),
+                            GreaterOrEqual(TargetRow, Const(5)),
+                        ]),
+                    ]),
+                    Or([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        And([
+                            PosOccupied(TargetRow, TargetCol),
+                            Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                        ]),
+                    ]),
+                ]),
+
+                // ↖  (dr=-2, dc=+2), mid at (r-1, c+1)
+                And([
+                    Equal(TargetRow, Add(SourceRow, Const(-2))),
+                    Equal(TargetCol, Add(SourceCol, Const(2))),
+                    Not(PosOccupied(Add(SourceRow, Const(-1)), Add(SourceCol, Const(1)))),
+                    Or([
+                        And([
+                            ColorEqual(MovingColor, Literal(Red)),
+                            LessOrEqual(TargetRow, Const(4)),
+                        ]),
+                        And([
+                            ColorEqual(MovingColor, Literal(Black)),
+                            GreaterOrEqual(TargetRow, Const(5)),
+                        ]),
+                    ]),
+                    Or([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        And([
+                            PosOccupied(TargetRow, TargetCol),
+                            Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                        ]),
+                    ]),
+                ]),
+            ]),
+            placement: False,
+        ),
+        // Guard (must stay inside the palace; move 1 step diagonally)
+        Torus: (
+            count: Finite(2),
+            movement: And([
+                // move exactly one step diagonally
+                Equal(Abs(Sub(TargetRow, SourceRow)), Const(1)),
+                Equal(Abs(Sub(TargetCol, SourceCol)), Const(1)),
+
+                // palace constraint: Red stays in rows 0..2 & cols 3..5; Black stays in rows 7..9 & cols 3..5
+                Or([
+                    And([
+                        ColorEqual(MovingColor, Literal(Red)),
+                        GreaterOrEqual(TargetRow, Const(0)),
+                        LessOrEqual(TargetRow, Const(2)),
+                        GreaterOrEqual(TargetCol, Const(3)),
+                        LessOrEqual(TargetCol, Const(5)),
+                    ]),
+                    And([
+                        ColorEqual(MovingColor, Literal(Black)),
+                        GreaterOrEqual(TargetRow, Const(7)),
+                        LessOrEqual(TargetRow, Const(9)),
+                        GreaterOrEqual(TargetCol, Const(3)),
+                        LessOrEqual(TargetCol, Const(5)),
+                    ]),
+                ]),
+
+                // target square: empty OR occupied by enemy
+                Or([
+                    Not(PosOccupied(TargetRow, TargetCol)),
+                    And([
+                        PosOccupied(TargetRow, TargetCol),
+                        Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                    ]),
+                ]),
+            ]),
+            placement: False,
+        ),
+        // General / Marshal (palace only; move 1 step orthogonally)
+        Tetrahedron: (
+            count: Finite(1),
+            movement: And([
+                // Move exactly one step orthogonally:
+                Or([
+                    And([
+                        Equal(TargetCol, SourceCol),
+                        Equal(Abs(Sub(TargetRow, SourceRow)), Const(1)),
+                    ]),
+                    And([
+                        Equal(TargetRow, SourceRow),
+                        Equal(Abs(Sub(TargetCol, SourceCol)), Const(1)),
+                    ]),
+                ]),
+
+                // Palace constraint:
+                //   Red must stay within rows 0..2 and cols 3..5
+                //   Black must stay within rows 7..9 and cols 3..5
+                Or([
+                    And([
+                        ColorEqual(MovingColor, Literal(Red)),
+                        GreaterOrEqual(TargetRow, Const(0)),
+                        LessOrEqual(TargetRow, Const(2)),
+                        GreaterOrEqual(TargetCol, Const(3)),
+                        LessOrEqual(TargetCol, Const(5)),
+                    ]),
+                    And([
+                        ColorEqual(MovingColor, Literal(Black)),
+                        GreaterOrEqual(TargetRow, Const(7)),
+                        LessOrEqual(TargetRow, Const(9)),
+                        GreaterOrEqual(TargetCol, Const(3)),
+                        LessOrEqual(TargetCol, Const(5)),
+                    ]),
+                ]),
+
+                // Target square: must be empty OR occupied by an enemy piece
+                Or([
+                    Not(PosOccupied(TargetRow, TargetCol)),
+                    And([
+                        PosOccupied(TargetRow, TargetCol),
+                        Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                    ]),
+                ]),
+            ]),
+            placement: False,
+        ),
+        // Cannon (moves like rook; capture requires exactly one screen piece)
+        Cone: (
+            count: Finite(2),
+            movement: And([
+                // Must move in a straight line (same row or same column)
+                Or([
+                    Equal(TargetRow, SourceRow),
+                    Equal(TargetCol, SourceCol),
+                ]),
+
+                // Two cases:
+                Or([
+                    // (1) Non-capture move: target must be empty and no piece in between
+                    And([
+                        Not(PosOccupied(TargetRow, TargetCol)),
+                        Equal(
+                            CountInRect((SourceRow, SourceCol), (TargetRow, TargetCol)),
+                            Const(0)
+                        ),
+                    ]),
+
+                    // (2) Capture move: target must be enemy, and exactly one screen piece between
+                    And([
+                        PosOccupied(TargetRow, TargetCol),
+                        Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                        Equal(
+                            CountInRect((SourceRow, SourceCol), (TargetRow, TargetCol)),
+                            Const(2)
+                        ),
+                    ]),
+                ]),
+            ]),
+            placement: False,
+        ),
+        // Soldier / Pawn (before river: forward 1; after river: forward 1 or sideways 1; never backward)
+        Capsule: (
+            count: Finite(5),
+            movement: And([
+                // Color-specific movement rules
+                Or([
+                    // --- Red soldier ---
+                    And([
+                        ColorEqual(MovingColor, Literal(Red)),
+                        Or([
+                            // Before crossing the river (rows 0..4): can only move forward by 1
+                            And([
+                                LessOrEqual(SourceRow, Const(4)),
+                                Equal(TargetRow, Add(SourceRow, Const(1))),
+                                Equal(TargetCol, SourceCol),
+                            ]),
+                            // After crossing (rows 5..9): forward by 1 OR sideways by 1
+                            And([
+                                GreaterOrEqual(SourceRow, Const(5)),
+                                Or([
+                                    And([
+                                        Equal(TargetRow, Add(SourceRow, Const(1))),
+                                        Equal(TargetCol, SourceCol),
+                                    ]),
+                                    And([
+                                        Equal(TargetRow, SourceRow),
+                                        Equal(Abs(Sub(TargetCol, SourceCol)), Const(1)),
+                                    ]),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+
+                    // --- Black soldier ---
+                    And([
+                        ColorEqual(MovingColor, Literal(Black)),
+                        Or([
+                            // Before crossing the river (rows 5..9): can only move forward (toward row-1)
+                            And([
+                                GreaterOrEqual(SourceRow, Const(5)),
+                                Equal(TargetRow, Add(SourceRow, Const(-1))),
+                                Equal(TargetCol, SourceCol),
+                            ]),
+                            // After crossing (rows 0..4): forward by 1 OR sideways by 1
+                            And([
+                                LessOrEqual(SourceRow, Const(4)),
+                                Or([
+                                    And([
+                                        Equal(TargetRow, Add(SourceRow, Const(-1))),
+                                        Equal(TargetCol, SourceCol),
+                                    ]),
+                                    And([
+                                        Equal(TargetRow, SourceRow),
+                                        Equal(Abs(Sub(TargetCol, SourceCol)), Const(1)),
+                                    ]),
+                                ]),
+                            ]),
+                        ]),
+                    ]),
+                ]),
+
+                // Target square must be empty OR occupied by enemy
+                Or([
+                    Not(PosOccupied(TargetRow, TargetCol)),
+                    And([
+                        PosOccupied(TargetRow, TargetCol),
+                        Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+                    ]),
+                ]),
+            ]),
+            placement: False,
+        ),
+    },
+    players: {
+        Red: (
+            lose_condition: False,
+            win_condition: Equal(
+                CountPieceInRect(
+                    (Literal(Tetrahedron), Literal(Black)),
+                    (Const(0), Const(0)),
+                    (Const(9), Const(8))
+                ),
+                Const(0),
+            ),
+        ),
+        Black: (
+            lose_condition: False,
+            win_condition: Equal(
+                CountPieceInRect(
+                    (Literal(Tetrahedron), Literal(Red)),
+                    (Const(0), Const(0)),
+                    (Const(9), Const(8))
+                ),
+                Const(0),
+            ),
+        ),
+    },
+    initial_layout: [
+        (model: Cube, color: Red, pos: (0,0)),
+        (model: Sphere, color: Red, pos: (0,1)),
+        (model: Cylinder, color: Red, pos: (0,2)),
+        (model: Torus, color: Red, pos: (0,3)),
+        (model: Tetrahedron, color: Red, pos: (0,4)),
+        (model: Torus, color: Red, pos: (0,5)),
+        (model: Cylinder, color: Red, pos: (0,6)),
+        (model: Sphere, color: Red, pos: (0,7)),
+        (model: Cube, color: Red, pos: (0,8)),
+        (model: Cone, color: Red, pos: (2,1)),
+        (model: Cone, color: Red, pos: (2,7)),
+        (model: Capsule, color: Red, pos: (3,0)),
+        (model: Capsule, color: Red, pos: (3,2)),
+        (model: Capsule, color: Red, pos: (3,4)),
+        (model: Capsule, color: Red, pos: (3,6)),
+        (model: Capsule, color: Red, pos: (3,8)),
+
+        (model: Cube, color: Black, pos: (9,0)),
+        (model: Sphere, color: Black, pos: (9,1)),
+        (model: Cylinder, color: Black, pos: (9,2)),
+        (model: Torus, color: Black, pos: (9,3)),
+        (model: Tetrahedron, color: Black, pos: (9,4)),
+        (model: Torus, color: Black, pos: (9,5)),
+        (model: Cylinder, color: Black, pos: (9,6)),
+        (model: Sphere, color: Black, pos: (9,7)),
+        (model: Cube, color: Black, pos: (9,8)),
+        (model: Cone, color: Black, pos: (7,1)),
+        (model: Cone, color: Black, pos: (7,7)),
+        (model: Capsule, color: Black, pos: (6,0)),
+        (model: Capsule, color: Black, pos: (6,2)),
+        (model: Capsule, color: Black, pos: (6,4)),
+        (model: Capsule, color: Black, pos: (6,6)),
+        (model: Capsule, color: Black, pos: (6,8)),
+    ],
+    game_over_condition: Or([
+        PlayerStateEqual(Red, Won),
+        PlayerStateEqual(Black, Won),
+    ]),
+)
