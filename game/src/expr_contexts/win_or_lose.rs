@@ -7,7 +7,7 @@ use crate::{
     },
     states::playing::{
         piece::PlacedPiece,
-        session::{piece_index::PlacedPieceIndex, turn::TurnController},
+        session::{PlacedPieceIndex, turn::TurnController},
     },
 };
 use bevy::ecs::system::Query;

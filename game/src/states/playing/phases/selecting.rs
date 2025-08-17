@@ -108,7 +108,7 @@ fn on_piece_pressed(
     }
 
     // Take the piece entities from the placed piece index
-    let Some(entities) = session.placed_pieces.remove(placed.pos()) else {
+    let Some(entities) = session.placed_pieces.remove(&placed.pos()) else {
         return;
     };
 

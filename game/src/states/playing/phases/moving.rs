@@ -3,9 +3,9 @@ use crate::states::{
     playing::{
         TileEnter, despawn_placed_piece,
         phases::GamePhase,
-        piece::{MovingPiece, PlacedPiece},
+        piece::{MovingPiece, PieceEntities, PlacedPiece},
         pos_translation,
-        session::{GameSession, piece_index::PieceEntities},
+        session::GameSession,
         tile::Tile,
     },
 };
@@ -56,7 +56,7 @@ fn on_enter(
     if let Ok(mut visibility) = visibility_query.get_mut(
         session
             .tiles
-            .get(moving.initial_pos())
+            .get(&moving.initial_pos())
             .unwrap()
             .source_or_target(),
     ) {
@@ -66,7 +66,7 @@ fn on_enter(
     // Highlight movable tiles
     for pos in moving.movable_tiles() {
         if let Ok(mut visibility) =
-            visibility_query.get_mut(session.tiles.get(pos).unwrap().placeable())
+            visibility_query.get_mut(session.tiles.get(&pos).unwrap().placeable())
         {
             *visibility = Visibility::Visible;
         }
@@ -91,7 +91,7 @@ fn on_exit(
     if let Ok(mut visibility) = visibility_query.get_mut(
         session
             .tiles
-            .get(moving.initial_pos())
+            .get(&moving.initial_pos())
             .unwrap()
             .source_or_target(),
     ) {
@@ -101,7 +101,7 @@ fn on_exit(
     // Unhighlight movable tiles
     for pos in moving.movable_tiles() {
         if let Ok(mut visibility) =
-            visibility_query.get_mut(session.tiles.get(pos).unwrap().placeable())
+            visibility_query.get_mut(session.tiles.get(&pos).unwrap().placeable())
         {
             *visibility = Visibility::Hidden;
         }
@@ -127,7 +127,7 @@ fn on_exit(
     // Add piece entities to the placed piece index at the current position
     session
         .placed_pieces
-        .add(moving.current_pos(), data.0.clone());
+        .insert(moving.current_pos(), data.0.clone());
 
     commands.remove_resource::<MovingEntities>();
 }

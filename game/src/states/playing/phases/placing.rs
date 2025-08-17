@@ -6,7 +6,7 @@ use crate::{
             TileEnter, TileOut, despawn_placed_piece,
             phases::GamePhase,
             piece::{PlacedPiece, PlacingPiece},
-            session::{GameSession, tile_index::TileIndex},
+            session::{GameSession, TileIndex},
             spawn_placed_piece,
             tile::Tile,
         },
@@ -47,7 +47,7 @@ fn on_enter(
     // Highlight placeable tiles
     for pos in data.placeable_tiles() {
         if let Ok(mut visibility) =
-            visibility_query.get_mut(session.tiles.get(pos).unwrap().placeable())
+            visibility_query.get_mut(session.tiles.get(&pos).unwrap().placeable())
         {
             *visibility = Visibility::Visible;
         }
@@ -63,7 +63,7 @@ fn on_exit(
     // Unhighlight placeable tiles
     for pos in data.placeable_tiles() {
         if let Ok(mut visibility) =
-            visibility_query.get_mut(session.tiles.get(pos).unwrap().placeable())
+            visibility_query.get_mut(session.tiles.get(&pos).unwrap().placeable())
         {
             *visibility = Visibility::Hidden;
         }
@@ -112,7 +112,7 @@ fn on_button_pressed(
 
                 // Unhighlight the to place tile
                 if let Ok(mut visibility) = visibility_query
-                    .get_mut(session.tiles.get(to_place).unwrap().source_or_target())
+                    .get_mut(session.tiles.get(&to_place).unwrap().source_or_target())
                 {
                     *visibility = Visibility::Hidden;
                 }
@@ -187,7 +187,7 @@ fn apply_to_place(
 ) {
     // Clear the previous to place position if any
     if let Some(old) = data.clear_to_place_pos() {
-        let entities = tiles.get(old).unwrap();
+        let entities = tiles.get(&old).unwrap();
 
         // Unhighlight to place
         if let Ok(mut visibility) = visibility_query.get_mut(entities.source_or_target()) {
@@ -203,7 +203,7 @@ fn apply_to_place(
     // Set the new to place position if any
     if let Some(pos) = new_to_place {
         if data.set_to_place_pos(pos) {
-            let entities = tiles.get(pos).unwrap();
+            let entities = tiles.get(&pos).unwrap();
 
             // Unhighlight placable
             if let Ok(mut visibility) = visibility_query.get_mut(entities.placeable()) {

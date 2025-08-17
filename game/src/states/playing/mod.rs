@@ -7,15 +7,11 @@ use crate::{
         playing::{
             camera::PlayingCamera,
             phases::{GamePhase, GamePhasePlugin},
-            piece::{PlacedPiece, PlacingPiece},
+            piece::{PieceEntities, PlacedPiece, PlacingPiece},
             session::{
-                GameSession,
-                piece_index::{Entry, PieceEntities, PlacedPieceIndex},
-                player::Players,
-                tile_index::{TileEntities, TileIndex},
-                turn::TurnController,
+                GameSession, PlacedPieceIndex, TileIndex, player::Players, turn::TurnController,
             },
-            tile::Tile,
+            tile::{Tile, TileEntities},
         },
     },
 };
@@ -29,6 +25,7 @@ use rule_engine::{
     piece::{PieceColor, PieceModel},
     pos::Pos,
 };
+use std::collections::hash_map::Entry;
 
 pub mod camera;
 pub mod phases;
@@ -259,7 +256,7 @@ fn spawn_board(
                 .add_children(&[base_mesh, source_or_target, placeable]);
 
             // Add to tile index
-            tiles.add(
+            tiles.insert(
                 pos,
                 TileEntities::new(tile_root, base_mesh, source_or_target, placeable),
             );
@@ -337,7 +334,7 @@ fn spawn_placed_piece(
 
 /// Despawns a piece at the specified position.
 fn despawn_placed_piece(commands: &mut Commands, index: &mut PlacedPieceIndex, pos: Pos) {
-    if let Some(entities) = index.remove(pos) {
+    if let Some(entities) = index.remove(&pos) {
         commands.entity(entities.root()).despawn();
     }
 }

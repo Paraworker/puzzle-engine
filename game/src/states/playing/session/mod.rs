@@ -1,13 +1,20 @@
-use crate::states::playing::session::{
-    piece_index::PlacedPieceIndex, player::Players, tile_index::TileIndex, turn::TurnController,
+use crate::states::playing::{
+    piece::PieceEntities,
+    session::{player::Players, turn::TurnController},
+    tile::TileEntities,
 };
 use bevy::prelude::*;
 use rule_engine::pos::Pos;
+use std::collections::HashMap;
 
-pub mod piece_index;
 pub mod player;
-pub mod tile_index;
 pub mod turn;
+
+/// Indexes for tiles.
+pub type TileIndex = HashMap<Pos, TileEntities>;
+
+/// Indexes for placed pieces.
+pub type PlacedPieceIndex = HashMap<Pos, PieceEntities>;
 
 #[derive(Debug, Resource)]
 pub struct GameSession {
