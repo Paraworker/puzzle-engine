@@ -92,14 +92,18 @@ fn label(err_msg: impl Into<String>) -> impl Bundle + 'static {
     (
         Node {
             width: Val::Percent(80.0),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
             ..default()
         },
-        Text::new(err_msg),
-        TextFont {
-            font_size: 18.0,
-            ..default()
-        },
-        TextColor(Color::srgb(0.9, 0.9, 0.9)),
+        children![(
+            Text::new(err_msg),
+            TextFont {
+                font_size: 18.0,
+                ..default()
+            },
+            TextColor(Color::srgb(0.9, 0.9, 0.9)),
+        )],
     )
 }
 
