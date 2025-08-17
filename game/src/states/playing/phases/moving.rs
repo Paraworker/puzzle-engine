@@ -1,5 +1,6 @@
 use crate::states::{
     game_setup::LoadedRules,
+    no_pending_transition,
     playing::{
         TileEnter, despawn_placed_piece,
         phases::GamePhase,
@@ -24,7 +25,8 @@ impl Plugin for MovingPlugin {
         app.add_systems(OnEnter(GamePhase::Moving), on_enter)
             .add_systems(
                 Update,
-                (on_button_released, on_tile_enter).run_if(in_state(GamePhase::Moving)),
+                (on_button_released, on_tile_enter)
+                    .run_if(in_state(GamePhase::Moving).and(no_pending_transition::<GamePhase>)),
             )
             .add_systems(OnExit(GamePhase::Moving), on_exit);
     }

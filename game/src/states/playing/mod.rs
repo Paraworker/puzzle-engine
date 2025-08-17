@@ -4,6 +4,7 @@ use crate::{
     states::{
         AppState,
         game_setup::LoadedRules,
+        no_pending_transition,
         playing::{
             camera::PlayingCamera,
             phases::{GamePhase, GamePhasePlugin},
@@ -45,7 +46,8 @@ impl Plugin for PlayingPlugin {
             .add_systems(OnExit(AppState::Playing), on_exit)
             .add_systems(
                 EguiPrimaryContextPass,
-                (top_panel, stock_panel).run_if(in_state(AppState::Playing)),
+                (top_panel, stock_panel)
+                    .run_if(in_state(AppState::Playing).and(no_pending_transition::<AppState>)),
             );
     }
 }

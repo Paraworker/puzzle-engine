@@ -1,9 +1,12 @@
-use crate::states::playing::{
-    PiecePressed, TopPanelText,
-    camera::PlayingCamera,
-    phases::{GamePhase, moving::MovingEntities},
-    piece::{MovingPiece, PlacedPiece},
-    session::GameSession,
+use crate::states::{
+    no_pending_transition,
+    playing::{
+        PiecePressed, TopPanelText,
+        camera::PlayingCamera,
+        phases::{GamePhase, moving::MovingEntities},
+        piece::{MovingPiece, PlacedPiece},
+        session::GameSession,
+    },
 };
 use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy_egui::EguiContexts;
@@ -16,7 +19,7 @@ impl Plugin for SelectingPlugin {
             .add_systems(
                 Update,
                 (on_mouse_wheel, on_pointer_drag, on_piece_pressed)
-                    .run_if(in_state(GamePhase::Selecting)),
+                    .run_if(in_state(GamePhase::Selecting).and(no_pending_transition::<GamePhase>)),
             )
             .add_systems(OnExit(GamePhase::Selecting), on_exit);
     }
