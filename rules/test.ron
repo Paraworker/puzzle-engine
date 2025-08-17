@@ -73,32 +73,32 @@
     },
     players: {
         Black: (
-            win_condition: False,
             lose_condition: False,
+            win_condition: False,
         ),
         White: (
-            win_condition: False,
             lose_condition: False,
+            win_condition: False,
         ),
         Red: (
-            win_condition: False,
             lose_condition: False,
+            win_condition: False,
         ),
         Yellow: (
-            win_condition: False,
             lose_condition: False,
+            win_condition: False,
         ),
         Green: (
-            win_condition: False,
             lose_condition: False,
+            win_condition: False,
         ),
         Purple: (
-            win_condition: False,
             lose_condition: False,
+            win_condition: False,
         ),
         Cyan: (
-            win_condition: False,
             lose_condition: False,
+            win_condition: False,
         ),
     },
     initial_layout: [

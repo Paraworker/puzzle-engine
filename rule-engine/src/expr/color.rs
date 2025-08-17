@@ -1,6 +1,6 @@
 use crate::{
     RulesError,
-    expr::{Context, integer::IntExpr},
+    expr::{Context, boolean::BoolExpr, integer::IntExpr},
     piece::PieceColor,
     pos::Pos,
     utils::{from_ron_str, to_ron_str},
@@ -13,10 +13,15 @@ pub enum ColorExpr {
     /// Literal color value.
     Literal(PieceColor),
 
+    /// Conditional expression
+    ///
+    /// (condition, then, otherwise)
+    If(Box<BoolExpr>, Box<ColorExpr>, Box<ColorExpr>),
+
     /// Query board state
     ///
     /// - ColorAtPos: The color of the piece at the given position.
-    ColorAtPos(IntExpr, IntExpr),
+    ColorAtPos(Box<IntExpr>, Box<IntExpr>),
 
     /// Movement only
     ///
@@ -37,6 +42,7 @@ impl ColorExpr {
     {
         match self {
             ColorExpr::Literal(color) => Ok(*color),
+            ColorExpr::If(cond, then, otherwise) => Self::conditional(cond, then, otherwise, ctx),
             ColorExpr::ColorAtPos(row, col) => {
                 ctx.color_at_pos(Pos::new(row.evaluate(ctx)?, col.evaluate(ctx)?))
             }
@@ -53,5 +59,21 @@ impl ColorExpr {
     /// Converts into a ron string.
     pub fn to_ron_str(&self) -> Result<String, RulesError> {
         to_ron_str(self)
+    }
+
+    fn conditional<C>(
+        condition: &BoolExpr,
+        then: &ColorExpr,
+        otherwise: &ColorExpr,
+        ctx: &C,
+    ) -> Result<PieceColor, C::Error>
+    where
+        C: Context,
+    {
+        if condition.evaluate(ctx)? {
+            then.evaluate(ctx)
+        } else {
+            otherwise.evaluate(ctx)
+        }
     }
 }
