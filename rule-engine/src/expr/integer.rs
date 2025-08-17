@@ -47,7 +47,6 @@ pub enum IntExpr {
     ///
     /// - CountInRect: The number of pieces in the given rectangle.
     /// - CountPieceInRect: The number of pieces with the given model and color in the given rectangle.
-    ///
     CountInRect((Box<IntExpr>, Box<IntExpr>), (Box<IntExpr>, Box<IntExpr>)),
     CountPieceInRect(
         (Box<ModelExpr>, Box<ColorExpr>),
@@ -55,7 +54,7 @@ pub enum IntExpr {
         (Box<IntExpr>, Box<IntExpr>),
     ),
 
-    /// Movement only variables
+    /// Movement only
     ///
     /// - SourceRow: The source tile row.
     /// - SourceCol: The source tile column.
@@ -66,7 +65,7 @@ pub enum IntExpr {
     TargetRow,
     TargetCol,
 
-    /// Placement only variables
+    /// Placement only
     ///
     /// - ToPlaceRow: The row where the piece is being placed.
     /// - ToPlaceCol: The column where the piece is being placed.
