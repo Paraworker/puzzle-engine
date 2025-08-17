@@ -11,6 +11,40 @@ use rule_engine::{
 };
 use std::collections::HashSet;
 
+/// Entities associated with a piece.
+#[derive(Debug, Clone)]
+pub struct PieceEntities {
+    root: Entity,
+    base_mesh: Entity,
+    highlight: Entity,
+}
+
+impl PieceEntities {
+    /// Creates a new `PieceEntities`.
+    pub fn new(root: Entity, base_mesh: Entity, highlight: Entity) -> Self {
+        Self {
+            root,
+            base_mesh,
+            highlight,
+        }
+    }
+
+    /// Returns the piece root entity.
+    pub fn root(&self) -> Entity {
+        self.root
+    }
+
+    /// Returns the base mesh entity.
+    pub fn base_mesh(&self) -> Entity {
+        self.base_mesh
+    }
+
+    /// Returns the highlight entity.
+    pub fn highlight(&self) -> Entity {
+        self.highlight
+    }
+}
+
 #[derive(Debug, Clone, Component)]
 pub struct PlacedPiece {
     model: PieceModel,

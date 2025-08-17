@@ -2,7 +2,7 @@ use crate::{
     GameError,
     states::playing::{
         piece::PlacedPiece,
-        session::{piece_index::PlacedPieceIndex, turn::TurnController},
+        session::{PlacedPieceIndex, turn::TurnController},
     },
 };
 use bevy::ecs::system::Query;
@@ -18,7 +18,7 @@ pub mod placement;
 pub mod win_or_lose;
 
 fn query_pos_occupied(index: &PlacedPieceIndex, pos: Pos) -> Result<bool, GameError> {
-    Ok(index.get(pos).is_some())
+    Ok(index.get(&pos).is_some())
 }
 
 fn query_has_last_action(last_action: &Option<Pos>) -> Result<bool, GameError> {
@@ -48,7 +48,11 @@ fn query_last_action_col(last_action: &Option<Pos>) -> Result<i64, GameError> {
 }
 
 fn query_count_in_rect(rect: Rect, index: &PlacedPieceIndex) -> Result<i64, GameError> {
-    Ok(index.positions().filter(|pos| rect.contains(*pos)).count() as i64)
+    Ok(index
+        .keys()
+        .copied()
+        .filter(|pos| rect.contains(*pos))
+        .count() as i64)
 }
 
 fn query_count_piece_in_rect(
@@ -61,7 +65,7 @@ fn query_count_piece_in_rect(
 
     Ok(index
         .iter()
-        .filter(|&(pos, _)| rect.contains(pos))
+        .filter(|&(pos, _)| rect.contains(*pos))
         .filter(|&(_, entities)| {
             let placed = query.get(entities.root()).unwrap();
             placed.model() == want_model && placed.color() == want_color
@@ -74,7 +78,7 @@ fn query_model_at_pos(
     query: Query<&PlacedPiece>,
     pos: Pos,
 ) -> Result<PieceModel, GameError> {
-    let Some(entities) = index.get(pos) else {
+    let Some(entities) = index.get(&pos) else {
         return Err(GameError::NoPieceAtPos(pos));
     };
 
@@ -86,7 +90,7 @@ fn query_color_at_pos(
     query: Query<&PlacedPiece>,
     pos: Pos,
 ) -> Result<PieceColor, GameError> {
-    let Some(entities) = index.get(pos) else {
+    let Some(entities) = index.get(&pos) else {
         return Err(GameError::NoPieceAtPos(pos));
     };
 
