@@ -21,27 +21,32 @@ pub enum BoolExpr {
     Not(Box<BoolExpr>),
 
     /// Arithmetic comparison operators
-    Equal(IntExpr, IntExpr),
-    NotEqual(IntExpr, IntExpr),
-    LessThan(IntExpr, IntExpr),
-    GreaterThan(IntExpr, IntExpr),
-    LessOrEqual(IntExpr, IntExpr),
-    GreaterOrEqual(IntExpr, IntExpr),
+    Equal(Box<IntExpr>, Box<IntExpr>),
+    NotEqual(Box<IntExpr>, Box<IntExpr>),
+    LessThan(Box<IntExpr>, Box<IntExpr>),
+    GreaterThan(Box<IntExpr>, Box<IntExpr>),
+    LessOrEqual(Box<IntExpr>, Box<IntExpr>),
+    GreaterOrEqual(Box<IntExpr>, Box<IntExpr>),
+
+    /// Conditional expression
+    ///
+    /// (condition, then, otherwise)
+    If(Box<BoolExpr>, Box<BoolExpr>, Box<BoolExpr>),
 
     /// Color operators
-    ColorEqual(ColorExpr, ColorExpr),
+    ColorEqual(Box<ColorExpr>, Box<ColorExpr>),
 
     /// Model operators
-    ModelEqual(ModelExpr, ModelExpr),
+    ModelEqual(Box<ModelExpr>, Box<ModelExpr>),
 
     /// Query board state
     ///
     /// - PosOccupied: If the given position is occupied by any piece.
-    PosOccupied(IntExpr, IntExpr),
+    PosOccupied(Box<IntExpr>, Box<IntExpr>),
 
     /// Query last action information
     ///
-    /// - HasLastAction: If the first action has been performed.
+    /// - HasLastAction: If the last action has been performed.
     HasLastAction,
 
     /// Game over only
@@ -68,6 +73,7 @@ impl BoolExpr {
             BoolExpr::GreaterThan(lhs, rhs) => Ok(lhs.evaluate(ctx)? > rhs.evaluate(ctx)?),
             BoolExpr::LessOrEqual(lhs, rhs) => Ok(lhs.evaluate(ctx)? <= rhs.evaluate(ctx)?),
             BoolExpr::GreaterOrEqual(lhs, rhs) => Ok(lhs.evaluate(ctx)? >= rhs.evaluate(ctx)?),
+            BoolExpr::If(cond, then, otherwise) => Self::conditional(cond, then, otherwise, ctx),
             BoolExpr::ColorEqual(lhs, rhs) => Ok(lhs.evaluate(ctx)? == rhs.evaluate(ctx)?),
             BoolExpr::ModelEqual(lhs, rhs) => Ok(lhs.evaluate(ctx)? == rhs.evaluate(ctx)?),
             BoolExpr::PosOccupied(row, col) => {
@@ -88,15 +94,15 @@ impl BoolExpr {
         to_ron_str(self)
     }
 
-    fn and<C>(vec: &Vec<BoolExpr>, ctx: &C) -> Result<bool, C::Error>
+    fn and<C>(xs: &[BoolExpr], ctx: &C) -> Result<bool, C::Error>
     where
         C: Context,
     {
-        if vec.len() < 2 {
+        if xs.len() < 2 {
             return Err(RulesError::AndInvalidArity.into());
         }
 
-        for expr in vec {
+        for expr in xs {
             if !expr.evaluate(ctx)? {
                 // Short-circuit
                 return Ok(false);
@@ -106,15 +112,15 @@ impl BoolExpr {
         Ok(true)
     }
 
-    fn or<C>(vec: &Vec<BoolExpr>, ctx: &C) -> Result<bool, C::Error>
+    fn or<C>(xs: &[BoolExpr], ctx: &C) -> Result<bool, C::Error>
     where
         C: Context,
     {
-        if vec.len() < 2 {
+        if xs.len() < 2 {
             return Err(RulesError::OrInvalidArity.into());
         }
 
-        for expr in vec {
+        for expr in xs {
             if expr.evaluate(ctx)? {
                 // Short-circuit
                 return Ok(true);
@@ -122,5 +128,21 @@ impl BoolExpr {
         }
 
         Ok(false)
+    }
+
+    fn conditional<C>(
+        condition: &BoolExpr,
+        then: &BoolExpr,
+        otherwise: &BoolExpr,
+        ctx: &C,
+    ) -> Result<bool, C::Error>
+    where
+        C: Context,
+    {
+        if condition.evaluate(ctx)? {
+            then.evaluate(ctx)
+        } else {
+            otherwise.evaluate(ctx)
+        }
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
     RulesError,
-    expr::{Context, integer::IntExpr},
+    expr::{Context, boolean::BoolExpr, integer::IntExpr},
     piece::PieceModel,
     pos::Pos,
     utils::{from_ron_str, to_ron_str},
@@ -13,10 +13,15 @@ pub enum ModelExpr {
     /// Literal model value.
     Literal(PieceModel),
 
+    /// Conditional expression
+    ///
+    /// (condition, then, otherwise)
+    If(Box<BoolExpr>, Box<ModelExpr>, Box<ModelExpr>),
+
     /// Query board state
     ///
     /// - ModelAtPos: The model of the piece at the given position.
-    ModelAtPos(IntExpr, IntExpr),
+    ModelAtPos(Box<IntExpr>, Box<IntExpr>),
 
     /// Movement expression only
     ///
@@ -37,6 +42,7 @@ impl ModelExpr {
     {
         match self {
             ModelExpr::Literal(model) => Ok(*model),
+            ModelExpr::If(cond, then, otherwise) => Self::conditional(cond, then, otherwise, ctx),
             ModelExpr::ModelAtPos(row, col) => {
                 ctx.model_at_pos(Pos::new(row.evaluate(ctx)?, col.evaluate(ctx)?))
             }
@@ -53,5 +59,21 @@ impl ModelExpr {
     /// Converts into a ron string.
     pub fn to_ron_str(&self) -> Result<String, RulesError> {
         to_ron_str(self)
+    }
+
+    fn conditional<C>(
+        condition: &BoolExpr,
+        then: &ModelExpr,
+        otherwise: &ModelExpr,
+        ctx: &C,
+    ) -> Result<PieceModel, C::Error>
+    where
+        C: Context,
+    {
+        if condition.evaluate(ctx)? {
+            then.evaluate(ctx)
+        } else {
+            otherwise.evaluate(ctx)
+        }
     }
 }

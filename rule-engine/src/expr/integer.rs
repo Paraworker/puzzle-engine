@@ -1,6 +1,6 @@
 use crate::{
     RulesError,
-    expr::{Context, color::ColorExpr, model::ModelExpr},
+    expr::{Context, boolean::BoolExpr, color::ColorExpr, model::ModelExpr},
     pos::Pos,
     rect::Rect,
     utils::{from_ron_str, to_ron_str},
@@ -23,6 +23,11 @@ pub enum IntExpr {
     Div(Box<IntExpr>, Box<IntExpr>),
     /// Absolute value
     Abs(Box<IntExpr>),
+
+    /// Conditional expression
+    ///
+    /// (condition, then, otherwise)
+    If(Box<BoolExpr>, Box<IntExpr>, Box<IntExpr>),
 
     /// Query turn information
     ///
@@ -82,13 +87,16 @@ impl IntExpr {
             IntExpr::Mul(lhs, rhs) => Ok(lhs.evaluate(ctx)? * rhs.evaluate(ctx)?),
             IntExpr::Div(lhs, rhs) => Self::div(lhs, rhs, ctx),
             IntExpr::Abs(expr) => Ok(expr.evaluate(ctx)?.abs()),
+            IntExpr::If(cond, then, otherwise) => Self::conditional(cond, then, otherwise, ctx),
             IntExpr::TurnNumber => ctx.turn_number(),
             IntExpr::RoundNumber => ctx.round_number(),
             IntExpr::LastActionRow => ctx.last_action_row(),
             IntExpr::LastActionCol => ctx.last_action_col(),
-            IntExpr::CountInRect(pos1, pos2) => Self::count_in_rect(pos1, pos2, ctx),
-            IntExpr::CountPieceInRect(piece, pos1, pos2) => {
-                Self::count_piece_in_rect(piece, pos1, pos2, ctx)
+            IntExpr::CountInRect((row1, col1), (row2, col2)) => {
+                Self::count_in_rect((row1, col1), (row2, col2), ctx)
+            }
+            IntExpr::CountPieceInRect((model, color), (row1, col1), (row2, col2)) => {
+                Self::count_piece_in_rect((model, color), (row1, col1), (row2, col2), ctx)
             }
             IntExpr::SourceRow => ctx.source_row(),
             IntExpr::SourceCol => ctx.source_col(),
@@ -125,8 +133,8 @@ impl IntExpr {
     }
 
     fn count_in_rect<C>(
-        pos1: &(Box<IntExpr>, Box<IntExpr>),
-        pos2: &(Box<IntExpr>, Box<IntExpr>),
+        pos1: (&IntExpr, &IntExpr),
+        pos2: (&IntExpr, &IntExpr),
         ctx: &C,
     ) -> Result<i64, C::Error>
     where
@@ -139,9 +147,9 @@ impl IntExpr {
     }
 
     fn count_piece_in_rect<C>(
-        piece: &(Box<ModelExpr>, Box<ColorExpr>),
-        pos1: &(Box<IntExpr>, Box<IntExpr>),
-        pos2: &(Box<IntExpr>, Box<IntExpr>),
+        piece: (&ModelExpr, &ColorExpr),
+        pos1: (&IntExpr, &IntExpr),
+        pos2: (&IntExpr, &IntExpr),
         ctx: &C,
     ) -> Result<i64, C::Error>
     where
@@ -154,5 +162,21 @@ impl IntExpr {
                 Pos::new(pos2.0.evaluate(ctx)?, pos2.1.evaluate(ctx)?),
             ),
         )
+    }
+
+    fn conditional<C>(
+        condition: &BoolExpr,
+        then: &IntExpr,
+        otherwise: &IntExpr,
+        ctx: &C,
+    ) -> Result<i64, C::Error>
+    where
+        C: Context,
+    {
+        if condition.evaluate(ctx)? {
+            then.evaluate(ctx)
+        } else {
+            otherwise.evaluate(ctx)
+        }
     }
 }
