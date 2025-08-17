@@ -1,4 +1,4 @@
-use crate::states::AppState;
+use crate::states::{AppState, no_pending_transition};
 use bevy::prelude::*;
 
 const BUTTON_NORMAL: Color = Color::srgba(0.15, 0.15, 0.15, 0.6);
@@ -17,7 +17,10 @@ pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::Menu), on_enter)
-            .add_systems(Update, update.run_if(in_state(AppState::Menu)))
+            .add_systems(
+                Update,
+                update.run_if(in_state(AppState::Menu).and(no_pending_transition::<AppState>)),
+            )
             .add_systems(OnExit(AppState::Menu), on_exit);
     }
 }

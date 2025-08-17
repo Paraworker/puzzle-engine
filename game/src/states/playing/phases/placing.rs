@@ -2,6 +2,7 @@ use crate::{
     assets::GameAssets,
     states::{
         game_setup::LoadedRules,
+        no_pending_transition,
         playing::{
             TileEnter, TileOut, despawn_placed_piece,
             phases::GamePhase,
@@ -24,7 +25,7 @@ impl Plugin for PlacingPlugin {
             .add_systems(
                 Update,
                 (on_button_pressed, on_tile_enter, on_tile_out)
-                    .run_if(in_state(GamePhase::Placing)),
+                    .run_if(in_state(GamePhase::Placing).and(no_pending_transition::<GamePhase>)),
             )
             .add_systems(OnExit(GamePhase::Placing), on_exit);
     }

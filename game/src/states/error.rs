@@ -1,4 +1,7 @@
-use crate::{GameError, states::AppState};
+use crate::{
+    GameError,
+    states::{AppState, no_pending_transition},
+};
 use bevy::prelude::*;
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
@@ -10,7 +13,10 @@ pub struct ErrorPlugin;
 impl Plugin for ErrorPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::Error), on_enter)
-            .add_systems(Update, update.run_if(in_state(AppState::Error)))
+            .add_systems(
+                Update,
+                update.run_if(in_state(AppState::Error).and(no_pending_transition::<AppState>)),
+            )
             .add_systems(OnExit(AppState::Error), on_exit);
     }
 }
