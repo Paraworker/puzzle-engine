@@ -1,6 +1,5 @@
 use crate::states::{
     game_setup::LoadedRules,
-    no_pending_transition,
     playing::{
         TileEnter, despawn_placed_piece,
         phases::GamePhase,
@@ -25,8 +24,7 @@ impl Plugin for MovingPlugin {
         app.add_systems(OnEnter(GamePhase::Moving), on_enter)
             .add_systems(
                 Update,
-                (on_button_released, on_tile_enter)
-                    .run_if(in_state(GamePhase::Moving).and(no_pending_transition::<GamePhase>)),
+                (on_button_released, on_tile_enter).run_if(in_state(GamePhase::Moving)),
             )
             .add_systems(OnExit(GamePhase::Moving), on_exit);
     }
@@ -143,6 +141,10 @@ fn on_button_released(
     mut next_phase: ResMut<NextState<GamePhase>>,
     data: Res<MovingEntities>,
 ) {
+    if let NextState::Pending(_) = *next_phase {
+        return;
+    }
+
     if egui.ctx_mut().unwrap().wants_pointer_input() {
         return;
     }
@@ -176,7 +178,12 @@ fn on_tile_enter(
     tile_query: Query<&Tile>,
     rules: Res<LoadedRules>,
     data: Res<MovingEntities>,
+    next_phase: Res<NextState<GamePhase>>,
 ) {
+    if let NextState::Pending(_) = *next_phase {
+        return;
+    }
+
     let Some(event) = enter.read().last() else {
         return;
     };

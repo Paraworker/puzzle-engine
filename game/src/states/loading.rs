@@ -1,4 +1,4 @@
-use crate::states::{AppState, no_pending_transition};
+use crate::states::AppState;
 use bevy::prelude::*;
 
 pub struct LoadingPlugin;
@@ -6,10 +6,7 @@ pub struct LoadingPlugin;
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::Loading), on_enter)
-            .add_systems(
-                Update,
-                update.run_if(in_state(AppState::Loading).and(no_pending_transition::<AppState>)),
-            )
+            .add_systems(Update, update.run_if(in_state(AppState::Loading)))
             .add_systems(OnExit(AppState::Loading), on_exit);
     }
 }
@@ -19,6 +16,10 @@ fn on_enter() {
 }
 
 fn update(mut next_state: ResMut<NextState<AppState>>) {
+    if let NextState::Pending(_) = *next_state {
+        return;
+    }
+
     // Nothing to do now
 
     // Switch to the `Playing` state.

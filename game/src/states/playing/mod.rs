@@ -4,7 +4,6 @@ use crate::{
     states::{
         AppState,
         game_setup::LoadedRules,
-        no_pending_transition,
         playing::{
             camera::PlayingCamera,
             phases::{GamePhase, GamePhasePlugin},
@@ -46,8 +45,7 @@ impl Plugin for PlayingPlugin {
             .add_systems(OnExit(AppState::Playing), on_exit)
             .add_systems(
                 EguiPrimaryContextPass,
-                (top_panel, stock_panel)
-                    .run_if(in_state(AppState::Playing).and(no_pending_transition::<AppState>)),
+                (top_panel, stock_panel).run_if(in_state(AppState::Playing)),
             );
     }
 }
@@ -376,9 +374,14 @@ fn stock_panel(
     mut commands: Commands,
     mut egui: EguiContexts,
     mut session: ResMut<GameSession>,
-    phase: Res<State<GamePhase>>,
+    next_state: Res<NextState<AppState>>,
+    current_phase: Res<State<GamePhase>>,
     mut next_phase: ResMut<NextState<GamePhase>>,
 ) {
+    if let NextState::Pending(_) = *next_state {
+        return;
+    }
+
     let session = session.as_mut();
 
     egui::TopBottomPanel::bottom("stock_panel")
@@ -403,13 +406,16 @@ fn stock_panel(
                         );
 
                         // Enable the button if the session is in selecting state and the count is not depleted
-                        let enabled =
-                            matches!(phase.get(), GamePhase::Selecting) && !count.is_depleted();
+                        let enabled = matches!(current_phase.get(), GamePhase::Selecting)
+                            && !count.is_depleted();
 
                         if ui.add_enabled(enabled, button).clicked() {
-                            // Enter placing state
-                            commands.insert_resource(PlacingPiece::new(model, piece_color));
-                            next_phase.set(GamePhase::Placing);
+                            // Avoid duplicate transition
+                            if let NextState::Unchanged = *next_phase {
+                                // Enter placing state
+                                commands.insert_resource(PlacingPiece::new(model, piece_color));
+                                next_phase.set(GamePhase::Placing);
+                            }
                         }
                     }
                 });

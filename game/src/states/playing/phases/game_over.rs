@@ -1,6 +1,5 @@
-use crate::states::{
-    no_pending_transition,
-    playing::{TopPanelText, camera::PlayingCamera, phases::GamePhase, session::GameSession},
+use crate::states::playing::{
+    TopPanelText, camera::PlayingCamera, phases::GamePhase, session::GameSession,
 };
 use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy_egui::EguiContexts;
@@ -12,8 +11,7 @@ impl Plugin for GameOverPlugin {
         app.add_systems(OnEnter(GamePhase::GameOver), on_enter)
             .add_systems(
                 Update,
-                (on_mouse_wheel, on_pointer_drag)
-                    .run_if(in_state(GamePhase::GameOver).and(no_pending_transition::<GamePhase>)),
+                (on_mouse_wheel, on_pointer_drag).run_if(in_state(GamePhase::GameOver)),
             )
             .add_systems(OnExit(GamePhase::GameOver), on_exit);
     }
@@ -32,7 +30,12 @@ fn on_mouse_wheel(
     mut scroll_evr: EventReader<MouseWheel>,
     mut egui: EguiContexts,
     mut query: Query<(&mut Transform, &mut PlayingCamera)>,
+    next_phase: Res<NextState<GamePhase>>,
 ) {
+    if let NextState::Pending(_) = *next_phase {
+        return;
+    }
+
     if egui.ctx_mut().unwrap().wants_pointer_input() {
         return;
     }
@@ -52,7 +55,12 @@ fn on_pointer_drag(
     mut drag_events: EventReader<Pointer<Drag>>,
     mut egui: EguiContexts,
     mut camera_query: Query<(&mut Transform, &mut PlayingCamera)>,
+    next_phase: Res<NextState<GamePhase>>,
 ) {
+    if let NextState::Pending(_) = *next_phase {
+        return;
+    }
+
     if egui.ctx_mut().unwrap().wants_pointer_input() {
         return;
     }

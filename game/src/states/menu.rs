@@ -1,4 +1,4 @@
-use crate::states::{AppState, no_pending_transition};
+use crate::states::AppState;
 use bevy::prelude::*;
 
 const BUTTON_NORMAL: Color = Color::srgba(0.15, 0.15, 0.15, 0.6);
@@ -17,10 +17,7 @@ pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::Menu), on_enter)
-            .add_systems(
-                Update,
-                update.run_if(in_state(AppState::Menu).and(no_pending_transition::<AppState>)),
-            )
+            .add_systems(Update, update.run_if(in_state(AppState::Menu)))
             .add_systems(OnExit(AppState::Menu), on_exit);
     }
 }
@@ -35,6 +32,10 @@ fn update(
     >,
     mut next_state: ResMut<NextState<AppState>>,
 ) {
+    if let NextState::Pending(_) = *next_state {
+        return;
+    }
+
     for (interaction, mut color, mut border_color) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
