@@ -56,8 +56,9 @@ fn on_enter(
     commands
         .spawn((
             Node {
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                flex_direction: FlexDirection::Column,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 ..default()
@@ -65,19 +66,11 @@ fn on_enter(
             GameSetupMarker,
         ))
         .with_children(|parent| {
-            // logo and button
-            parent
-                .spawn(Node {
-                    flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
-                    justify_content: JustifyContent::Center,
-                    ..default()
-                })
-                .with_children(|parent| {
-                    parent.spawn(label(format!("Loaded Rules: {}", rules.name), 50.0));
-                    parent.spawn(spacer(200.0));
-                    parent.spawn(button("Ready!"));
-                });
+            parent.spawn(spacer());
+            parent.spawn(label(format!("Loaded Rules: {}", rules.name), 50.0));
+            parent.spawn(spacer());
+            parent.spawn(button("Ready!"));
+            parent.spawn(spacer());
         });
 
     commands.insert_resource(LoadedRules(rules));
@@ -118,63 +111,45 @@ fn update(
 
 fn label(text: impl Into<String>, font_size: f32) -> impl Bundle + 'static {
     (
-        Node {
-            width: Val::Auto,
-            height: Val::Px(100.0),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
+        Node::default(),
+        Text::new(text),
+        TextFont {
+            font_size,
             ..default()
         },
-        children![(
-            Text::new(text),
-            TextFont {
-                font_size,
-                ..default()
-            },
-            TextColor(Color::srgb(0.9, 0.9, 0.9)),
-        )],
+        TextColor(Color::srgb(0.9, 0.9, 0.9)),
     )
 }
 
-fn spacer(height: f32) -> impl Bundle + 'static {
+fn spacer() -> impl Bundle + 'static {
     Node {
-        width: Val::Px(0.0),
-        height: Val::Px(height),
+        flex_grow: 1.0,
         ..default()
     }
 }
 
 fn button(text: impl Into<String>) -> impl Bundle + 'static {
     (
+        Button,
         Node {
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            align_items: AlignItems::Center,
+            width: Val::Px(200.0),
+            height: Val::Px(80.0),
+            border: UiRect::all(Val::Px(5.0)),
             justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
             ..default()
         },
+        BorderColor(Color::BLACK),
+        BorderRadius::all(Val::Px(12.0)),
+        BackgroundColor(NORMAL_BUTTON),
         children![(
-            Button,
-            Node {
-                width: Val::Px(200.0),
-                height: Val::Px(80.0),
-                border: UiRect::all(Val::Px(5.0)),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
+            Text::new(text),
+            TextFont {
+                font_size: 28.0,
                 ..default()
             },
-            BorderColor(Color::BLACK),
-            BorderRadius::all(Val::Px(12.0)),
-            BackgroundColor(NORMAL_BUTTON),
-            children![(
-                Text::new(text),
-                TextFont {
-                    font_size: 28.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                TextShadow::default(),
-            )],
+            TextColor(Color::srgb(0.9, 0.9, 0.9)),
+            TextShadow::default(),
         )],
     )
 }
