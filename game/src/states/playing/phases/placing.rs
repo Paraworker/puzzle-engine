@@ -2,7 +2,6 @@ use crate::{
     assets::GameAssets,
     states::{
         game_setup::LoadedRules,
-        no_pending_transition,
         playing::{
             TileEnter, TileOut, despawn_placed_piece,
             phases::GamePhase,
@@ -25,7 +24,7 @@ impl Plugin for PlacingPlugin {
             .add_systems(
                 Update,
                 (on_button_pressed, on_tile_enter, on_tile_out)
-                    .run_if(in_state(GamePhase::Placing).and(no_pending_transition::<GamePhase>)),
+                    .run_if(in_state(GamePhase::Placing)),
             )
             .add_systems(OnExit(GamePhase::Placing), on_exit);
     }
@@ -85,6 +84,10 @@ fn on_button_pressed(
     mut session: ResMut<GameSession>,
     mut next_phase: ResMut<NextState<GamePhase>>,
 ) {
+    if let NextState::Pending(_) = *next_phase {
+        return;
+    }
+
     if egui.ctx_mut().unwrap().wants_pointer_input() {
         return;
     }
@@ -141,7 +144,12 @@ fn on_tile_enter(
     mut visibility_query: Query<&mut Visibility>,
     mut data: ResMut<PlacingPiece>,
     session: Res<GameSession>,
+    next_phase: Res<NextState<GamePhase>>,
 ) {
+    if let NextState::Pending(_) = *next_phase {
+        return;
+    }
+
     let Some(event) = enter.read().last() else {
         return;
     };
@@ -164,7 +172,12 @@ fn on_tile_out(
     mut visibility_query: Query<&mut Visibility>,
     mut data: ResMut<PlacingPiece>,
     session: Res<GameSession>,
+    next_phase: Res<NextState<GamePhase>>,
 ) {
+    if let NextState::Pending(_) = *next_phase {
+        return;
+    }
+
     let Some(to_place) = data.to_place_pos() else {
         return;
     };

@@ -2,7 +2,7 @@ use crate::states::{
     error::ErrorPlugin, game_setup::GameSetupPlugin, loading::LoadingPlugin, menu::MenuPlugin,
     playing::PlayingPlugin, startup::StartupPlugin,
 };
-use bevy::{prelude::*, state::state::FreelyMutableState};
+use bevy::prelude::*;
 
 pub mod error;
 pub mod game_setup;
@@ -34,13 +34,4 @@ impl Plugin for AppStatePlugin {
             .add_plugins(PlayingPlugin)
             .add_plugins(ErrorPlugin);
     }
-}
-
-fn no_pending_transition<S>(next_state: Option<Res<NextState<S>>>) -> bool
-where
-    S: FreelyMutableState,
-{
-    next_state
-        .map(|next_state| matches!(*next_state, NextState::Unchanged))
-        .unwrap_or(true)
 }

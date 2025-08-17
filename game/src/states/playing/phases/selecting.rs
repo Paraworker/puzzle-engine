@@ -1,12 +1,9 @@
-use crate::states::{
-    no_pending_transition,
-    playing::{
-        PiecePressed, TopPanelText,
-        camera::PlayingCamera,
-        phases::{GamePhase, moving::MovingEntities},
-        piece::{MovingPiece, PlacedPiece},
-        session::GameSession,
-    },
+use crate::states::playing::{
+    PiecePressed, TopPanelText,
+    camera::PlayingCamera,
+    phases::{GamePhase, moving::MovingEntities},
+    piece::{MovingPiece, PlacedPiece},
+    session::GameSession,
 };
 use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy_egui::EguiContexts;
@@ -19,7 +16,7 @@ impl Plugin for SelectingPlugin {
             .add_systems(
                 Update,
                 (on_mouse_wheel, on_pointer_drag, on_piece_pressed)
-                    .run_if(in_state(GamePhase::Selecting).and(no_pending_transition::<GamePhase>)),
+                    .run_if(in_state(GamePhase::Selecting)),
             )
             .add_systems(OnExit(GamePhase::Selecting), on_exit);
     }
@@ -38,7 +35,12 @@ fn on_mouse_wheel(
     mut scroll_evr: EventReader<MouseWheel>,
     mut egui: EguiContexts,
     mut query: Query<(&mut Transform, &mut PlayingCamera)>,
+    next_phase: Res<NextState<GamePhase>>,
 ) {
+    if let NextState::Pending(_) = *next_phase {
+        return;
+    }
+
     if egui.ctx_mut().unwrap().wants_pointer_input() {
         return;
     }
@@ -58,7 +60,12 @@ fn on_pointer_drag(
     mut drag_events: EventReader<Pointer<Drag>>,
     mut egui: EguiContexts,
     mut camera_query: Query<(&mut Transform, &mut PlayingCamera)>,
+    next_phase: Res<NextState<GamePhase>>,
 ) {
+    if let NextState::Pending(_) = *next_phase {
+        return;
+    }
+
     if egui.ctx_mut().unwrap().wants_pointer_input() {
         return;
     }
@@ -81,6 +88,10 @@ fn on_piece_pressed(
     mut session: ResMut<GameSession>,
     mut next_phase: ResMut<NextState<GamePhase>>,
 ) {
+    if let NextState::Pending(_) = *next_phase {
+        return;
+    }
+
     let Some(event) = pressed.read().last() else {
         return;
     };

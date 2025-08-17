@@ -1,6 +1,6 @@
 use crate::{
     settings::Settings,
-    states::{AppState, error::CurrentError, no_pending_transition},
+    states::{AppState, error::CurrentError},
 };
 use bevy::prelude::*;
 use rule_engine::GameRules;
@@ -15,10 +15,7 @@ pub struct GameSetupPlugin;
 impl Plugin for GameSetupPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::GameSetup), on_enter)
-            .add_systems(
-                Update,
-                update.run_if(in_state(AppState::GameSetup).and(no_pending_transition::<AppState>)),
-            )
+            .add_systems(Update, update.run_if(in_state(AppState::GameSetup)))
             .add_systems(OnExit(AppState::GameSetup), on_exit);
     }
 }
@@ -92,6 +89,10 @@ fn update(
         (Changed<Interaction>, With<Button>),
     >,
 ) {
+    if let NextState::Pending(_) = *next_state {
+        return;
+    }
+
     for (interaction, mut color, mut border_color) in &mut interaction_query {
         match *interaction {
             Interaction::Pressed => {
