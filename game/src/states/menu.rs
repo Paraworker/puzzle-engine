@@ -60,8 +60,8 @@ fn on_enter(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn((
             Node {
-                width: Val::Percent(100.),
-                height: Val::Percent(100.),
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 ..default()
@@ -72,15 +72,19 @@ fn on_enter(mut commands: Commands, asset_server: Res<AssetServer>) {
             // logo and button
             parent
                 .spawn(Node {
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
                     flex_direction: FlexDirection::Column,
                     align_items: AlignItems::Center,
                     justify_content: JustifyContent::Center,
                     ..default()
                 })
                 .with_children(|parent| {
+                    parent.spawn(spacer());
                     parent.spawn(logo(asset_server.load(LOGO_PATH)));
-                    parent.spawn(spacer(200.0));
+                    parent.spawn(spacer());
                     parent.spawn(button("New Game"));
+                    parent.spawn(spacer());
                 });
 
             // background
@@ -97,55 +101,43 @@ fn on_exit(mut commands: Commands, entities: Query<Entity, With<MenuMarker>>) {
 fn logo(image: Handle<Image>) -> impl Bundle + 'static {
     (
         Node {
-            width: Val::Px(500.0),
-            height: Val::Px(250.0),
-            align_items: AlignItems::Center,
-            justify_content: JustifyContent::Center,
+            width: Val::Percent(40.0),
+            height: Val::Auto,
             ..default()
         },
         ImageNode { image, ..default() },
     )
 }
 
-fn spacer(height: f32) -> impl Bundle + 'static {
+fn spacer() -> impl Bundle + 'static {
     Node {
-        width: Val::Px(0.0),
-        height: Val::Px(height),
+        flex_grow: 1.0,
         ..default()
     }
 }
 
 fn button(text: impl Into<String>) -> impl Bundle + 'static {
     (
+        Button,
         Node {
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            align_items: AlignItems::Center,
+            width: Val::Px(200.0),
+            height: Val::Px(80.0),
+            border: UiRect::all(Val::Px(5.0)),
             justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
             ..default()
         },
+        BorderColor(BUTTON_BORDER_NORMAL),
+        BorderRadius::all(Val::Px(12.0)),
+        BackgroundColor(BUTTON_NORMAL),
         children![(
-            Button,
-            Node {
-                width: Val::Px(200.0),
-                height: Val::Px(80.0),
-                border: UiRect::all(Val::Px(5.0)),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
+            Text::new(text),
+            TextFont {
+                font_size: 28.0,
                 ..default()
             },
-            BorderColor(BUTTON_BORDER_NORMAL),
-            BorderRadius::all(Val::Px(12.0)),
-            BackgroundColor(BUTTON_NORMAL),
-            children![(
-                Text::new(text),
-                TextFont {
-                    font_size: 28.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                TextShadow::default(),
-            )]
+            TextColor(Color::srgb(0.9, 0.9, 0.9)),
+            TextShadow::default(),
         )],
     )
 }
