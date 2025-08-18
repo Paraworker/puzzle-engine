@@ -410,9 +410,10 @@ fn bottom_panel(
             let (piece_color, player) = session.players.get_by_index(session.turn.current_player());
 
             egui::ScrollArea::horizontal().show(ui, |ui| {
-                // Row 1: Piece Stock
+                // Row 1: In Stock
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new("In Stock").size(18.0).monospace());
+                    ui.label(egui::RichText::new("In Stock").size(18.0).monospace())
+                        .on_hover_text("Number of your pieces available for placement");
 
                     ui.separator();
 
@@ -442,7 +443,8 @@ fn bottom_panel(
 
                 // Row 2: Captured
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new("Captured").size(18.0).monospace());
+                    ui.label(egui::RichText::new("Captured").size(18.0).monospace())
+                        .on_hover_text("Number of your pieces that have been captured");
 
                     ui.separator();
 
