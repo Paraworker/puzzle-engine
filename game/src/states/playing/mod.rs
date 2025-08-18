@@ -45,7 +45,7 @@ impl Plugin for PlayingPlugin {
             .add_systems(OnExit(AppState::Playing), on_exit)
             .add_systems(
                 EguiPrimaryContextPass,
-                (top_panel, stock_panel).run_if(in_state(AppState::Playing)),
+                (top_panel, bottom_panel).run_if(in_state(AppState::Playing)),
             );
     }
 }
@@ -112,7 +112,7 @@ fn on_enter(
 
     // Initial pieces
     for piece in rules.initial_layout.pieces() {
-        spawn_placed_piece(
+        place_piece(
             &mut commands,
             &assets,
             &rules.board,
@@ -267,7 +267,7 @@ fn spawn_board(
 }
 
 /// Spawns a piece on the board at the specified position with the given model and color.
-fn spawn_placed_piece(
+fn place_piece(
     commands: &mut Commands,
     assets: &GameAssets,
     board_rule_set: &BoardRuleSet,
@@ -288,7 +288,10 @@ fn spawn_placed_piece(
     };
 
     // Decrease the piece stock
-    players.get_by_color_mut(color).decrease_stock(model)?;
+    players
+        .get_by_color_mut(color)
+        .piece_mut(model)
+        .try_take_stock()?;
 
     let (mesh, local_transform) = assets.meshes.piece.get(model);
 
@@ -333,8 +336,21 @@ fn spawn_placed_piece(
 }
 
 /// Despawns a piece at the specified position.
-fn despawn_placed_piece(commands: &mut Commands, index: &mut PlacedPieceIndex, pos: Pos) {
-    if let Some(entities) = index.remove(&pos) {
+fn capture_piece(
+    commands: &mut Commands,
+    placed_piece_query: Query<&PlacedPiece>,
+    placed_piece_index: &mut PlacedPieceIndex,
+    players: &mut Players,
+    pos: Pos,
+) {
+    if let Some(entities) = placed_piece_index.remove(&pos) {
+        let placed = placed_piece_query.get(entities.root()).unwrap();
+
+        players
+            .get_by_color_mut(placed.color())
+            .piece_mut(placed.model())
+            .record_capture();
+
         commands.entity(entities.root()).despawn();
     }
 }
@@ -370,7 +386,7 @@ fn top_panel(mut egui: EguiContexts, text: Res<TopPanelText>) {
         });
 }
 
-fn stock_panel(
+fn bottom_panel(
     mut commands: Commands,
     mut egui: EguiContexts,
     mut session: ResMut<GameSession>,
@@ -384,30 +400,32 @@ fn stock_panel(
 
     let session = session.as_mut();
 
-    egui::TopBottomPanel::bottom("stock_panel")
+    egui::TopBottomPanel::bottom("bottom_panel")
         .frame(
             egui::Frame::NONE
                 .fill(egui::Color32::from_rgb(30, 30, 30))
                 .inner_margin(egui::Margin::symmetric(10, 8)),
         )
         .show(egui.ctx_mut().unwrap(), |ui| {
+            let (piece_color, player) = session.players.get_by_index(session.turn.current_player());
+
             egui::ScrollArea::horizontal().show(ui, |ui| {
+                // Row 1: Piece Stock
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new("Piece Stock").size(18.0).strong());
+                    ui.label(egui::RichText::new("In Stock").size(18.0).monospace());
 
-                    let (piece_color, player) =
-                        session.players.get_by_index(session.turn.current_player());
+                    ui.separator();
 
-                    for (model, count) in player.stocks() {
+                    for (model, piece) in player.pieces() {
                         let button = egui::Button::new(
-                            egui::RichText::new(format!("{model}: {count}"))
+                            egui::RichText::new(format!("{} × {}", model, piece.stock()))
                                 .size(18.0)
                                 .strong(),
                         );
 
                         // Enable the button if the session is in selecting state and the count is not depleted
                         let enabled = matches!(current_phase.get(), GamePhase::Selecting)
-                            && !count.is_depleted();
+                            && !piece.stock().is_depleted();
 
                         if ui.add_enabled(enabled, button).clicked() {
                             // Avoid duplicate transition
@@ -417,6 +435,24 @@ fn stock_panel(
                                 next_phase.set(GamePhase::Placing);
                             }
                         }
+                    }
+                });
+
+                ui.separator();
+
+                // Row 2: Captured
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new("Captured").size(18.0).monospace());
+
+                    ui.separator();
+
+                    for (model, piece) in player.pieces() {
+                        let button = egui::Button::new(
+                            egui::RichText::new(format!("{} × {}", model, piece.captured()))
+                                .size(18.0),
+                        );
+
+                        ui.add_enabled(false, button);
                     }
                 });
             });
