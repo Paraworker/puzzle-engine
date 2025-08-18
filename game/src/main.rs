@@ -15,10 +15,10 @@ mod states;
 pub enum GameError {
     #[error("no active player")]
     NoActivePlayer,
-    #[error("piece already exists at position: {0}")]
-    DuplicatePiece(Pos),
     #[error("no last action")]
     NoLastAction,
+    #[error("piece already exists at position: {0}")]
+    DuplicatePiece(Pos),
     #[error("no piece at position: {0}")]
     NoPieceAtPos(Pos),
     #[error("rules error: {0}")]

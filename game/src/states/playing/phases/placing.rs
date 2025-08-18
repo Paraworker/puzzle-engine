@@ -3,11 +3,11 @@ use crate::{
     states::{
         game_setup::LoadedRules,
         playing::{
-            TileEnter, TileOut, despawn_placed_piece,
+            TileEnter, TileOut, capture_piece,
             phases::GamePhase,
             piece::{PlacedPiece, PlacingPiece},
+            place_piece,
             session::{GameSession, TileIndex},
-            spawn_placed_piece,
             tile::Tile,
         },
     },
@@ -77,6 +77,7 @@ fn on_button_pressed(
     mut pressed: EventReader<Pointer<Pressed>>,
     mut egui: EguiContexts,
     mut commands: Commands,
+    placed_piece_query: Query<&PlacedPiece>,
     mut visibility_query: Query<&mut Visibility>,
     assets: Res<GameAssets>,
     rules: Res<LoadedRules>,
@@ -98,10 +99,16 @@ fn on_button_pressed(
         if event.button == PointerButton::Primary {
             if let Some(to_place) = data.to_place_pos() {
                 // If the to place position is already occupied, remove the existing piece (i.e. capture it)
-                despawn_placed_piece(&mut commands, &mut session.placed_pieces, to_place);
+                capture_piece(
+                    &mut commands,
+                    placed_piece_query,
+                    &mut session.placed_pieces,
+                    &mut session.players,
+                    to_place,
+                );
 
                 // Spawn the placed piece at the target position
-                spawn_placed_piece(
+                place_piece(
                     &mut commands,
                     &assets,
                     &rules.board,

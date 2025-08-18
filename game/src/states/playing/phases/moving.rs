@@ -1,7 +1,7 @@
 use crate::states::{
     game_setup::LoadedRules,
     playing::{
-        TileEnter, despawn_placed_piece,
+        TileEnter, capture_piece,
         phases::GamePhase,
         piece::{MovingPiece, PieceEntities, PlacedPiece},
         pos_translation,
@@ -76,6 +76,7 @@ fn on_enter(
 fn on_exit(
     mut commands: Commands,
     mut visibility_query: Query<&mut Visibility>,
+    placed_piece_query: Query<&PlacedPiece>,
     moving_piece_query: Query<&MovingPiece>,
     mut session: ResMut<GameSession>,
     data: Res<MovingEntities>,
@@ -86,6 +87,8 @@ fn on_exit(
     if let Ok(mut visibility) = visibility_query.get_mut(data.0.highlight()) {
         *visibility = Visibility::Hidden;
     }
+
+    let session = session.as_mut();
 
     // Unhighlight the move initial tile
     if let Ok(mut visibility) = visibility_query.get_mut(
@@ -108,9 +111,11 @@ fn on_exit(
     }
 
     // If the target position is already occupied, remove the existing piece (i.e. capture it)
-    despawn_placed_piece(
+    capture_piece(
         &mut commands,
+        placed_piece_query,
         &mut session.placed_pieces,
+        &mut session.players,
         moving.current_pos(),
     );
 

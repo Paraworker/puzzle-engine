@@ -6,25 +6,64 @@ use rule_engine::{
     player::{PlayerRuleSet, PlayerState},
 };
 
+#[derive(Debug)]
+pub struct PieceState {
+    /// The number of pieces in stock for this model.
+    stock: Count,
+
+    /// The number of pieces captured for this model.
+    captured: usize,
+}
+
+impl PieceState {
+    /// Returns the number of in stock count.
+    pub fn stock(&self) -> Count {
+        self.stock
+    }
+
+    /// Returns the number of captured count.
+    pub fn captured(&self) -> usize {
+        self.captured
+    }
+
+    /// Tries to take a piece from stock.
+    pub fn try_take_stock(&mut self) -> Result<(), GameError> {
+        Ok(self.stock.decrease()?)
+    }
+
+    /// Records a capture for this piece model.
+    pub fn record_capture(&mut self) {
+        self.captured += 1;
+    }
+}
+
 /// Represents a player in the game.
 #[derive(Debug)]
 pub struct Player {
     /// The current state of the player.
     state: PlayerState,
 
-    /// A mapping from each piece model to the remaining count for this player.
+    /// The piece state for the player.
     ///
     /// Uses [`IndexMap`] to ensure a stable iteration order.
-    stock: IndexMap<PieceModel, Count>,
+    piece: IndexMap<PieceModel, PieceState>,
 }
 
 impl Player {
     pub fn new(piece_rule_set: &PieceRuleSet) -> Self {
         Self {
             state: PlayerState::Active,
-            stock: piece_rule_set
+            piece: piece_rule_set
                 .iter()
-                .map(|(model, rules)| (model, rules.count()))
+                .map(|(model, rules)| {
+                    (
+                        model,
+                        PieceState {
+                            stock: rules.count(),
+                            captured: 0,
+                        },
+                    )
+                })
                 .collect(),
         }
     }
@@ -39,27 +78,21 @@ impl Player {
         self.state = state;
     }
 
-    /// Returns the piece stock for the specified model.
-    pub fn stock(&self, model: PieceModel) -> Count {
-        self.stock
-            .get(&model)
-            .copied()
-            .expect("No such piece model found")
+    /// Returns the piece state for the specified model.
+    pub fn piece(&self, model: PieceModel) -> &PieceState {
+        self.piece.get(&model).expect("No such piece model found")
     }
 
-    /// Decreases the piece stock for the specified piece model.
-    pub fn decrease_stock(&mut self, model: PieceModel) -> Result<(), GameError> {
-        self.stock
+    /// Returns the mutable piece state for the specified model.
+    pub fn piece_mut(&mut self, model: PieceModel) -> &mut PieceState {
+        self.piece
             .get_mut(&model)
             .expect("No such piece model found")
-            .decrease()?;
-
-        Ok(())
     }
 
-    /// Returns an iterator over the piece stocks.
-    pub fn stocks(&self) -> impl Iterator<Item = (PieceModel, Count)> {
-        self.stock.iter().map(|(model, count)| (*model, *count))
+    /// Returns an iterator over the piece states.
+    pub fn pieces(&self) -> impl Iterator<Item = (PieceModel, &PieceState)> {
+        self.piece.iter().map(|(model, state)| (*model, state))
     }
 }
 
