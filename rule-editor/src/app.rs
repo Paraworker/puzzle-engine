@@ -1,8 +1,5 @@
 use rfd::FileDialog;
-use rule_engine::{
-    GameRules, board::BoardRuleSet, expr::boolean::BoolExpr, initial_layout::InitialLayout,
-    piece::PieceRuleSet, player::PlayerRuleSet,
-};
+use rule_engine::{CheckedGameRules, UncheckedGameRules, expr::boolean::BoolExpr};
 use slint::{SharedString, ToSharedString};
 
 slint::include_modules!();
@@ -27,19 +24,20 @@ impl App {
                     return;
                 };
 
-                // Load rules
-                let rules = match GameRules::load(&path) {
-                    Ok(rules) => rules,
-                    Err(err) => {
-                        Self::show_dialog("Load Failed".into(), err.to_shared_string());
-                        return;
-                    }
-                };
+                // Load and check rules
+                let checked =
+                    match UncheckedGameRules::load(&path).and_then(|unchecked| unchecked.check()) {
+                        Ok(rules) => rules,
+                        Err(err) => {
+                            Self::show_dialog("Open Rule Failed".into(), err.to_shared_string());
+                            return;
+                        }
+                    };
 
                 let ui = ui.upgrade().unwrap();
 
                 // Set ui data
-                if let Err(str) = Self::set_ui_from_rules(&ui, &rules) {
+                if let Err(str) = Self::set_ui_from_rules(&ui, &checked) {
                     Self::show_dialog("Open Rule Failed".into(), str.into());
                     return;
                 }
@@ -53,7 +51,7 @@ impl App {
             let ui = ui.as_weak();
             move || {
                 // Create a default rules
-                let rules = GameRules::default();
+                let rules = CheckedGameRules::default();
                 let ui = ui.upgrade().unwrap();
 
                 // Set ui data
@@ -103,117 +101,64 @@ impl App {
         self.ui.run()
     }
 
-    fn collect_rules_from_ui(ui: AppWindow) -> Result<GameRules, String> {
+    fn collect_rules_from_ui(ui: AppWindow) -> Result<CheckedGameRules, String> {
+        let mut unchecked = UncheckedGameRules::default();
+
         // Name
-        let name = ui.get_rules_name().to_string();
-        if name.is_empty() {
-            return Err("Empty rules name".to_string());
-        }
+        unchecked.set_name(ui.get_rules_name().to_string());
 
         // Board
-        let board = {
-            let Ok(rows) = ui.get_board_rows().parse() else {
-                return Err("invalid board rows".to_string());
-            };
-
-            let Ok(cols) = ui.get_board_cols().parse() else {
-                return Err("invalid board columns".to_string());
-            };
-
-            match BoardRuleSet::new(rows, cols) {
-                Ok(board) => board,
-                Err(err) => {
-                    return Err(err.to_string());
-                }
-            }
+        let Ok(rows) = ui.get_board_rows().parse() else {
+            return Err("invalid board rows".to_string());
         };
+
+        let Ok(cols) = ui.get_board_cols().parse() else {
+            return Err("invalid board columns".to_string());
+        };
+
+        unchecked.set_board_rows(rows);
+        unchecked.set_board_cols(cols);
 
         // Pieces
-        let pieces = {
-            let str = ui.get_pieces();
-            if str.is_empty() {
-                return Err("Pieces is empty".into());
-            }
-
-            match PieceRuleSet::from_ron_str(&str) {
-                Ok(cond) => cond,
-                Err(err) => return Err(format!("Pieces: {}", err)),
-            }
-        };
+        unchecked
+            .set_pieces_from_ron_str(&ui.get_pieces())
+            .map_err(|err| err.to_string())?;
 
         // Players
-        let players = {
-            let str = ui.get_players();
-            if str.is_empty() {
-                return Err("Players is empty".into());
-            }
-
-            match PlayerRuleSet::from_ron_str(&str) {
-                Ok(cond) => cond,
-                Err(err) => return Err(format!("Players: {}", err)),
-            }
-        };
+        unchecked
+            .set_players_from_ron_str(&ui.get_players())
+            .map_err(|err| err.to_string())?;
 
         // Initial Layout
-        let initial_layout = {
-            let str = ui.get_initial_layout();
-            if str.is_empty() {
-                return Err("Initial Layout is empty".into());
-            }
-
-            match InitialLayout::from_ron_str(&str) {
-                Ok(cond) => cond,
-                Err(err) => return Err(format!("Initial Layout: {}", err)),
-            }
-        };
+        unchecked
+            .set_initial_layout_from_ron_str(&ui.get_initial_layout())
+            .map_err(|err| err.to_string())?;
 
         // Game over condition
-        let game_over_condition = {
-            let str = ui.get_game_over_condition();
-            if str.is_empty() {
-                return Err("Game over condition is empty".into());
-            }
+        let cond = BoolExpr::from_ron_str(&ui.get_game_over_condition())
+            .map_err(|err| format!("Game Over Condition: {}", err))?;
 
-            match BoolExpr::from_ron_str(&str) {
-                Ok(cond) => cond,
-                Err(err) => return Err(format!("Game Over Condition: {}", err)),
-            }
-        };
+        unchecked.set_game_over_condition(cond);
 
-        Ok(GameRules {
-            name,
-            board,
-            pieces,
-            players,
-            initial_layout,
-            game_over_condition,
-        })
+        unchecked.check().map_err(|err| err.to_string())
     }
 
-    fn set_ui_from_rules(ui: &AppWindow, rules: &GameRules) -> Result<(), String> {
-        let pieces = match rules.pieces.to_ron_str() {
-            Ok(cond) => cond,
-            Err(err) => return Err(err.to_string()),
-        };
+    fn set_ui_from_rules(ui: &AppWindow, rules: &CheckedGameRules) -> Result<(), String> {
+        let pieces = rules.pieces_to_ron_str().map_err(|err| err.to_string())?;
 
-        let players = match rules.players.to_ron_str() {
-            Ok(cond) => cond,
-            Err(err) => return Err(err.to_string()),
-        };
+        let players = rules.players_to_ron_str().map_err(|err| err.to_string())?;
 
-        let initial_layout = match rules.initial_layout.to_ron_str() {
-            Ok(cond) => cond,
-            Err(err) => return Err(err.to_string()),
-        };
+        let initial_layout = rules
+            .initial_layout_to_ron_str()
+            .map_err(|err| err.to_string())?;
 
-        let game_over_condition = match rules.game_over_condition.to_ron_str() {
-            Ok(cond) => cond,
-            Err(err) => return Err(err.to_string()),
-        };
+        let game_over_condition = rules
+            .game_over_condition_to_ron_str()
+            .map_err(|err| err.to_string())?;
 
-        ui.set_rules_name((&rules.name).into());
-        ui.set_board_rows(rules.board.rows().to_string().into());
-        ui.set_board_cols(rules.board.cols().to_string().into());
+        ui.set_rules_name((rules.name()).into());
+        ui.set_board_rows(rules.board_rows().to_string().into());
+        ui.set_board_cols(rules.board_cols().to_string().into());
         ui.set_pieces(pieces.into());
         ui.set_players(players.into());
         ui.set_initial_layout(initial_layout.into());

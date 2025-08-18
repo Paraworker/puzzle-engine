@@ -5,8 +5,7 @@ use crate::{
 };
 use bevy::prelude::*;
 use rule_engine::{
-    expr::boolean::BoolExpr,
-    piece::{PieceColor, PieceModel},
+    piece::{PieceColor, PieceModel, PieceRules},
     pos::Pos,
 };
 use std::collections::HashSet;
@@ -101,7 +100,7 @@ impl MovingPiece {
         session: &GameSession,
         placed_piece_query: Query<&PlacedPiece>,
         tile_query: Query<&Tile>,
-        movement: &BoolExpr,
+        rules: &PieceRules,
     ) -> Result<(), GameError> {
         for tile in tile_query {
             // Skip source tile
@@ -118,7 +117,7 @@ impl MovingPiece {
                 target_pos: tile.pos(),
             };
 
-            if movement.evaluate(&ctx)? {
+            if rules.can_move(&ctx)? {
                 self.movable.insert(tile.pos());
             }
         }
@@ -198,7 +197,7 @@ impl PlacingPiece {
         session: &GameSession,
         placed_piece_query: Query<&PlacedPiece>,
         tile_query: Query<&Tile>,
-        placement: &BoolExpr,
+        rules: &PieceRules,
     ) -> Result<(), GameError> {
         for tile in tile_query {
             let ctx = PlacementContext {
@@ -209,7 +208,7 @@ impl PlacingPiece {
                 to_place_pos: tile.pos(),
             };
 
-            if placement.evaluate(&ctx)? {
+            if rules.can_place(&ctx)? {
                 self.placeable.insert(tile.pos());
             }
         }

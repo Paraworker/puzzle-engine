@@ -39,28 +39,32 @@ impl InitialPiece {
     }
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct InitialLayout(Vec<InitialPiece>);
+pub(crate) struct InitialLayout(Vec<InitialPiece>);
 
 impl InitialLayout {
+    pub(crate) fn new() -> Self {
+        Self(Vec::new())
+    }
+
     /// Add a new initial piece to the layout.
-    pub fn add(&mut self, piece: InitialPiece) {
+    pub(crate) fn add(&mut self, piece: InitialPiece) {
         self.0.push(piece);
     }
 
     /// Returns the pieces.
-    pub fn pieces(&self) -> &[InitialPiece] {
-        &self.0
+    pub(crate) fn pieces(&self) -> impl Iterator<Item = &InitialPiece> {
+        self.0.iter()
     }
 
     /// Parses from a ron string.
-    pub fn from_ron_str(str: &str) -> Result<Self, RulesError> {
+    pub(crate) fn from_ron_str(str: &str) -> Result<Self, RulesError> {
         from_ron_str(str)
     }
 
     /// Converts into a ron string.
-    pub fn to_ron_str(&self) -> Result<String, RulesError> {
+    pub(crate) fn to_ron_str(&self) -> Result<String, RulesError> {
         to_ron_str(self)
     }
 }

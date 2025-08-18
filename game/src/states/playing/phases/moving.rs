@@ -40,11 +40,11 @@ fn on_enter(
     data: Res<MovingEntities>,
 ) {
     let mut moving = moving_piece_query.get_mut(data.0.root()).unwrap();
-    let movement = rules.pieces.get_by_model(moving.model()).movement();
+    let rules = rules.get_piece(moving.model()).unwrap();
 
     // Collect movable tiles
     moving
-        .collect_movable(&session, placed_piece_query, tile_query, movement)
+        .collect_movable(&session, placed_piece_query, tile_query, rules)
         .unwrap();
 
     // Highlight the moving piece
@@ -211,7 +211,7 @@ fn on_tile_enter(
     }
 
     let start = transform.translation;
-    let end = pos_translation(tile.pos(), &rules.board).translation;
+    let end = pos_translation(tile.pos(), &rules).translation;
 
     // Build a tween to animate the piece movement
     let tween = Tween::new(

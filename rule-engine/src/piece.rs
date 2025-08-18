@@ -1,7 +1,7 @@
 use crate::{
     RulesError,
     count::Count,
-    expr::boolean::BoolExpr,
+    expr::{Context, boolean::BoolExpr},
     utils::{from_ron_str, to_ron_str},
 };
 use indexmap::{IndexMap, map::Entry};
@@ -72,47 +72,49 @@ pub struct PieceRules {
     placement: BoolExpr,
 }
 
-impl Default for PieceRules {
-    fn default() -> Self {
+impl PieceRules {
+    pub fn new(count: Count, movement: BoolExpr, placement: BoolExpr) -> Self {
         Self {
-            count: Count::Infinite,
-            movement: BoolExpr::False,
-            placement: BoolExpr::False,
+            count,
+            movement,
+            placement,
         }
     }
-}
 
-impl PieceRules {
     /// Returns the count of pieces allowed.
     pub fn count(&self) -> Count {
         self.count
     }
 
-    /// Returns the movement condition.
-    pub fn movement(&self) -> &BoolExpr {
-        &self.movement
+    /// Evaluates the movement condition.
+    pub fn can_move<C>(&self, ctx: &C) -> Result<bool, C::Error>
+    where
+        C: Context,
+    {
+        self.movement.evaluate(ctx)
     }
 
-    /// Returns the placement condition.
-    pub fn placement(&self) -> &BoolExpr {
-        &self.placement
+    /// Evaluates the placement condition.
+    pub fn can_place<C>(&self, ctx: &C) -> Result<bool, C::Error>
+    where
+        C: Context,
+    {
+        self.placement.evaluate(ctx)
     }
 }
 
 /// Uses [`IndexMap`] to ensure a stable iteration order.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct PieceRuleSet(IndexMap<PieceModel, PieceRules>);
-
-impl Default for PieceRuleSet {
-    fn default() -> Self {
-        Self(Default::default())
-    }
-}
+pub(crate) struct PieceRuleSet(IndexMap<PieceModel, PieceRules>);
 
 impl PieceRuleSet {
+    pub(crate) fn new() -> Self {
+        Self(IndexMap::new())
+    }
+
     /// Adds a new piece model with its rules.
-    pub fn add(&mut self, model: PieceModel, rules: PieceRules) -> Result<(), RulesError> {
+    pub(crate) fn add(&mut self, model: PieceModel, rules: PieceRules) -> Result<(), RulesError> {
         match self.0.entry(model) {
             Entry::Vacant(v) => {
                 v.insert(rules);
@@ -122,54 +124,28 @@ impl PieceRuleSet {
         }
     }
 
-    /// Returns the piece rules at given index.
-    ///
-    /// Panic if out of index.
-    pub fn get_by_index(&self, index: usize) -> (PieceModel, &PieceRules) {
-        self.0
-            .get_index(index)
-            .map(|(model, rules)| (*model, rules))
-            .expect("Out of index!")
-    }
-
     /// Returns the piece rules for the specified model.
-    pub fn get_by_model(&self, model: PieceModel) -> &PieceRules {
-        self.0.get(&model).expect("No such piece model found")
-    }
-
-    /// Remove the piece rules at given index.
-    ///
-    /// Panic if out of index.
-    pub fn remove_by_index(&mut self, index: usize) {
-        self.0.shift_remove_index(index).expect("Out of index!");
-    }
-
-    /// Remove the piece rules with the specified model.
-    ///
-    /// Panic if no such piece model found.
-    pub fn remove_by_model(&mut self, model: PieceModel) {
-        self.0
-            .shift_remove(&model)
-            .expect("No such piece model found");
+    pub(crate) fn get_by_model(&self, model: PieceModel) -> Result<&PieceRules, RulesError> {
+        self.0.get(&model).ok_or(RulesError::NoSuchModel(model))
     }
 
     /// Returns all rules.
-    pub fn iter(&self) -> impl Iterator<Item = (PieceModel, &PieceRules)> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (PieceModel, &PieceRules)> {
         self.0.iter().map(|(model, rules)| (*model, rules))
     }
 
-    /// Returns number of added piece models.
-    pub fn model_num(&self) -> usize {
-        self.0.len()
+    /// Returns if the set is empty.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     /// Parses from a ron string.
-    pub fn from_ron_str(str: &str) -> Result<Self, RulesError> {
+    pub(crate) fn from_ron_str(str: &str) -> Result<Self, RulesError> {
         from_ron_str(str)
     }
 
     /// Converts into a ron string.
-    pub fn to_ron_str(&self) -> Result<String, RulesError> {
+    pub(crate) fn to_ron_str(&self) -> Result<String, RulesError> {
         to_ron_str(self)
     }
 }
