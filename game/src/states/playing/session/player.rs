@@ -1,9 +1,10 @@
 use crate::GameError;
 use indexmap::IndexMap;
 use rule_engine::{
+    CheckedGameRules,
     count::Count,
-    piece::{PieceColor, PieceModel, PieceRuleSet},
-    player::{PlayerRuleSet, PlayerState},
+    piece::{PieceColor, PieceModel},
+    player::PlayerState,
 };
 
 #[derive(Debug)]
@@ -50,11 +51,11 @@ pub struct Player {
 }
 
 impl Player {
-    pub fn new(piece_rule_set: &PieceRuleSet) -> Self {
+    pub fn new(rules: &CheckedGameRules) -> Self {
         Self {
             state: PlayerState::Active,
-            piece: piece_rule_set
-                .iter()
+            piece: rules
+                .pieces()
                 .map(|(model, rules)| {
                     (
                         model,
@@ -103,11 +104,11 @@ pub struct Players {
 }
 
 impl Players {
-    pub fn new(player_rule_set: &PlayerRuleSet, piece_rule_set: &PieceRuleSet) -> Self {
+    pub fn new(rules: &CheckedGameRules) -> Self {
         Self {
-            map: player_rule_set
-                .iter()
-                .map(|(color, _)| (color, Player::new(piece_rule_set)))
+            map: rules
+                .players()
+                .map(|(color, _)| (color, Player::new(rules)))
                 .collect(),
         }
     }

@@ -1,6 +1,6 @@
 use crate::{
     RulesError,
-    expr::boolean::BoolExpr,
+    expr::{Context, boolean::BoolExpr},
     piece::PieceColor,
     utils::{from_ron_str, to_ron_str},
 };
@@ -41,41 +41,47 @@ pub struct PlayerRules {
     win_condition: BoolExpr,
 }
 
-impl Default for PlayerRules {
-    fn default() -> Self {
+impl PlayerRules {
+    /// Creates a new player rules.
+    pub fn new(win_condition: BoolExpr, lose_condition: BoolExpr) -> Self {
         Self {
-            win_condition: BoolExpr::False,
-            lose_condition: BoolExpr::False,
+            win_condition,
+            lose_condition,
         }
     }
-}
 
-impl PlayerRules {
-    /// Returns the lose condition expression.
-    pub fn lose_condition(&self) -> &BoolExpr {
-        &self.lose_condition
-    }
+    /// Evaluates player state.
+    pub fn evaluate_state<C>(&self, ctx: &C) -> Result<PlayerState, C::Error>
+    where
+        C: Context,
+    {
+        // Evaluate the lose condition first.
+        if self.lose_condition.evaluate(ctx)? {
+            return Ok(PlayerState::Lost);
+        }
 
-    /// Returns the win condition expression.
-    pub fn win_condition(&self) -> &BoolExpr {
-        &self.win_condition
+        // If the lose condition is not met, check the win condition.
+        if self.win_condition.evaluate(ctx)? {
+            return Ok(PlayerState::Won);
+        }
+
+        // If neither condition is met, the player is still active.
+        Ok(PlayerState::Active)
     }
 }
 
 /// Uses [`IndexMap`] to ensure a stable iteration order.
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct PlayerRuleSet(IndexMap<PieceColor, PlayerRules>);
-
-impl Default for PlayerRuleSet {
-    fn default() -> Self {
-        Self(Default::default())
-    }
-}
+pub(crate) struct PlayerRuleSet(IndexMap<PieceColor, PlayerRules>);
 
 impl PlayerRuleSet {
+    pub(crate) fn new() -> Self {
+        Self(IndexMap::new())
+    }
+
     /// Add a player.
-    pub fn add(&mut self, color: PieceColor, rules: PlayerRules) -> Result<(), RulesError> {
+    pub(crate) fn add(&mut self, color: PieceColor, rules: PlayerRules) -> Result<(), RulesError> {
         match self.0.entry(color) {
             Entry::Vacant(v) => {
                 v.insert(rules);
@@ -85,52 +91,28 @@ impl PlayerRuleSet {
         }
     }
 
-    /// Returns the player rules at given index.
-    ///
-    /// Panic if out of index.
-    pub fn get_by_index(&self, index: usize) -> (PieceColor, &PlayerRules) {
-        self.0
-            .get_index(index)
-            .map(|(color, rules)| (*color, rules))
-            .expect("Out of index!")
-    }
-
     /// Returns the player rules with the specified color.
-    pub fn get_by_color(&self, color: PieceColor) -> &PlayerRules {
-        self.0.get(&color).expect("No such player found")
-    }
-
-    /// Remove the player rules at given index.
-    ///
-    /// Panic if out of index.
-    pub fn remove_by_index(&mut self, index: usize) {
-        self.0.shift_remove_index(index).expect("Out of index!");
-    }
-
-    /// Remove the player rules with the specified color.
-    ///
-    /// Panic if no such player found.
-    pub fn remove_by_color(&mut self, color: PieceColor) {
-        self.0.shift_remove(&color).expect("No such player found");
+    pub(crate) fn get_by_color(&self, color: PieceColor) -> Result<&PlayerRules, RulesError> {
+        self.0.get(&color).ok_or(RulesError::NoSuchColor(color))
     }
 
     /// Returns an iterator over all player rules.
-    pub fn iter(&self) -> impl Iterator<Item = (PieceColor, &PlayerRules)> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (PieceColor, &PlayerRules)> {
         self.0.iter().map(|(color, rules)| (*color, rules))
     }
 
-    /// Returns player number.
-    pub fn player_num(&self) -> usize {
-        self.0.len()
+    /// Returns if the set is empty.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     /// Parses from a ron string.
-    pub fn from_ron_str(str: &str) -> Result<Self, RulesError> {
+    pub(crate) fn from_ron_str(str: &str) -> Result<Self, RulesError> {
         from_ron_str(str)
     }
 
     /// Converts into a ron string.
-    pub fn to_ron_str(&self) -> Result<String, RulesError> {
+    pub(crate) fn to_ron_str(&self) -> Result<String, RulesError> {
         to_ron_str(self)
     }
 }

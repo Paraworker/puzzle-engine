@@ -21,7 +21,7 @@ use bevy_egui::{
     egui::{self, Stroke},
 };
 use rule_engine::{
-    board::BoardRuleSet,
+    CheckedGameRules,
     piece::{PieceColor, PieceModel},
     pos::Pos,
 };
@@ -76,7 +76,7 @@ fn on_enter(
     egui_global_settings.auto_create_primary_context = false;
 
     // Board
-    let (board, tiles) = spawn_board(&mut commands, &mut meshes, &assets, &rules.board);
+    let (board, tiles) = spawn_board(&mut commands, &mut meshes, &assets, &rules);
 
     // Light
     commands.spawn((
@@ -107,15 +107,15 @@ fn on_enter(
         PlayingMarker,
     ));
 
-    let mut players = Players::new(&rules.players, &rules.pieces);
+    let mut players = Players::new(&rules);
     let mut placed_pieces = PlacedPieceIndex::new();
 
     // Initial pieces
-    for piece in rules.initial_layout.pieces() {
+    for piece in rules.initial_pieces() {
         place_piece(
             &mut commands,
             &assets,
-            &rules.board,
+            &rules,
             board,
             &mut players,
             &mut placed_pieces,
@@ -158,7 +158,7 @@ fn spawn_board(
     commands: &mut Commands,
     meshes: &mut Assets<Mesh>,
     assets: &GameAssets,
-    board: &BoardRuleSet,
+    rules: &CheckedGameRules,
 ) -> (Entity, TileIndex) {
     fn on_tile_enter(trigger: Trigger<Pointer<Over>>, mut ev: EventWriter<TileEnter>) {
         ev.write(TileEnter(trigger.target()));
@@ -182,7 +182,11 @@ fn spawn_board(
     // Spawn tiles transform
     let tiles_transform = commands
         .spawn((
-            Transform::from_translation(Vec3::new(0.0, -BoardRuleSet::tile_height() / 2.0, 0.0)),
+            Transform::from_translation(Vec3::new(
+                0.0,
+                -CheckedGameRules::tile_height() / 2.0,
+                0.0,
+            )),
             GlobalTransform::default(),
         ))
         .id();
@@ -190,14 +194,14 @@ fn spawn_board(
     commands.entity(board_root).add_child(tiles_transform);
 
     let tile_mesh = meshes.add(Cuboid::new(
-        BoardRuleSet::tile_size(),
-        BoardRuleSet::tile_height(),
-        BoardRuleSet::tile_size(),
+        CheckedGameRules::tile_size(),
+        CheckedGameRules::tile_height(),
+        CheckedGameRules::tile_size(),
     ));
 
     // Spawn tiles
-    for col in 0..board.cols() {
-        for row in 0..board.rows() {
+    for col in 0..rules.board_cols() {
+        for row in 0..rules.board_rows() {
             // Tile position
             let pos = Pos::new(row, col);
 
@@ -210,7 +214,7 @@ fn spawn_board(
 
             let tile_root = commands
                 .spawn((
-                    pos_translation(pos, board),
+                    pos_translation(pos, rules),
                     GlobalTransform::default(),
                     Tile::new(pos),
                 ))
@@ -270,7 +274,7 @@ fn spawn_board(
 fn place_piece(
     commands: &mut Commands,
     assets: &GameAssets,
-    board_rule_set: &BoardRuleSet,
+    rules: &CheckedGameRules,
     board_entity: Entity,
     players: &mut Players,
     placed_pieces: &mut PlacedPieceIndex,
@@ -297,7 +301,7 @@ fn place_piece(
 
     let piece_root = commands
         .spawn((
-            pos_translation(pos, board_rule_set),
+            pos_translation(pos, rules),
             GlobalTransform::default(),
             PlacedPiece::new(model, color, pos),
         ))
@@ -358,15 +362,15 @@ fn capture_piece(
 /// Converts a logical board position to board space translation.
 ///
 /// (0, 0) is the bottom-left tile on the board.
-fn pos_translation(pos: Pos, board: &BoardRuleSet) -> Transform {
+fn pos_translation(pos: Pos, rules: &CheckedGameRules) -> Transform {
     const fn half_len(cols_or_rows: i64) -> f32 {
-        (cols_or_rows as f32 - 1.0) * BoardRuleSet::tile_size() / 2.0
+        (cols_or_rows as f32 - 1.0) * CheckedGameRules::tile_size() / 2.0
     }
 
     Transform::from_translation(Vec3::new(
-        pos.col() as f32 * BoardRuleSet::tile_size() - half_len(board.cols()),
+        pos.col() as f32 * CheckedGameRules::tile_size() - half_len(rules.board_cols()),
         0.0,
-        half_len(board.rows()) - pos.row() as f32 * BoardRuleSet::tile_size(),
+        half_len(rules.board_rows()) - pos.row() as f32 * CheckedGameRules::tile_size(),
     ))
 }
 

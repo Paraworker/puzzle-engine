@@ -38,7 +38,7 @@ fn on_enter(
     session: Res<GameSession>,
     mut data: ResMut<PlacingPiece>,
 ) {
-    let placement = rules.pieces.get_by_model(data.model()).placement();
+    let placement = rules.get_piece(data.model()).unwrap();
 
     // Collect placeable tiles
     data.collect_placeable(&session, placed_piece_query, tile_query, placement)
@@ -111,7 +111,7 @@ fn on_button_pressed(
                 place_piece(
                     &mut commands,
                     &assets,
-                    &rules.board,
+                    &rules,
                     session.board,
                     &mut session.players,
                     &mut session.placed_pieces,

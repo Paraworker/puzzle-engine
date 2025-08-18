@@ -3,7 +3,7 @@ use crate::{
     states::{AppState, error::CurrentError},
 };
 use bevy::prelude::*;
-use rule_engine::GameRules;
+use rule_engine::{CheckedGameRules, UncheckedGameRules};
 use std::ops::Deref;
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);
@@ -21,10 +21,10 @@ impl Plugin for GameSetupPlugin {
 }
 
 #[derive(Resource)]
-pub struct LoadedRules(GameRules);
+pub struct LoadedRules(CheckedGameRules);
 
 impl Deref for LoadedRules {
-    type Target = GameRules;
+    type Target = CheckedGameRules;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -39,8 +39,10 @@ fn on_enter(
     mut next_state: ResMut<NextState<AppState>>,
     settings: Res<Settings>,
 ) {
-    // Load rules from settings
-    let rules = match GameRules::load(settings.rules_path.as_path()) {
+    // Load rules from settings and check it
+    let checked = match UncheckedGameRules::load(settings.rules_path.as_path())
+        .and_then(|unchecked| unchecked.check())
+    {
         Ok(rules) => rules,
         Err(err) => {
             commands.insert_resource(CurrentError(err.into()));
@@ -67,13 +69,13 @@ fn on_enter(
         ))
         .with_children(|parent| {
             parent.spawn(spacer());
-            parent.spawn(label(format!("Loaded Rules: {}", rules.name), 50.0));
+            parent.spawn(label(format!("Loaded Rules: {}", checked.name()), 50.0));
             parent.spawn(spacer());
             parent.spawn(button("Ready!"));
             parent.spawn(spacer());
         });
 
-    commands.insert_resource(LoadedRules(rules));
+    commands.insert_resource(LoadedRules(checked));
 }
 
 fn on_exit(mut commands: Commands, entities: Query<Entity, With<GameSetupMarker>>) {
