@@ -1,18 +1,50 @@
 use crate::states::{
     game_setup::LoadedRules,
     playing::{
-        TileEnter, TileOut, TileReleased, capture_piece,
+        TileEnter, TileOut, TileReleased,
+        board::pos_translation,
         phases::GamePhase,
-        piece::{MovingPiece, PiecePos, PlacedPiece},
-        pos_translation,
-        session::GameSession,
+        piece::{MovingPiece, PiecePos, PlacedPiece, capture_piece},
+        session::{GameSession, PlacedPieceIndex, player::Players, turn::TurnController},
         tile::Tile,
     },
 };
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
-use bevy_tweening::{Animator, Tween, lens::TransformPositionLens};
-use std::time::Duration;
+use bevy_tweening::{Animator, Lens, Targetable, Tween};
+use rule_engine::pos::Pos;
+use std::{collections::hash_map::Entry, time::Duration};
+
+pub fn start_move_piece(
+    commands: &mut Commands,
+    placed_piece_index: &mut PlacedPieceIndex,
+    players: &Players,
+    turn: &TurnController,
+    next_phase: &mut NextState<GamePhase>,
+    at: Pos,
+) {
+    let Entry::Occupied(entry) = placed_piece_index.entry(at) else {
+        panic!("No placed piece at position: {:?}", at);
+    };
+
+    // If the piece color does not match the current player's color, do nothing
+    if players.get_by_index(turn.current_player()).0 != entry.get().color() {
+        return;
+    }
+
+    // Remove the record from the placed piece index
+    let placed = entry.remove();
+
+    // Enter moving state
+    commands.insert_resource(MovingPiece::new(
+        placed.model(),
+        placed.color(),
+        placed.pos(),
+        placed.entities().clone(),
+    ));
+
+    next_phase.set(GamePhase::Moving);
+}
 
 pub struct MovingPlugin;
 
@@ -162,10 +194,20 @@ fn on_tile_released(
             let start = transform.translation;
             let end = pos_translation(tile.pos(), &rules).translation;
 
+            // Determine the height of the parabola
+            // The height is 25% of the distance between start and end
+            let dist = start.distance(end);
+            let height = dist * 0.25;
+
             let tween = Tween::new(
-                EaseFunction::CubicInOut,
-                Duration::from_millis(200),
-                TransformPositionLens { start, end },
+                EaseFunction::SineInOut,
+                Duration::from_millis(220),
+                TransformParabolaLens {
+                    start,
+                    end,
+                    up: Vec3::Y,
+                    height,
+                },
             );
 
             commands
@@ -321,4 +363,20 @@ fn cancel_move(session: &mut GameSession, next: &mut NextState<GamePhase>, data:
     );
 
     next.set(GamePhase::Selecting);
+}
+
+#[derive(Clone, Copy)]
+struct TransformParabolaLens {
+    start: Vec3,
+    end: Vec3,
+    up: Vec3,
+    height: f32,
+}
+
+impl Lens<Transform> for TransformParabolaLens {
+    fn lerp(&mut self, target: &mut dyn Targetable<Transform>, t: f32) {
+        let p = self.start.lerp(self.end, t);
+        let bump = self.up.normalize() * (self.height * 4.0 * t * (1.0 - t));
+        target.translation = p + bump;
+    }
 }

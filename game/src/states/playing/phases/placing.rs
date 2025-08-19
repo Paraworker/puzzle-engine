@@ -3,13 +3,28 @@ use crate::{
     states::{
         game_setup::LoadedRules,
         playing::{
-            TileEnter, TileOut, TileReleased, capture_piece, phases::GamePhase,
-            piece::PlacingPiece, place_piece, session::GameSession, tile::Tile,
+            TileEnter, TileOut, TileReleased,
+            phases::GamePhase,
+            piece::{PlacingPiece, capture_piece},
+            place_new_piece,
+            session::GameSession,
+            tile::Tile,
         },
     },
 };
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
+use rule_engine::piece::{PieceColor, PieceModel};
+
+pub fn start_place_piece(
+    commands: &mut Commands,
+    next_phase: &mut NextState<GamePhase>,
+    model: PieceModel,
+    color: PieceColor,
+) {
+    commands.insert_resource(PlacingPiece::new(model, color));
+    next_phase.set(GamePhase::Placing);
+}
 
 pub struct PlacingPlugin;
 
@@ -142,7 +157,7 @@ fn on_tile_released(
         );
 
         // Spawn the placed piece at the target position
-        place_piece(
+        place_new_piece(
             &mut commands,
             &assets,
             &rules,
