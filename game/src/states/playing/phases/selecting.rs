@@ -1,13 +1,12 @@
 use crate::states::playing::{
     PiecePressed, TopPanelText,
     camera::PlayingCamera,
-    phases::GamePhase,
-    piece::{MovingPiece, PiecePos},
+    phases::{GamePhase, moving::start_move_piece},
+    piece::PiecePos,
     session::GameSession,
 };
 use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy_egui::EguiContexts;
-use std::collections::hash_map::Entry;
 
 pub struct SelectingPlugin;
 
@@ -127,30 +126,12 @@ fn on_piece_pressed(
     let child = child_query.get(event.0).unwrap();
     let pos = piece_query.get(child.parent()).unwrap();
 
-    let Entry::Occupied(entry) = session.placed_pieces.entry(pos.0) else {
-        panic!("No placed piece at position: {:?}", pos.0);
-    };
-
-    // If the piece color does not match the current player's color, do nothing
-    if session
-        .players
-        .get_by_index(session.turn.current_player())
-        .0
-        != entry.get().color()
-    {
-        return;
-    }
-
-    // Remove the record from the placed piece index
-    let placed = entry.remove();
-
-    // Enter moving state
-    commands.insert_resource(MovingPiece::new(
-        placed.model(),
-        placed.color(),
-        placed.pos(),
-        placed.entities().clone(),
-    ));
-
-    next_phase.set(GamePhase::Moving);
+    start_move_piece(
+        &mut commands,
+        &mut session.placed_pieces,
+        &session.players,
+        &session.turn,
+        &mut next_phase,
+        pos.0,
+    );
 }
