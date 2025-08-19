@@ -7,7 +7,7 @@ use crate::{
         playing::{
             camera::PlayingCamera,
             phases::{GamePhase, GamePhasePlugin},
-            piece::{PieceEntities, PlacedPiece, PlacingPiece},
+            piece::{PieceEntities, PiecePos, PlacedPiece, PlacingPiece},
             session::{
                 GameSession, PlacedPieceIndex, TileIndex, player::Players, turn::TurnController,
             },
@@ -303,7 +303,7 @@ fn place_piece(
         .spawn((
             pos_translation(pos, rules),
             GlobalTransform::default(),
-            PlacedPiece::new(model, color, pos),
+            PiecePos(pos),
         ))
         .id();
 
@@ -334,7 +334,12 @@ fn place_piece(
         .add_children(&[base_mesh, highlight]);
 
     // Add to placed piece index
-    entry.insert(PieceEntities::new(piece_root, base_mesh, highlight));
+    entry.insert(PlacedPiece::new(
+        model,
+        color,
+        pos,
+        PieceEntities::new(piece_root, base_mesh, highlight),
+    ));
 
     Ok(())
 }
@@ -342,20 +347,17 @@ fn place_piece(
 /// Despawns a piece at the specified position.
 fn capture_piece(
     commands: &mut Commands,
-    placed_piece_query: Query<&PlacedPiece>,
     placed_piece_index: &mut PlacedPieceIndex,
     players: &mut Players,
     pos: Pos,
 ) {
-    if let Some(entities) = placed_piece_index.remove(&pos) {
-        let placed = placed_piece_query.get(entities.root()).unwrap();
-
+    if let Some(placed) = placed_piece_index.remove(&pos) {
         players
             .get_by_color_mut(placed.color())
             .piece_mut(placed.model())
             .record_capture();
 
-        commands.entity(entities.root()).despawn();
+        commands.entity(placed.entities().root()).despawn();
     }
 }
 

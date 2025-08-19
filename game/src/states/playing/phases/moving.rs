@@ -3,7 +3,7 @@ use crate::states::{
     playing::{
         TileEnter, TileOut, capture_piece,
         phases::GamePhase,
-        piece::{MovingPiece, PieceEntities, PlacedPiece},
+        piece::{MovingPiece, PiecePos, PlacedPiece},
         pos_translation,
         session::{GameSession, TileIndex},
         tile::Tile,
@@ -14,9 +14,6 @@ use bevy_egui::EguiContexts;
 use bevy_tweening::{Animator, Tween, lens::TransformPositionLens};
 use rule_engine::pos::Pos;
 use std::time::Duration;
-
-#[derive(Resource)]
-pub struct MovingEntities(pub PieceEntities);
 
 pub struct MovingPlugin;
 
@@ -38,10 +35,8 @@ fn on_enter(
     mut visibility_query: Query<&mut Visibility>,
     tile_query: Query<&Tile>,
     rules: Res<LoadedRules>,
-    placed_piece_query: Query<&PlacedPiece>,
-    mut moving_piece_query: Query<&mut MovingPiece>,
     session: Res<GameSession>,
-    data: Res<MovingEntities>,
+    mut data: ResMut<MovingPiece>,
 ) {
     // Clear events
     // In case the old events are still in the queue
@@ -57,21 +52,18 @@ fn on_enter(
         tile_out.clear();
     }
 
-    let mut moving = moving_piece_query.get_mut(data.0.root()).unwrap();
-    let rules = rules.get_piece(moving.model()).unwrap();
+    let rules = rules.get_piece(data.model()).unwrap();
 
     // Collect movable tiles
-    moving
-        .collect_movable(&session, placed_piece_query, tile_query, rules)
-        .unwrap();
+    data.collect_movable(&session, tile_query, rules).unwrap();
 
     // Highlight the moving piece
-    if let Ok(mut visibility) = visibility_query.get_mut(data.0.highlight()) {
+    if let Ok(mut visibility) = visibility_query.get_mut(data.entities().highlight()) {
         *visibility = Visibility::Visible;
     }
 
     // Highlight movable tiles
-    for pos in moving.movable_tiles() {
+    for pos in data.movable_tiles() {
         if let Ok(mut visibility) =
             visibility_query.get_mut(session.tiles.get(&pos).unwrap().placeable())
         {
@@ -80,8 +72,27 @@ fn on_enter(
     }
 }
 
-fn on_exit(mut commands: Commands) {
-    commands.remove_resource::<MovingEntities>();
+fn on_exit(
+    mut commands: Commands,
+    mut visibility_query: Query<&mut Visibility>,
+    session: Res<GameSession>,
+    data: Res<MovingPiece>,
+) {
+    // Unhighlight the moving piece
+    if let Ok(mut visibility) = visibility_query.get_mut(data.entities().highlight()) {
+        *visibility = Visibility::Hidden;
+    }
+
+    // Unhighlight movable tiles
+    for pos in data.movable_tiles() {
+        if let Ok(mut visibility) =
+            visibility_query.get_mut(session.tiles.get(&pos).unwrap().placeable())
+        {
+            *visibility = Visibility::Hidden;
+        }
+    }
+
+    commands.remove_resource::<MovingPiece>();
 }
 
 /// A system that triggered when the primary button is pressed.
@@ -90,12 +101,11 @@ fn on_button_pressed(
     mut commands: Commands,
     mut egui: EguiContexts,
     mut visibility_query: Query<&mut Visibility>,
-    placed_piece_query: Query<&PlacedPiece>,
-    moving_piece_query: Query<(&Transform, &MovingPiece)>,
+    mut piece_query: Query<(&Transform, &mut PiecePos)>,
     rules: Res<LoadedRules>,
     mut session: ResMut<GameSession>,
     mut next_phase: ResMut<NextState<GamePhase>>,
-    data: Res<MovingEntities>,
+    data: Res<MovingPiece>,
 ) {
     if let NextState::Pending(_) = *next_phase {
         return;
@@ -108,23 +118,8 @@ fn on_button_pressed(
     for event in pressed.read() {
         if event.button == PointerButton::Primary {
             let session = session.as_mut();
-            let (transform, moving) = moving_piece_query.get(data.0.root()).unwrap();
 
-            // Unhighlight the moving piece
-            if let Ok(mut visibility) = visibility_query.get_mut(data.0.highlight()) {
-                *visibility = Visibility::Hidden;
-            }
-
-            // Unhighlight movable tiles
-            for pos in moving.movable_tiles() {
-                if let Ok(mut visibility) =
-                    visibility_query.get_mut(session.tiles.get(&pos).unwrap().placeable())
-                {
-                    *visibility = Visibility::Hidden;
-                }
-            }
-
-            if let Some(target) = moving.target_pos() {
+            if let Some(target) = data.target_pos() {
                 // Unhighlight the target tile
                 if let Ok(mut visibility) =
                     visibility_query.get_mut(session.tiles.get(&target).unwrap().source_or_target())
@@ -132,36 +127,41 @@ fn on_button_pressed(
                     *visibility = Visibility::Hidden;
                 }
 
-                // Build a tween to animate the piece movement
-                let tween = {
-                    let start = transform.translation;
-                    let end = pos_translation(target, &rules).translation;
-
-                    Tween::new(
-                        EaseFunction::CubicInOut,
-                        Duration::from_millis(200),
-                        TransformPositionLens { start, end },
-                    )
-                };
-
                 // If the target position is already occupied, capture it.
                 capture_piece(
                     &mut commands,
-                    placed_piece_query,
                     &mut session.placed_pieces,
                     &mut session.players,
                     target,
                 );
 
-                // Update component
-                commands
-                    .entity(data.0.root())
-                    .insert(Animator::new(tween))
-                    .insert(PlacedPiece::new(moving.model(), moving.color(), target))
-                    .remove::<MovingPiece>();
+                let (transform, mut piece_pos) =
+                    piece_query.get_mut(data.entities().root()).unwrap();
 
-                // Add piece entities to the placed piece index at the current position
-                session.placed_pieces.insert(target, data.0.clone());
+                // Animation
+                {
+                    let start = transform.translation;
+                    let end = pos_translation(target, &rules).translation;
+
+                    let tween = Tween::new(
+                        EaseFunction::CubicInOut,
+                        Duration::from_millis(200),
+                        TransformPositionLens { start, end },
+                    );
+
+                    commands
+                        .entity(data.entities().root())
+                        .insert(Animator::new(tween));
+                };
+
+                // Update piece pos
+                piece_pos.0 = target;
+
+                // Add record to the placed piece index at the current position
+                session.placed_pieces.insert(
+                    target,
+                    PlacedPiece::new(data.model(), data.color(), target, data.entities().clone()),
+                );
 
                 // Update last action position
                 session.last_action = Some(target);
@@ -169,22 +169,17 @@ fn on_button_pressed(
                 // Finish this turn
                 next_phase.set(GamePhase::TurnEnd);
             } else {
-                // Update component
-                commands
-                    .entity(data.0.root())
-                    .insert(PlacedPiece::new(
-                        moving.model(),
-                        moving.color(),
-                        moving.source_pos(),
-                    ))
-                    .remove::<MovingPiece>();
-
-                // Add piece entities to the placed piece index at the current position
-                session
-                    .placed_pieces
-                    .insert(moving.source_pos(), data.0.clone());
-
                 // Cancelled.
+                session.placed_pieces.insert(
+                    data.source_pos(),
+                    PlacedPiece::new(
+                        data.model(),
+                        data.color(),
+                        data.source_pos(),
+                        data.entities().clone(),
+                    ),
+                );
+
                 next_phase.set(GamePhase::Selecting);
             }
 
@@ -198,10 +193,9 @@ fn on_tile_enter(
     mut enter: EventReader<TileEnter>,
     child_query: Query<&ChildOf>,
     mut visibility_query: Query<&mut Visibility>,
-    mut moving_piece_query: Query<&mut MovingPiece>,
     tile_query: Query<&Tile>,
     session: Res<GameSession>,
-    data: Res<MovingEntities>,
+    mut data: ResMut<MovingPiece>,
     next_phase: Res<NextState<GamePhase>>,
 ) {
     if let NextState::Pending(_) = *next_phase {
@@ -212,19 +206,13 @@ fn on_tile_enter(
         return;
     };
 
-    let mut moving = moving_piece_query.get_mut(data.0.root()).unwrap();
     let child = child_query.get(event.0).unwrap();
     let tile = tile_query.get(child.parent()).unwrap();
-
-    // Attempt to update the current pos
-    if !moving.set_target_pos(tile.pos()) {
-        return;
-    }
 
     apply_target(
         &mut visibility_query,
         &session.tiles,
-        &mut moving,
+        &mut data,
         Some(tile.pos()),
     );
 }
@@ -234,8 +222,7 @@ fn on_tile_out(
     child_query: Query<&ChildOf>,
     tile_query: Query<&Tile>,
     mut visibility_query: Query<&mut Visibility>,
-    mut moving_piece_query: Query<&mut MovingPiece>,
-    data: Res<MovingEntities>,
+    mut data: ResMut<MovingPiece>,
     session: Res<GameSession>,
     next_phase: Res<NextState<GamePhase>>,
 ) {
@@ -243,9 +230,7 @@ fn on_tile_out(
         return;
     }
 
-    let mut moving = moving_piece_query.get_mut(data.0.root()).unwrap();
-
-    let Some(target) = moving.target_pos() else {
+    let Some(target) = data.target_pos() else {
         return;
     };
 
@@ -254,7 +239,7 @@ fn on_tile_out(
         let tile = tile_query.get(child.parent()).unwrap();
 
         if tile.pos() == target {
-            apply_target(&mut visibility_query, &session.tiles, &mut moving, None);
+            apply_target(&mut visibility_query, &session.tiles, &mut data, None);
             break;
         }
     }

@@ -1,12 +1,13 @@
 use crate::states::playing::{
     PiecePressed, TopPanelText,
     camera::PlayingCamera,
-    phases::{GamePhase, moving::MovingEntities},
-    piece::{MovingPiece, PlacedPiece},
+    phases::GamePhase,
+    piece::{MovingPiece, PiecePos},
     session::GameSession,
 };
 use bevy::{input::mouse::MouseWheel, prelude::*};
 use bevy_egui::EguiContexts;
+use std::collections::hash_map::Entry;
 
 pub struct SelectingPlugin;
 
@@ -23,7 +24,7 @@ impl Plugin for SelectingPlugin {
 }
 
 fn on_enter(
-    mut pressed: Option<ResMut<Events<Pointer<Pressed>>>>,
+    mut piece_pressed: Option<ResMut<Events<PiecePressed>>>,
     mut drag: Option<ResMut<Events<Pointer<Drag>>>>,
     mut wheel: Option<ResMut<Events<Pointer<MouseWheel>>>>,
     session: Res<GameSession>,
@@ -31,8 +32,8 @@ fn on_enter(
 ) {
     // Clear events
     // In case the old events are still in the queue
-    if let Some(pressed) = &mut pressed {
-        pressed.clear();
+    if let Some(piece_pressed) = &mut piece_pressed {
+        piece_pressed.clear();
     }
 
     if let Some(drag) = &mut drag {
@@ -104,7 +105,7 @@ fn on_piece_pressed(
     mut pressed: EventReader<PiecePressed>,
     mut commands: Commands,
     child_query: Query<&ChildOf>,
-    placed_piece_query: Query<&PlacedPiece>,
+    piece_query: Query<&PiecePos>,
     mut session: ResMut<GameSession>,
     mut next_phase: ResMut<NextState<GamePhase>>,
 ) {
@@ -121,14 +122,13 @@ fn on_piece_pressed(
         return;
     }
 
-    // Try to fetch the child component of the pressed entity
-    let Ok(child) = child_query.get(event.0) else {
-        return;
-    };
+    let session = session.as_mut();
 
-    // Try to fetch the selected placed piece
-    let Ok(placed) = placed_piece_query.get(child.parent()) else {
-        return;
+    let child = child_query.get(event.0).unwrap();
+    let pos = piece_query.get(child.parent()).unwrap();
+
+    let Entry::Occupied(entry) = session.placed_pieces.entry(pos.0) else {
+        panic!("No placed piece at position: {:?}", pos.0);
     };
 
     // If the piece color does not match the current player's color, do nothing
@@ -136,27 +136,21 @@ fn on_piece_pressed(
         .players
         .get_by_index(session.turn.current_player())
         .0
-        != placed.color()
+        != entry.get().color()
     {
         return;
     }
 
-    // Take the piece entities from the placed piece index
-    let Some(entities) = session.placed_pieces.remove(&placed.pos()) else {
-        return;
-    };
-
-    // Apply component state change
-    commands
-        .entity(entities.root())
-        .insert(MovingPiece::new(
-            placed.model(),
-            placed.color(),
-            placed.pos(),
-        ))
-        .remove::<PlacedPiece>();
+    // Remove the record from the placed piece index
+    let placed = entry.remove();
 
     // Enter moving state
-    commands.insert_resource(MovingEntities(entities));
+    commands.insert_resource(MovingPiece::new(
+        placed.model(),
+        placed.color(),
+        placed.pos(),
+        placed.entities().clone(),
+    ));
+
     next_phase.set(GamePhase::Moving);
 }

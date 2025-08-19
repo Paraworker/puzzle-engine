@@ -5,7 +5,7 @@ use crate::{
         playing::{
             TileEnter, TileOut, capture_piece,
             phases::GamePhase,
-            piece::{PlacedPiece, PlacingPiece},
+            piece::PlacingPiece,
             place_piece,
             session::{GameSession, TileIndex},
             tile::Tile,
@@ -37,7 +37,6 @@ fn on_enter(
     mut visibility_query: Query<&mut Visibility>,
     tile_query: Query<&Tile>,
     rules: Res<LoadedRules>,
-    placed_piece_query: Query<&PlacedPiece>,
     session: Res<GameSession>,
     mut data: ResMut<PlacingPiece>,
 ) {
@@ -58,7 +57,7 @@ fn on_enter(
     let placement = rules.get_piece(data.model()).unwrap();
 
     // Collect placeable tiles
-    data.collect_placeable(&session, placed_piece_query, tile_query, placement)
+    data.collect_placeable(&session, tile_query, placement)
         .unwrap();
 
     // Highlight placeable tiles
@@ -94,7 +93,6 @@ fn on_button_pressed(
     mut pressed: EventReader<Pointer<Pressed>>,
     mut egui: EguiContexts,
     mut commands: Commands,
-    placed_piece_query: Query<&PlacedPiece>,
     mut visibility_query: Query<&mut Visibility>,
     assets: Res<GameAssets>,
     rules: Res<LoadedRules>,
@@ -118,7 +116,6 @@ fn on_button_pressed(
                 // If the to place position is already occupied, remove the existing piece (i.e. capture it)
                 capture_piece(
                     &mut commands,
-                    placed_piece_query,
                     &mut session.placed_pieces,
                     &mut session.players,
                     to_place,

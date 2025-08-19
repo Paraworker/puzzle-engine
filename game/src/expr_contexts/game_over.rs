@@ -5,9 +5,8 @@ use crate::{
         query_last_action_col, query_last_action_row, query_model_at_pos, query_pos_occupied,
         query_round_number, query_turn_number,
     },
-    states::playing::{piece::PlacedPiece, session::GameSession},
+    states::playing::session::GameSession,
 };
-use bevy::ecs::system::Query;
 use rule_engine::{
     expr::Context,
     piece::{PieceColor, PieceModel},
@@ -17,12 +16,11 @@ use rule_engine::{
 };
 
 #[derive(Debug)]
-pub struct GameOverContext<'s, 'world, 'state, 'data> {
+pub struct GameOverContext<'s> {
     pub session: &'s GameSession,
-    pub placed_piece_query: Query<'world, 'state, &'data PlacedPiece>,
 }
 
-impl Context for GameOverContext<'_, '_, '_, '_> {
+impl Context for GameOverContext<'_> {
     type Error = GameError;
 
     fn pos_occupied(&self, pos: Pos) -> Result<bool, Self::Error> {
@@ -58,20 +56,15 @@ impl Context for GameOverContext<'_, '_, '_, '_> {
         piece: (PieceModel, PieceColor),
         rect: Rect,
     ) -> Result<i64, Self::Error> {
-        query_count_piece_in_rect(
-            piece,
-            rect,
-            &self.session.placed_pieces,
-            self.placed_piece_query,
-        )
+        query_count_piece_in_rect(piece, rect, &self.session.placed_pieces)
     }
 
     fn model_at_pos(&self, pos: Pos) -> Result<PieceModel, Self::Error> {
-        query_model_at_pos(&self.session.placed_pieces, self.placed_piece_query, pos)
+        query_model_at_pos(&self.session.placed_pieces, pos)
     }
 
     fn color_at_pos(&self, pos: Pos) -> Result<PieceColor, Self::Error> {
-        query_color_at_pos(&self.session.placed_pieces, self.placed_piece_query, pos)
+        query_color_at_pos(&self.session.placed_pieces, pos)
     }
 
     fn player_state_equal(
