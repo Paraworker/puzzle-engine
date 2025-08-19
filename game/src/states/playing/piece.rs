@@ -77,19 +77,19 @@ impl PlacedPiece {
 pub struct MovingPiece {
     model: PieceModel,
     color: PieceColor,
-    initial: Pos,
-    current: Pos,
+    source: Pos,
+    target: Option<Pos>,
     movable: HashSet<Pos>,
 }
 
 impl MovingPiece {
     /// Creates a new moving piece.
-    pub fn new(model: PieceModel, color: PieceColor, initial: Pos) -> Self {
+    pub fn new(model: PieceModel, color: PieceColor, source: Pos) -> Self {
         Self {
             model,
             color,
-            initial,
-            current: initial,
+            source,
+            target: None,
             movable: HashSet::new(),
         }
     }
@@ -104,7 +104,7 @@ impl MovingPiece {
     ) -> Result<(), GameError> {
         for tile in tile_query {
             // Skip source tile
-            if self.initial == tile.pos() {
+            if self.source == tile.pos() {
                 continue;
             }
 
@@ -113,7 +113,7 @@ impl MovingPiece {
                 placed_piece_query,
                 moving_model: self.model,
                 moving_color: self.color,
-                source_pos: self.initial,
+                source_pos: self.source,
                 target_pos: tile.pos(),
             };
 
@@ -129,21 +129,23 @@ impl MovingPiece {
         self.movable.iter().cloned()
     }
 
-    /// Attempts to set current pos to the given position.
+    /// Attempts to set target pos to the given position.
     ///
-    /// Returns `true` and updates the current position if the position is valid,
-    /// meaning it is either in the set of placeable positions or
-    /// the original position (i.e., the piece was not moved).
-    ///
+    /// Returns `true` and updates the current position if the position is valid.
     /// Returns `false` if the position is not allowed.
-    pub fn set_current_pos(&mut self, pos: Pos) -> bool {
-        if !self.movable.contains(&pos) && self.initial != pos {
+    pub fn set_target_pos(&mut self, pos: Pos) -> bool {
+        if !self.movable.contains(&pos) {
             return false;
         }
 
-        self.current = pos;
+        self.target = Some(pos);
 
         true
+    }
+
+    /// Clears the target position and returns it.
+    pub fn clear_target_pos(&mut self) -> Option<Pos> {
+        self.target.take()
     }
 
     /// Returns the piece model.
@@ -156,19 +158,14 @@ impl MovingPiece {
         self.color
     }
 
-    /// Returns the initial position.
-    pub fn initial_pos(&self) -> Pos {
-        self.initial
+    /// Returns the source position.
+    pub fn source_pos(&self) -> Pos {
+        self.source
     }
 
-    /// Returns the current position.
-    pub fn current_pos(&self) -> Pos {
-        self.current
-    }
-
-    /// Checks if the piece has not been moved from its initial position.
-    pub fn moved(&self) -> bool {
-        self.initial != self.current
+    /// Returns the target position.
+    pub fn target_pos(&self) -> Option<Pos> {
+        self.target
     }
 }
 
