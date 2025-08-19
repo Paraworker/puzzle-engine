@@ -89,7 +89,6 @@ pub struct MovingPiece {
     model: PieceModel,
     color: PieceColor,
     source: Pos,
-    target: Option<Pos>,
     entities: PieceEntities,
     movable: HashSet<Pos>,
 }
@@ -101,7 +100,6 @@ impl MovingPiece {
             model,
             color,
             source,
-            target: None,
             entities,
             movable: HashSet::new(),
         }
@@ -136,27 +134,14 @@ impl MovingPiece {
         Ok(())
     }
 
+    /// Returns the set of movable positions.
     pub fn movable_tiles(&self) -> impl Iterator<Item = Pos> {
         self.movable.iter().cloned()
     }
 
-    /// Attempts to set target pos to the given position.
-    ///
-    /// Returns `true` and updates the current position if the position is valid.
-    /// Returns `false` if the position is not allowed.
-    pub fn set_target_pos(&mut self, pos: Pos) -> bool {
-        if !self.movable.contains(&pos) {
-            return false;
-        }
-
-        self.target = Some(pos);
-
-        true
-    }
-
-    /// Clears the target position and returns it.
-    pub fn clear_target_pos(&mut self) -> Option<Pos> {
-        self.target.take()
+    /// Checks if the piece can move to the given position.
+    pub fn can_move_to(&self, pos: Pos) -> bool {
+        self.movable.contains(&pos)
     }
 
     /// Returns the piece model.
@@ -174,11 +159,6 @@ impl MovingPiece {
         self.source
     }
 
-    /// Returns the target position.
-    pub fn target_pos(&self) -> Option<Pos> {
-        self.target
-    }
-
     /// Returns the piece entities.
     pub fn entities(&self) -> &PieceEntities {
         &self.entities
@@ -189,7 +169,6 @@ impl MovingPiece {
 pub struct PlacingPiece {
     model: PieceModel,
     color: PieceColor,
-    to_place: Option<Pos>,
     placeable: HashSet<Pos>,
 }
 
@@ -199,7 +178,6 @@ impl PlacingPiece {
         Self {
             model,
             color,
-            to_place: None,
             placeable: HashSet::new(),
         }
     }
@@ -232,6 +210,11 @@ impl PlacingPiece {
         self.placeable.iter().cloned()
     }
 
+    /// Checks if the piece can be placed at the given position.
+    pub fn can_place_at(&self, pos: Pos) -> bool {
+        self.placeable.contains(&pos)
+    }
+
     /// Returns the piece model.
     pub fn model(&self) -> PieceModel {
         self.model
@@ -240,32 +223,6 @@ impl PlacingPiece {
     /// Returns the piece color.
     pub fn color(&self) -> PieceColor {
         self.color
-    }
-
-    /// Sets the position where the piece is to be placed.
-    ///
-    /// Returns `true` and updates the to place pos if the position is valid,
-    /// meaning it is in the set of placeable positions.
-    ///
-    /// Returns `false` if the position is not allowed.
-    pub fn set_to_place_pos(&mut self, pos: Pos) -> bool {
-        if !self.placeable.contains(&pos) {
-            return false;
-        }
-
-        self.to_place = Some(pos);
-
-        true
-    }
-
-    /// Clears the to place position and returns it.
-    pub fn clear_to_place_pos(&mut self) -> Option<Pos> {
-        self.to_place.take()
-    }
-
-    /// Returns the position where the piece is to be placed.
-    pub fn to_place_pos(&self) -> Option<Pos> {
-        self.to_place
     }
 }
 

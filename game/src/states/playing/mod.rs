@@ -40,6 +40,7 @@ impl Plugin for PlayingPlugin {
         app.add_plugins(GamePhasePlugin)
             .add_event::<TileEnter>()
             .add_event::<TileOut>()
+            .add_event::<TileReleased>()
             .add_event::<PiecePressed>()
             .add_systems(OnEnter(AppState::Playing), on_enter)
             .add_systems(OnExit(AppState::Playing), on_exit)
@@ -55,6 +56,9 @@ pub struct TileEnter(pub Entity);
 
 #[derive(Event)]
 pub struct TileOut(pub Entity);
+
+#[derive(Event)]
+pub struct TileReleased(pub Entity, pub PointerButton);
 
 #[derive(Event)]
 pub struct PiecePressed(pub Entity, pub PointerButton);
@@ -168,6 +172,10 @@ fn spawn_board(
         ev.write(TileOut(trigger.target()));
     }
 
+    fn on_tile_released(trigger: Trigger<Pointer<Released>>, mut ev: EventWriter<TileReleased>) {
+        ev.write(TileReleased(trigger.target(), trigger.button));
+    }
+
     let mut tiles = TileIndex::new();
 
     // Spawn board root
@@ -229,6 +237,7 @@ fn spawn_board(
                 ))
                 .observe(on_tile_enter)
                 .observe(on_tile_out)
+                .observe(on_tile_released)
                 .id();
 
             let source_or_target = commands
