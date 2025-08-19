@@ -22,7 +22,27 @@ impl Plugin for SelectingPlugin {
     }
 }
 
-fn on_enter(session: Res<GameSession>, mut top_panel_text: ResMut<TopPanelText>) {
+fn on_enter(
+    mut pressed: Option<ResMut<Events<Pointer<Pressed>>>>,
+    mut drag: Option<ResMut<Events<Pointer<Drag>>>>,
+    mut wheel: Option<ResMut<Events<Pointer<MouseWheel>>>>,
+    session: Res<GameSession>,
+    mut top_panel_text: ResMut<TopPanelText>,
+) {
+    // Clear events
+    // In case the old events are still in the queue
+    if let Some(pressed) = &mut pressed {
+        pressed.clear();
+    }
+
+    if let Some(drag) = &mut drag {
+        drag.clear();
+    }
+
+    if let Some(wheel) = &mut wheel {
+        wheel.clear();
+    }
+
     top_panel_text.0 = session.turn.turn_message(&session.players);
 }
 

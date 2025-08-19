@@ -31,6 +31,9 @@ impl Plugin for PlacingPlugin {
 }
 
 fn on_enter(
+    mut pressed: Option<ResMut<Events<Pointer<Pressed>>>>,
+    mut tile_enter: Option<ResMut<Events<TileEnter>>>,
+    mut tile_out: Option<ResMut<Events<TileOut>>>,
     mut visibility_query: Query<&mut Visibility>,
     tile_query: Query<&Tile>,
     rules: Res<LoadedRules>,
@@ -38,6 +41,20 @@ fn on_enter(
     session: Res<GameSession>,
     mut data: ResMut<PlacingPiece>,
 ) {
+    // Clear events
+    // In case the old events are still in the queue
+    if let Some(pressed) = &mut pressed {
+        pressed.clear();
+    }
+
+    if let Some(tile_enter) = &mut tile_enter {
+        tile_enter.clear();
+    }
+
+    if let Some(tile_out) = &mut tile_out {
+        tile_out.clear();
+    }
+
     let placement = rules.get_piece(data.model()).unwrap();
 
     // Collect placeable tiles
