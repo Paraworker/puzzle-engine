@@ -3,18 +3,13 @@ use crate::{
     states::{
         game_setup::LoadedRules,
         playing::{
-            TileEnter, TileOut, capture_piece,
-            phases::GamePhase,
-            piece::PlacingPiece,
-            place_piece,
-            session::{GameSession, TileIndex},
-            tile::Tile,
+            TileEnter, TileOut, TileReleased, capture_piece, phases::GamePhase,
+            piece::PlacingPiece, place_piece, session::GameSession, tile::Tile,
         },
     },
 };
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
-use rule_engine::pos::Pos;
 
 pub struct PlacingPlugin;
 
@@ -23,7 +18,13 @@ impl Plugin for PlacingPlugin {
         app.add_systems(OnEnter(GamePhase::Placing), on_enter)
             .add_systems(
                 Update,
-                (on_button_pressed, on_tile_enter, on_tile_out)
+                (
+                    on_tile_released,
+                    on_tile_enter,
+                    on_tile_out,
+                    on_secondary_cancel,
+                    on_escape_cancel,
+                )
                     .run_if(in_state(GamePhase::Placing)),
             )
             .add_systems(OnExit(GamePhase::Placing), on_exit);
@@ -31,10 +32,11 @@ impl Plugin for PlacingPlugin {
 }
 
 fn on_enter(
-    mut pressed: Option<ResMut<Events<Pointer<Pressed>>>>,
     mut tile_enter: Option<ResMut<Events<TileEnter>>>,
     mut tile_out: Option<ResMut<Events<TileOut>>>,
-    mut visibility_query: Query<&mut Visibility>,
+    mut tile_released: Option<ResMut<Events<TileReleased>>>,
+    mut pointer_pressed: Option<ResMut<Events<Pointer<Pressed>>>>,
+    mut vis_query: Query<&mut Visibility>,
     tile_query: Query<&Tile>,
     rules: Res<LoadedRules>,
     session: Res<GameSession>,
@@ -42,16 +44,20 @@ fn on_enter(
 ) {
     // Clear events
     // In case the old events are still in the queue
-    if let Some(pressed) = &mut pressed {
-        pressed.clear();
-    }
-
     if let Some(tile_enter) = &mut tile_enter {
         tile_enter.clear();
     }
 
     if let Some(tile_out) = &mut tile_out {
         tile_out.clear();
+    }
+
+    if let Some(tile_released) = &mut tile_released {
+        tile_released.clear();
+    }
+
+    if let Some(pointer_pressed) = &mut pointer_pressed {
+        pointer_pressed.clear();
     }
 
     let placement = rules.get_piece(data.model()).unwrap();
@@ -62,38 +68,43 @@ fn on_enter(
 
     // Highlight placeable tiles
     for pos in data.placeable_tiles() {
-        if let Ok(mut visibility) =
-            visibility_query.get_mut(session.tiles.get(&pos).unwrap().placeable())
-        {
-            *visibility = Visibility::Visible;
-        }
+        vis_query
+            .get_mut(session.tiles.get(&pos).unwrap().placeable())
+            .unwrap()
+            .set_if_neq(Visibility::Visible);
     }
 }
 
 fn on_exit(
     mut commands: Commands,
-    mut visibility_query: Query<&mut Visibility>,
+    mut vis_query: Query<&mut Visibility>,
     session: Res<GameSession>,
     data: Res<PlacingPiece>,
 ) {
-    // Unhighlight placeable tiles
+    // Unhighlight tiles
     for pos in data.placeable_tiles() {
-        if let Ok(mut visibility) =
-            visibility_query.get_mut(session.tiles.get(&pos).unwrap().placeable())
-        {
-            *visibility = Visibility::Hidden;
-        }
+        let entities = session.tiles.get(&pos).unwrap();
+
+        vis_query
+            .get_mut(entities.placeable())
+            .unwrap()
+            .set_if_neq(Visibility::Hidden);
+
+        vis_query
+            .get_mut(entities.source_or_target())
+            .unwrap()
+            .set_if_neq(Visibility::Hidden);
     }
 
     commands.remove_resource::<PlacingPiece>();
 }
 
-/// A system that triggered when the primary button is pressed.
-fn on_button_pressed(
-    mut pressed: EventReader<Pointer<Pressed>>,
+fn on_tile_released(
+    mut pressed: EventReader<TileReleased>,
     mut egui: EguiContexts,
     mut commands: Commands,
-    mut visibility_query: Query<&mut Visibility>,
+    child_query: Query<&ChildOf>,
+    tile_query: Query<&Tile>,
     assets: Res<GameAssets>,
     rules: Res<LoadedRules>,
     data: Res<PlacingPiece>,
@@ -108,53 +119,47 @@ fn on_button_pressed(
         return;
     }
 
+    let Some(event) = pressed.read().last() else {
+        return;
+    };
+
+    if event.1 != PointerButton::Primary {
+        return;
+    }
+
     let session = session.as_mut();
 
-    for event in pressed.read() {
-        if event.button == PointerButton::Primary {
-            if let Some(to_place) = data.to_place_pos() {
-                // If the to place position is already occupied, remove the existing piece (i.e. capture it)
-                capture_piece(
-                    &mut commands,
-                    &mut session.placed_pieces,
-                    &mut session.players,
-                    to_place,
-                );
+    let child = child_query.get(event.0).unwrap();
+    let tile = tile_query.get(child.parent()).unwrap();
 
-                // Spawn the placed piece at the target position
-                place_piece(
-                    &mut commands,
-                    &assets,
-                    &rules,
-                    session.board,
-                    &mut session.players,
-                    &mut session.placed_pieces,
-                    data.model(),
-                    data.color(),
-                    to_place,
-                )
-                .unwrap();
+    if data.can_place_at(tile.pos()) {
+        // If the to place position is already occupied, remove the existing piece (i.e. capture it)
+        capture_piece(
+            &mut commands,
+            &mut session.placed_pieces,
+            &mut session.players,
+            tile.pos(),
+        );
 
-                // Unhighlight the to place tile
-                if let Ok(mut visibility) = visibility_query
-                    .get_mut(session.tiles.get(&to_place).unwrap().source_or_target())
-                {
-                    *visibility = Visibility::Hidden;
-                }
+        // Spawn the placed piece at the target position
+        place_piece(
+            &mut commands,
+            &assets,
+            &rules,
+            session.board,
+            &mut session.players,
+            &mut session.placed_pieces,
+            data.model(),
+            data.color(),
+            tile.pos(),
+        )
+        .unwrap();
 
-                // Update last action position
-                session.last_action = Some(to_place);
+        // Update last action position
+        session.last_action = Some(tile.pos());
 
-                // Finish this turn
-                next_phase.set(GamePhase::TurnEnd);
-            } else {
-                // Cancelled.
-                next_phase.set(GamePhase::Selecting);
-            }
-
-            // We only handle the first release event
-            break;
-        }
+        // Finish this turn
+        next_phase.set(GamePhase::TurnEnd);
     }
 }
 
@@ -162,8 +167,8 @@ fn on_tile_enter(
     mut enter: EventReader<TileEnter>,
     child_query: Query<&ChildOf>,
     tile_query: Query<&Tile>,
-    mut visibility_query: Query<&mut Visibility>,
-    mut data: ResMut<PlacingPiece>,
+    mut vis_query: Query<&mut Visibility>,
+    data: Res<PlacingPiece>,
     session: Res<GameSession>,
     next_phase: Res<NextState<GamePhase>>,
 ) {
@@ -171,27 +176,32 @@ fn on_tile_enter(
         return;
     }
 
-    let Some(event) = enter.read().last() else {
-        return;
-    };
+    for event in enter.read() {
+        let child = child_query.get(event.0).unwrap();
+        let tile = tile_query.get(child.parent()).unwrap();
 
-    let child = child_query.get(event.0).unwrap();
-    let tile = tile_query.get(child.parent()).unwrap();
+        if data.can_place_at(tile.pos()) {
+            let entities = session.tiles.get(&tile.pos()).unwrap();
 
-    apply_to_place(
-        &mut visibility_query,
-        &session.tiles,
-        &mut data,
-        Some(tile.pos()),
-    );
+            vis_query
+                .get_mut(entities.placeable())
+                .unwrap()
+                .set_if_neq(Visibility::Hidden);
+
+            vis_query
+                .get_mut(entities.source_or_target())
+                .unwrap()
+                .set_if_neq(Visibility::Visible);
+        }
+    }
 }
 
 fn on_tile_out(
     mut out: EventReader<TileOut>,
     child_query: Query<&ChildOf>,
     tile_query: Query<&Tile>,
-    mut visibility_query: Query<&mut Visibility>,
-    mut data: ResMut<PlacingPiece>,
+    mut vis_query: Query<&mut Visibility>,
+    data: Res<PlacingPiece>,
     session: Res<GameSession>,
     next_phase: Res<NextState<GamePhase>>,
 ) {
@@ -199,56 +209,70 @@ fn on_tile_out(
         return;
     }
 
-    let Some(to_place) = data.to_place_pos() else {
-        return;
-    };
-
     for event in out.read() {
         let child = child_query.get(event.0).unwrap();
         let tile = tile_query.get(child.parent()).unwrap();
 
-        if tile.pos() == to_place {
-            apply_to_place(&mut visibility_query, &session.tiles, &mut data, None);
-            break;
+        if data.can_place_at(tile.pos()) {
+            let entities = session.tiles.get(&tile.pos()).unwrap();
+
+            vis_query
+                .get_mut(entities.placeable())
+                .unwrap()
+                .set_if_neq(Visibility::Visible);
+
+            vis_query
+                .get_mut(entities.source_or_target())
+                .unwrap()
+                .set_if_neq(Visibility::Hidden);
         }
     }
 }
 
-fn apply_to_place(
-    visibility_query: &mut Query<&mut Visibility>,
-    tiles: &TileIndex,
-    data: &mut PlacingPiece,
-    new_to_place: Option<Pos>,
+fn on_secondary_cancel(
+    mut pressed: EventReader<Pointer<Pressed>>,
+    mut egui: EguiContexts,
+    mut next_phase: ResMut<NextState<GamePhase>>,
 ) {
-    // Clear the previous to place position if any
-    if let Some(old) = data.clear_to_place_pos() {
-        let entities = tiles.get(&old).unwrap();
-
-        // Unhighlight to place
-        if let Ok(mut visibility) = visibility_query.get_mut(entities.source_or_target()) {
-            *visibility = Visibility::Hidden;
-        }
-
-        // Highlight placable
-        if let Ok(mut visibility) = visibility_query.get_mut(entities.placeable()) {
-            *visibility = Visibility::Visible;
-        }
+    if let NextState::Pending(_) = *next_phase {
+        return;
     }
 
-    // Set the new to place position if any
-    if let Some(pos) = new_to_place {
-        if data.set_to_place_pos(pos) {
-            let entities = tiles.get(&pos).unwrap();
-
-            // Unhighlight placable
-            if let Ok(mut visibility) = visibility_query.get_mut(entities.placeable()) {
-                *visibility = Visibility::Hidden;
-            }
-
-            // Highlight to place
-            if let Ok(mut visibility) = visibility_query.get_mut(entities.source_or_target()) {
-                *visibility = Visibility::Visible;
-            }
-        }
+    if egui.ctx_mut().unwrap().wants_pointer_input() {
+        return;
     }
+
+    let Some(event) = pressed.read().last() else {
+        return;
+    };
+
+    if event.button != PointerButton::Secondary {
+        return;
+    }
+
+    cancel_place(&mut next_phase);
+}
+
+fn on_escape_cancel(
+    keys: Res<ButtonInput<KeyCode>>,
+    mut egui: EguiContexts,
+    mut next_phase: ResMut<NextState<GamePhase>>,
+) {
+    if let NextState::Pending(_) = *next_phase {
+        return;
+    }
+
+    if egui.ctx_mut().unwrap().wants_keyboard_input() {
+        return;
+    }
+
+    if !keys.just_pressed(KeyCode::Escape) {
+        return;
+    }
+
+    cancel_place(&mut next_phase);
+}
+
+fn cancel_place(next: &mut NextState<GamePhase>) {
+    next.set(GamePhase::Selecting);
 }
