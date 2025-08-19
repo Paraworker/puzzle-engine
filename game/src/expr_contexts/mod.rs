@@ -1,11 +1,7 @@
 use crate::{
     GameError,
-    states::playing::{
-        piece::PlacedPiece,
-        session::{PlacedPieceIndex, turn::TurnController},
-    },
+    states::playing::session::{PlacedPieceIndex, turn::TurnController},
 };
-use bevy::ecs::system::Query;
 use rule_engine::{
     piece::{PieceColor, PieceModel},
     pos::Pos,
@@ -59,40 +55,28 @@ fn query_count_piece_in_rect(
     piece: (PieceModel, PieceColor),
     rect: Rect,
     index: &PlacedPieceIndex,
-    query: Query<&PlacedPiece>,
 ) -> Result<i64, GameError> {
     let (want_model, want_color) = piece;
 
     Ok(index
         .iter()
         .filter(|&(pos, _)| rect.contains(*pos))
-        .filter(|&(_, entities)| {
-            let placed = query.get(entities.root()).unwrap();
-            placed.model() == want_model && placed.color() == want_color
-        })
+        .filter(|&(_, placed)| placed.model() == want_model && placed.color() == want_color)
         .count() as i64)
 }
 
-fn query_model_at_pos(
-    index: &PlacedPieceIndex,
-    query: Query<&PlacedPiece>,
-    pos: Pos,
-) -> Result<PieceModel, GameError> {
-    let Some(entities) = index.get(&pos) else {
+fn query_model_at_pos(index: &PlacedPieceIndex, pos: Pos) -> Result<PieceModel, GameError> {
+    let Some(placed) = index.get(&pos) else {
         return Err(GameError::NoPieceAtPos(pos));
     };
 
-    Ok(query.get(entities.root()).unwrap().model())
+    Ok(placed.model())
 }
 
-fn query_color_at_pos(
-    index: &PlacedPieceIndex,
-    query: Query<&PlacedPiece>,
-    pos: Pos,
-) -> Result<PieceColor, GameError> {
-    let Some(entities) = index.get(&pos) else {
+fn query_color_at_pos(index: &PlacedPieceIndex, pos: Pos) -> Result<PieceColor, GameError> {
+    let Some(placed) = index.get(&pos) else {
         return Err(GameError::NoPieceAtPos(pos));
     };
 
-    Ok(query.get(entities.root()).unwrap().color())
+    Ok(placed.color())
 }

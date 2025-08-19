@@ -5,12 +5,8 @@ use crate::{
         query_last_action_col, query_last_action_row, query_model_at_pos, query_pos_occupied,
         query_round_number, query_turn_number,
     },
-    states::playing::{
-        piece::PlacedPiece,
-        session::{PlacedPieceIndex, turn::TurnController},
-    },
+    states::playing::session::{PlacedPieceIndex, turn::TurnController},
 };
-use bevy::ecs::system::Query;
 use rule_engine::{
     expr::Context,
     piece::{PieceColor, PieceModel},
@@ -19,14 +15,13 @@ use rule_engine::{
 };
 
 #[derive(Debug)]
-pub struct WinOrLoseContext<'t, 'l, 'i, 'world, 'state, 'data> {
+pub struct WinOrLoseContext<'t, 'l, 'i> {
     pub turn: &'t TurnController,
     pub last_action: &'l Option<Pos>,
     pub placed_piece_index: &'i PlacedPieceIndex,
-    pub placed_piece_query: Query<'world, 'state, &'data PlacedPiece>,
 }
 
-impl Context for WinOrLoseContext<'_, '_, '_, '_, '_, '_> {
+impl Context for WinOrLoseContext<'_, '_, '_> {
     type Error = GameError;
 
     fn pos_occupied(&self, pos: Pos) -> Result<bool, Self::Error> {
@@ -62,19 +57,14 @@ impl Context for WinOrLoseContext<'_, '_, '_, '_, '_, '_> {
         piece: (PieceModel, PieceColor),
         rect: Rect,
     ) -> Result<i64, Self::Error> {
-        query_count_piece_in_rect(
-            piece,
-            rect,
-            &self.placed_piece_index,
-            self.placed_piece_query,
-        )
+        query_count_piece_in_rect(piece, rect, &self.placed_piece_index)
     }
 
     fn model_at_pos(&self, pos: Pos) -> Result<PieceModel, Self::Error> {
-        query_model_at_pos(&self.placed_piece_index, self.placed_piece_query, pos)
+        query_model_at_pos(&self.placed_piece_index, pos)
     }
 
     fn color_at_pos(&self, pos: Pos) -> Result<PieceColor, Self::Error> {
-        query_color_at_pos(&self.placed_piece_index, self.placed_piece_query, pos)
+        query_color_at_pos(&self.placed_piece_index, pos)
     }
 }

@@ -5,7 +5,7 @@ use crate::{
         AppState,
         error::CurrentError,
         game_setup::LoadedRules,
-        playing::{phases::GamePhase, piece::PlacedPiece, session::GameSession},
+        playing::{phases::GamePhase, session::GameSession},
     },
 };
 use bevy::prelude::*;
@@ -22,7 +22,6 @@ impl Plugin for TurnEndPlugin {
 /// A system that evaluates win/loss conditions, and prepares for the next turn or ends the game.
 fn evaluate_turn(
     mut commands: Commands,
-    placed_piece_query: Query<&PlacedPiece>,
     mut session: ResMut<GameSession>,
     mut next_phase: ResMut<NextState<GamePhase>>,
     mut next_state: ResMut<NextState<AppState>>,
@@ -48,7 +47,6 @@ fn evaluate_turn(
             turn: &session.turn,
             last_action: &session.last_action,
             placed_piece_index: &session.placed_pieces,
-            placed_piece_query,
         };
 
         player.set_state(
@@ -60,10 +58,7 @@ fn evaluate_turn(
         );
     }
 
-    let ctx = GameOverContext {
-        session,
-        placed_piece_query,
-    };
+    let ctx = GameOverContext { session };
 
     // Check game over condition
     if rules.evaluate_game_over_condition(&ctx).unwrap() {

@@ -5,9 +5,8 @@ use crate::{
         query_last_action_col, query_last_action_row, query_model_at_pos, query_pos_occupied,
         query_round_number, query_turn_number,
     },
-    states::playing::{piece::PlacedPiece, session::GameSession},
+    states::playing::session::GameSession,
 };
-use bevy::ecs::system::Query;
 use rule_engine::{
     expr::Context,
     piece::{PieceColor, PieceModel},
@@ -16,16 +15,15 @@ use rule_engine::{
 };
 
 #[derive(Debug)]
-pub struct MovementContext<'s, 'world, 'state, 'data> {
+pub struct MovementContext<'s> {
     pub session: &'s GameSession,
-    pub placed_piece_query: Query<'world, 'state, &'data PlacedPiece>,
     pub moving_model: PieceModel,
     pub moving_color: PieceColor,
     pub source_pos: Pos,
     pub target_pos: Pos,
 }
 
-impl Context for MovementContext<'_, '_, '_, '_> {
+impl Context for MovementContext<'_> {
     type Error = GameError;
 
     fn pos_occupied(&self, pos: Pos) -> Result<bool, Self::Error> {
@@ -61,20 +59,15 @@ impl Context for MovementContext<'_, '_, '_, '_> {
         piece: (PieceModel, PieceColor),
         rect: Rect,
     ) -> Result<i64, Self::Error> {
-        query_count_piece_in_rect(
-            piece,
-            rect,
-            &self.session.placed_pieces,
-            self.placed_piece_query,
-        )
+        query_count_piece_in_rect(piece, rect, &self.session.placed_pieces)
     }
 
     fn model_at_pos(&self, pos: Pos) -> Result<PieceModel, Self::Error> {
-        query_model_at_pos(&self.session.placed_pieces, self.placed_piece_query, pos)
+        query_model_at_pos(&self.session.placed_pieces, pos)
     }
 
     fn color_at_pos(&self, pos: Pos) -> Result<PieceColor, Self::Error> {
-        query_color_at_pos(&self.session.placed_pieces, self.placed_piece_query, pos)
+        query_color_at_pos(&self.session.placed_pieces, pos)
     }
 
     fn moving_model(&self) -> Result<PieceModel, Self::Error> {

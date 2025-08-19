@@ -1,5 +1,5 @@
 use crate::states::playing::{
-    piece::PieceEntities,
+    piece::PlacedPiece,
     session::{player::Players, turn::TurnController},
     tile::TileEntities,
 };
@@ -14,7 +14,7 @@ pub mod turn;
 pub type TileIndex = HashMap<Pos, TileEntities>;
 
 /// Indexes for placed pieces.
-pub type PlacedPieceIndex = HashMap<Pos, PieceEntities>;
+pub type PlacedPieceIndex = HashMap<Pos, PlacedPiece>;
 
 #[derive(Debug, Resource)]
 pub struct GameSession {

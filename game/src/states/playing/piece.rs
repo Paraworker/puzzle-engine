@@ -44,17 +44,23 @@ impl PieceEntities {
     }
 }
 
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone)]
 pub struct PlacedPiece {
     model: PieceModel,
     color: PieceColor,
     pos: Pos,
+    entities: PieceEntities,
 }
 
 impl PlacedPiece {
     /// Creates a new placed piece.
-    pub fn new(model: PieceModel, color: PieceColor, pos: Pos) -> Self {
-        Self { model, color, pos }
+    pub fn new(model: PieceModel, color: PieceColor, pos: Pos, entities: PieceEntities) -> Self {
+        Self {
+            model,
+            color,
+            pos,
+            entities,
+        }
     }
 
     /// Returns the piece model.
@@ -71,25 +77,32 @@ impl PlacedPiece {
     pub fn pos(&self) -> Pos {
         self.pos
     }
+
+    /// Returns the piece entities.
+    pub fn entities(&self) -> &PieceEntities {
+        &self.entities
+    }
 }
 
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Resource)]
 pub struct MovingPiece {
     model: PieceModel,
     color: PieceColor,
     source: Pos,
     target: Option<Pos>,
+    entities: PieceEntities,
     movable: HashSet<Pos>,
 }
 
 impl MovingPiece {
     /// Creates a new moving piece.
-    pub fn new(model: PieceModel, color: PieceColor, source: Pos) -> Self {
+    pub fn new(model: PieceModel, color: PieceColor, source: Pos, entities: PieceEntities) -> Self {
         Self {
             model,
             color,
             source,
             target: None,
+            entities,
             movable: HashSet::new(),
         }
     }
@@ -98,7 +111,6 @@ impl MovingPiece {
     pub fn collect_movable(
         &mut self,
         session: &GameSession,
-        placed_piece_query: Query<&PlacedPiece>,
         tile_query: Query<&Tile>,
         rules: &PieceRules,
     ) -> Result<(), GameError> {
@@ -110,7 +122,6 @@ impl MovingPiece {
 
             let ctx = MovementContext {
                 session,
-                placed_piece_query,
                 moving_model: self.model,
                 moving_color: self.color,
                 source_pos: self.source,
@@ -167,6 +178,11 @@ impl MovingPiece {
     pub fn target_pos(&self) -> Option<Pos> {
         self.target
     }
+
+    /// Returns the piece entities.
+    pub fn entities(&self) -> &PieceEntities {
+        &self.entities
+    }
 }
 
 #[derive(Debug, Resource)]
@@ -192,13 +208,11 @@ impl PlacingPiece {
     pub fn collect_placeable(
         &mut self,
         session: &GameSession,
-        placed_piece_query: Query<&PlacedPiece>,
         tile_query: Query<&Tile>,
         rules: &PieceRules,
     ) -> Result<(), GameError> {
         for tile in tile_query {
             let ctx = PlacementContext {
-                placed_piece_query,
                 session,
                 to_place_model: self.model,
                 to_place_color: self.color,
@@ -254,3 +268,6 @@ impl PlacingPiece {
         self.to_place
     }
 }
+
+#[derive(Debug, Component)]
+pub struct PiecePos(pub Pos);
