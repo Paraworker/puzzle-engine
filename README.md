@@ -1,2 +1,48 @@
 # Crazy Puzzle
-A puzzle game engine
+*A puzzle game engine*
+
+**Crazy Puzzle** is a small declarative rules engine for board games. Rules are written in a configuration file using a compact expression DSL.
+
+### DSL Overview
+Check if a position is empty or enemy
+
+```ron
+If(
+    // condition
+    PosOccupied(r, c),
+    
+    // occupied -> must be enemy
+    Not(ColorEqual(ColorAtPos(r, c), your_color)),
+    
+    // empty -> ok
+    True,
+)
+```
+> Note: r, c, and your_color are placeholders. In real rules, replace them with context variables or with nested expressions.
+
+## Example: Chess rook movement
+A compact rook movement rule using `If` and `CountInRect`:
+
+```ron
+And([
+  // 1) Must move in a straight line: same row or same column
+  Or([
+    Equal(TargetRow, SourceRow),
+    Equal(TargetCol, SourceCol),
+  ]),
+
+  // 2) Branch on whether the target square is occupied
+  If(
+    PosOccupied(TargetRow, TargetCol),
+
+    // then: target occupied → must be enemy and path contains exactly 1 piece (the target)
+    And([
+      Not(ColorEqual(ColorAtPos(TargetRow, TargetCol), MovingColor)),
+      Equal(CountInRect((SourceRow, SourceCol), (TargetRow, TargetCol)), Const(1)),
+    ]),
+
+    // otherwise: target empty → path contains 0 pieces
+    Equal(CountInRect((SourceRow, SourceCol), (TargetRow, TargetCol)), Const(0)),
+  ),
+])
+```
