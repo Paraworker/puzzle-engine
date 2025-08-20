@@ -2,7 +2,7 @@ use crate::{
     GameError,
     states::playing::session::{PlacedPieceIndex, turn::TurnController},
 };
-use rule_engine::{
+use rulery::{
     piece::{PieceColor, PieceModel},
     pos::Pos,
     rect::Rect,

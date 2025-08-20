@@ -1,0 +1,19 @@
+[package]
+name = "rulery-editor"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+readme = "README.md"
+description = "Editor for Rulery"
+
+[dependencies]
+rfd = "0.15"
+rulery = { path = "../rulery" }
+slint = "1.12"
+
+[build-dependencies]
+slint-build = "1.12"
+
+[package.metadata.bundle]
+name = "Rulery Editor"
+identifier = "io.github.paraworker.crazy_puzzle.rulery_editor"

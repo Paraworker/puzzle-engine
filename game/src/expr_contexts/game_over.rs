@@ -7,7 +7,7 @@ use crate::{
     },
     states::playing::session::GameSession,
 };
-use rule_engine::{
+use rulery::{
     expr::Context,
     piece::{PieceColor, PieceModel},
     player::PlayerState,

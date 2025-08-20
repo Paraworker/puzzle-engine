@@ -14,7 +14,7 @@ use bevy_tweening::{
     Animator, Sequence, Tracks, Tween,
     lens::{TransformPositionLens, TransformScaleLens},
 };
-use rule_engine::{
+use rulery::{
     CheckedGameRules,
     piece::{PieceColor, PieceModel, PieceRules},
     pos::Pos,

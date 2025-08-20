@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 use bevy_tweening::TweeningPlugin;
 use ron::de::SpannedError;
-use rule_engine::{RulesError, pos::Pos};
+use rulery::{RulesError, pos::Pos};
 use thiserror::Error;
 
 mod assets;

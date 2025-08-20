@@ -14,7 +14,7 @@ use crate::{
 };
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
-use rule_engine::piece::{PieceColor, PieceModel};
+use rulery::piece::{PieceColor, PieceModel};
 
 pub fn start_place_piece(
     commands: &mut Commands,
