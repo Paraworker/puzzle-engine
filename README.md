@@ -1,9 +1,7 @@
 # Crazy Puzzle
-*A puzzle game engine*
+**Crazy Puzzle** is a declarative rules engine for board games. Rules are written in a configuration file using a compact expression DSL.
 
-**Crazy Puzzle** is a small declarative rules engine for board games. Rules are written in a configuration file using a compact expression DSL.
-
-### DSL Overview
+## DSL Overview
 Check if a position is empty or enemy
 
 ```ron
