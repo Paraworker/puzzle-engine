@@ -1,8 +1,16 @@
 # Puzzle Engine
+
 Create your own puzzle games
 
-## DSL Overview
-Check if a position is empty or enemy
+## Workspace crates
+
+- **rulery** — library for rule schema and evaluation
+- **crazy-puzzle** — example game built with Rulery and Bevy
+- **rulery-editor** — GUI editor for Rulery
+
+## DSL Quick Look
+
+Check if a position is empty or enemy:
 
 ```ron
 If(
@@ -19,6 +27,7 @@ If(
 > Note: r, c, and your_color are placeholders. In real rules, replace them with context variables or with nested expressions.
 
 ## Example: Chess rook movement
+
 A compact rook movement rule using `If` and `CountInRect`:
 
 ```ron
