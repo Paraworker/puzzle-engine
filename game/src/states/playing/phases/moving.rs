@@ -213,7 +213,7 @@ fn on_tile_released(
             commands
                 .entity(data.entities().root())
                 .insert(Animator::new(tween));
-        };
+        }
 
         // Update piece pos
         piece_pos.0 = tile.pos();
