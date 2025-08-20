@@ -4,7 +4,7 @@ use crate::states::playing::{
     tile::TileEntities,
 };
 use bevy::prelude::*;
-use rule_engine::pos::Pos;
+use rulery::pos::Pos;
 use std::collections::HashMap;
 
 pub mod player;

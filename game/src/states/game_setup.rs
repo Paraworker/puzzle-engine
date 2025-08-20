@@ -3,7 +3,7 @@ use crate::{
     states::{AppState, error::CurrentError},
 };
 use bevy::prelude::*;
-use rule_engine::{CheckedGameRules, UncheckedGameRules};
+use rulery::{CheckedGameRules, UncheckedGameRules};
 use std::ops::Deref;
 
 const NORMAL_BUTTON: Color = Color::srgb(0.15, 0.15, 0.15);

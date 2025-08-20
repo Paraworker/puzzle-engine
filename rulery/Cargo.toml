@@ -1,9 +1,10 @@
 [package]
-name = "rule-engine"
+name = "rulery"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
-description = "Rule engine for Crazy Puzzle"
+readme = "README.md"
+description = "Rules as data for puzzle games"
 
 [dependencies]
 indexmap = { version = "2.10", features = ["serde"] }

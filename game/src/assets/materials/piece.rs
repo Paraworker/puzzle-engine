@@ -6,7 +6,7 @@ use bevy::{
     },
     pbr::StandardMaterial,
 };
-use rule_engine::piece::PieceColor;
+use rulery::piece::PieceColor;
 use std::collections::HashMap;
 
 #[derive(Debug)]

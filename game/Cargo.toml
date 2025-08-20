@@ -3,6 +3,7 @@ name = "crazy-puzzle"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"
+readme = "README.md"
 description = "A customizable rule-based puzzle game"
 
 [dependencies]
@@ -11,6 +12,6 @@ bevy_egui = "0.35"
 bevy_tweening = "0.13"
 indexmap = { version = "2.10", features = ["serde"] }
 ron = "0.10"
-rule-engine = { path = "../rule-engine" }
+rulery = { path = "../rulery" }
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0"

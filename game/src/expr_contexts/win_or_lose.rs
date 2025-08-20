@@ -7,7 +7,7 @@ use crate::{
     },
     states::playing::session::{PlacedPieceIndex, turn::TurnController},
 };
-use rule_engine::{
+use rulery::{
     expr::Context,
     piece::{PieceColor, PieceModel},
     pos::Pos,

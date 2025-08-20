@@ -12,7 +12,7 @@ use crate::states::{
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
 use bevy_tweening::{Animator, Lens, Targetable, Tween};
-use rule_engine::pos::Pos;
+use rulery::pos::Pos;
 use std::{collections::hash_map::Entry, time::Duration};
 
 pub fn start_move_piece(

@@ -7,7 +7,7 @@ use crate::{
     },
 };
 use bevy::prelude::*;
-use rule_engine::{CheckedGameRules, pos::Pos};
+use rulery::{CheckedGameRules, pos::Pos};
 
 /// Spawns the board.
 pub fn spawn_board(

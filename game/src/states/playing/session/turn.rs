@@ -1,5 +1,5 @@
 use crate::{GameError, states::playing::session::player::Players};
-use rule_engine::player::PlayerState;
+use rulery::player::PlayerState;
 
 /// Controls the turn-based flow of the game.
 #[derive(Debug)]

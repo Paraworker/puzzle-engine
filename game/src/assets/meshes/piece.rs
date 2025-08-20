@@ -4,7 +4,7 @@ use bevy::{
     prelude::*,
     render::mesh::Mesh,
 };
-use rule_engine::{CheckedGameRules, piece::PieceModel};
+use rulery::{CheckedGameRules, piece::PieceModel};
 use std::collections::HashMap;
 
 #[derive(Debug)]

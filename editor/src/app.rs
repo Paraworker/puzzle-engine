@@ -1,5 +1,5 @@
 use rfd::FileDialog;
-use rule_engine::{CheckedGameRules, UncheckedGameRules, expr::boolean::BoolExpr};
+use rulery::{CheckedGameRules, UncheckedGameRules, expr::boolean::BoolExpr};
 use slint::{SharedString, ToSharedString};
 
 slint::include_modules!();

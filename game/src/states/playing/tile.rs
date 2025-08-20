@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use rule_engine::pos::Pos;
+use rulery::pos::Pos;
 
 /// Entities associated with a tile.
 #[derive(Debug, Clone)]

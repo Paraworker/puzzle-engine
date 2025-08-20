@@ -1,6 +1,6 @@
 use crate::GameError;
 use indexmap::IndexMap;
-use rule_engine::{
+use rulery::{
     CheckedGameRules,
     count::Count,
     piece::{PieceColor, PieceModel},

@@ -9,7 +9,7 @@ use crate::{
     },
 };
 use bevy::prelude::*;
-use rule_engine::player::PlayerState;
+use rulery::player::PlayerState;
 
 pub struct TurnEndPlugin;
 
