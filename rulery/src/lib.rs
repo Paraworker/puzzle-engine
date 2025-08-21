@@ -381,10 +381,21 @@ impl Default for CheckedGameRules {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct GameRulesInner {
+    /// Name of the game
     name: String,
+
+    /// Board configuration
     board: BoardRuleSet,
+
+    /// Piece configuration
     pieces: PieceRuleSet,
+
+    /// Player configuration
     players: PlayerRuleSet,
+
+    /// Piece placement layout at the start of the game
     initial_layout: InitialLayout,
+
+    /// Game termination condition
     game_over_condition: BoolExpr,
 }
