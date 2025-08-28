@@ -18,19 +18,13 @@ pub enum ColorExpr {
     /// (condition, then, otherwise)
     If(Box<BoolExpr>, Box<ColorExpr>, Box<ColorExpr>),
 
-    /// Query board state
-    ///
-    /// - ColorAtPos: The color of the piece at the given position.
+    /// Query the color of the piece at the given position.
     ColorAtPos(Box<IntExpr>, Box<IntExpr>),
 
-    /// Movement only
-    ///
-    /// - MovingColor: The color of the piece being moved.
+    /// Query the color of the piece being moved (Movement only).
     MovingColor,
 
-    /// Placement only
-    ///
-    /// - ToPlaceColor: The color of the piece being placed.
+    /// Query the color of the piece being placed (Placement only).
     ToPlaceColor,
 }
 
