@@ -18,19 +18,13 @@ pub enum ModelExpr {
     /// (condition, then, otherwise)
     If(Box<BoolExpr>, Box<ModelExpr>, Box<ModelExpr>),
 
-    /// Query board state
-    ///
-    /// - ModelAtPos: The model of the piece at the given position.
+    /// Query the model of the piece at the given position.
     ModelAtPos(Box<IntExpr>, Box<IntExpr>),
 
-    /// Movement expression only
-    ///
-    /// - MovingModel: The model of the piece being moved.
+    /// Query the model of the piece being moved (Movement only).
     MovingModel,
 
-    /// Placement expression only
-    ///
-    /// - ToPlaceModel: The model of the piece being placed.
+    /// Query the model of the piece being placed (Placement only).
     ToPlaceModel,
 }
 

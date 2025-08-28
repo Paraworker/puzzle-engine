@@ -29,47 +29,37 @@ pub enum IntExpr {
     /// (condition, then, otherwise)
     If(Box<BoolExpr>, Box<IntExpr>, Box<IntExpr>),
 
-    /// Query turn information
-    ///
-    /// - TurnNumber: The current turn number.
-    /// - RoundNumber: The current round number.
+    /// Query the current turn number.
     TurnNumber,
+    /// Query the current round number.
     RoundNumber,
 
-    /// Query last action information
-    ///
-    /// - LastActionRow: The row of the last action.
-    /// - LastActionCol: The column of the last action.
+    /// Query the row of the last action.
     LastActionRow,
+    /// Query the column of the last action.
     LastActionCol,
 
-    /// Query piece count
-    ///
-    /// - CountInRect: The number of pieces in the given rectangle.
-    /// - CountPieceInRect: The number of pieces with the given model and color in the given rectangle.
+    /// Query the number of pieces in the given rectangle.
     CountInRect((Box<IntExpr>, Box<IntExpr>), (Box<IntExpr>, Box<IntExpr>)),
+    /// Query the number of pieces with the given model and color in the given rectangle.
     CountPieceInRect(
         (Box<ModelExpr>, Box<ColorExpr>),
         (Box<IntExpr>, Box<IntExpr>),
         (Box<IntExpr>, Box<IntExpr>),
     ),
 
-    /// Movement only
-    ///
-    /// - SourceRow: The source tile row.
-    /// - SourceCol: The source tile column.
-    /// - TargetRow: The destination tile row.
-    /// - TargetCol: The destination tile column.
+    /// Query the source tile row (Movement only).
     SourceRow,
+    /// Query the source tile column (Movement only).
     SourceCol,
+    /// Query the destination tile row (Movement only).
     TargetRow,
+    /// Query the destination tile column (Movement only).
     TargetCol,
 
-    /// Placement only
-    ///
-    /// - ToPlaceRow: The row where the piece is being placed.
-    /// - ToPlaceCol: The column where the piece is being placed.
+    /// Query the row where the piece is being placed (Placement only).
     ToPlaceRow,
+    /// Query the column where the piece is being placed (Placement only).
     ToPlaceCol,
 }
 

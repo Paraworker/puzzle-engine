@@ -11,21 +11,29 @@ use serde::{Deserialize, Serialize};
 /// Boolean expression.
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BoolExpr {
-    /// Literal
+    /// Literal true value.
     True,
+    /// Literal false value.
     False,
 
-    /// Logical operators
+    /// Logical AND.
     And(Vec<BoolExpr>),
+    /// Logical OR.
     Or(Vec<BoolExpr>),
+    /// Logical NOT.
     Not(Box<BoolExpr>),
 
-    /// Arithmetic comparison operators
+    /// Compare if two integers are equal.
     Equal(Box<IntExpr>, Box<IntExpr>),
+    /// Compare if two integers are not equal.
     NotEqual(Box<IntExpr>, Box<IntExpr>),
+    /// Compare if the first integer is less than the second.
     LessThan(Box<IntExpr>, Box<IntExpr>),
+    /// Compare if the first integer is greater than the second.
     GreaterThan(Box<IntExpr>, Box<IntExpr>),
+    /// Compare if the first integer is less than or equal to the second.
     LessOrEqual(Box<IntExpr>, Box<IntExpr>),
+    /// Compare if the first integer is greater than or equal to the second.
     GreaterOrEqual(Box<IntExpr>, Box<IntExpr>),
 
     /// Conditional expression
@@ -33,25 +41,19 @@ pub enum BoolExpr {
     /// (condition, then, otherwise)
     If(Box<BoolExpr>, Box<BoolExpr>, Box<BoolExpr>),
 
-    /// Color operators
+    /// Compare if two colors are equal.
     ColorEqual(Box<ColorExpr>, Box<ColorExpr>),
 
-    /// Model operators
+    /// Compare if two models are equal.
     ModelEqual(Box<ModelExpr>, Box<ModelExpr>),
 
-    /// Query board state
-    ///
-    /// - PosOccupied: If the given position is occupied by any piece.
+    /// Query if the given position is occupied by any piece.
     PosOccupied(Box<IntExpr>, Box<IntExpr>),
 
-    /// Query last action information
-    ///
-    /// - HasLastAction: If the last action has been performed.
+    /// Query if the last action has been performed.
     HasLastAction,
 
-    /// Game over only
-    ///
-    /// - PlayerStateEqual: If the player's state is equal to the given state.
+    /// Query if the player's state is equal to the given state (Game over only).
     PlayerStateEqual(PieceColor, PlayerState),
 }
 
