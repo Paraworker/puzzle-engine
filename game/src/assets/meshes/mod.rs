@@ -1,5 +1,5 @@
 use crate::assets::meshes::piece::PieceMeshes;
-use bevy::{asset::Assets, render::mesh::Mesh};
+use bevy::{asset::Assets, mesh::Mesh};
 
 pub mod piece;
 

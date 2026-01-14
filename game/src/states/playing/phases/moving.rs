@@ -1,7 +1,7 @@
 use crate::states::{
     game_setup::LoadedRules,
     playing::{
-        TileEnter, TileOut, TileReleased,
+        TileEnter, TileOut, TileRelease,
         board::pos_translation,
         phases::GamePhase,
         piece::{MovingPiece, PiecePos, PlacedPiece, capture_piece},
@@ -11,7 +11,7 @@ use crate::states::{
 };
 use bevy::prelude::*;
 use bevy_egui::EguiContexts;
-use bevy_tweening::{Animator, Lens, Targetable, Tween};
+use bevy_tweening::{AnimTarget, Lens, Tween, TweenAnim};
 use rulery::pos::Pos;
 use std::{collections::hash_map::Entry, time::Duration};
 
@@ -54,7 +54,7 @@ impl Plugin for MovingPlugin {
             .add_systems(
                 Update,
                 (
-                    on_tile_released,
+                    on_tile_release,
                     on_tile_enter,
                     on_tile_out,
                     on_secondary_cancel,
@@ -67,18 +67,18 @@ impl Plugin for MovingPlugin {
 }
 
 fn on_enter(
-    mut tile_enter: Option<ResMut<Events<TileEnter>>>,
-    mut tile_out: Option<ResMut<Events<TileOut>>>,
-    mut tile_released: Option<ResMut<Events<TileReleased>>>,
-    mut pointer_pressed: Option<ResMut<Events<Pointer<Pressed>>>>,
+    mut tile_enter: Option<ResMut<Messages<TileEnter>>>,
+    mut tile_out: Option<ResMut<Messages<TileOut>>>,
+    mut tile_release: Option<ResMut<Messages<TileRelease>>>,
+    mut pointer_press: Option<ResMut<Messages<Pointer<Press>>>>,
     tile_query: Query<&Tile>,
     mut vis_query: Query<&mut Visibility>,
     rules: Res<LoadedRules>,
     session: Res<GameSession>,
     mut data: ResMut<MovingPiece>,
 ) {
-    // Clear events
-    // In case the old events are still in the queue
+    // Clear messages
+    // In case the old messages are still in the queue
     if let Some(tile_enter) = &mut tile_enter {
         tile_enter.clear();
     }
@@ -87,12 +87,12 @@ fn on_enter(
         tile_out.clear();
     }
 
-    if let Some(tile_released) = &mut tile_released {
-        tile_released.clear();
+    if let Some(tile_release) = &mut tile_release {
+        tile_release.clear();
     }
 
-    if let Some(pointer_pressed) = &mut pointer_pressed {
-        pointer_pressed.clear();
+    if let Some(pointer_press) = &mut pointer_press {
+        pointer_press.clear();
     }
 
     let rules = rules.get_piece(data.model()).unwrap();
@@ -145,8 +145,8 @@ fn on_exit(
     commands.remove_resource::<MovingPiece>();
 }
 
-fn on_tile_released(
-    mut released: EventReader<TileReleased>,
+fn on_tile_release(
+    mut release: MessageReader<TileRelease>,
     mut commands: Commands,
     mut egui: EguiContexts,
     child_query: Query<&ChildOf>,
@@ -165,17 +165,17 @@ fn on_tile_released(
         return;
     }
 
-    let Some(event) = released.read().last() else {
+    let Some(msg) = release.read().last() else {
         return;
     };
 
-    if event.1 != PointerButton::Primary {
+    if msg.1 != PointerButton::Primary {
         return;
     }
 
     let session = session.as_mut();
 
-    let child = child_query.get(event.0).unwrap();
+    let child = child_query.get(msg.0).unwrap();
     let tile = tile_query.get(child.parent()).unwrap();
 
     if data.can_move_to(tile.pos()) {
@@ -210,9 +210,10 @@ fn on_tile_released(
                 },
             );
 
-            commands
-                .entity(data.entities().root())
-                .insert(Animator::new(tween));
+            commands.spawn((
+                TweenAnim::new(tween),
+                AnimTarget::component::<Transform>(data.entities().root()),
+            ));
         }
 
         // Update piece pos
@@ -238,7 +239,7 @@ fn on_tile_released(
 }
 
 fn on_tile_enter(
-    mut enter: EventReader<TileEnter>,
+    mut enter: MessageReader<TileEnter>,
     child_query: Query<&ChildOf>,
     tile_query: Query<&Tile>,
     mut vis_query: Query<&mut Visibility>,
@@ -250,8 +251,8 @@ fn on_tile_enter(
         return;
     }
 
-    for event in enter.read() {
-        let child = child_query.get(event.0).unwrap();
+    for msg in enter.read() {
+        let child = child_query.get(msg.0).unwrap();
         let tile = tile_query.get(child.parent()).unwrap();
 
         if data.can_move_to(tile.pos()) {
@@ -271,7 +272,7 @@ fn on_tile_enter(
 }
 
 fn on_tile_out(
-    mut out: EventReader<TileOut>,
+    mut out: MessageReader<TileOut>,
     child_query: Query<&ChildOf>,
     tile_query: Query<&Tile>,
     mut vis_query: Query<&mut Visibility>,
@@ -283,8 +284,8 @@ fn on_tile_out(
         return;
     }
 
-    for event in out.read() {
-        let child = child_query.get(event.0).unwrap();
+    for msg in out.read() {
+        let child = child_query.get(msg.0).unwrap();
         let tile = tile_query.get(child.parent()).unwrap();
 
         if data.can_move_to(tile.pos()) {
@@ -304,7 +305,7 @@ fn on_tile_out(
 }
 
 fn on_secondary_cancel(
-    mut pressed: EventReader<Pointer<Pressed>>,
+    mut press: MessageReader<Pointer<Press>>,
     mut egui: EguiContexts,
     mut session: ResMut<GameSession>,
     mut next_phase: ResMut<NextState<GamePhase>>,
@@ -318,11 +319,11 @@ fn on_secondary_cancel(
         return;
     }
 
-    let Some(event) = pressed.read().last() else {
+    let Some(msg) = press.read().last() else {
         return;
     };
 
-    if event.button != PointerButton::Secondary {
+    if msg.button != PointerButton::Secondary {
         return;
     }
 
@@ -374,9 +375,9 @@ struct TransformParabolaLens {
 }
 
 impl Lens<Transform> for TransformParabolaLens {
-    fn lerp(&mut self, target: &mut dyn Targetable<Transform>, t: f32) {
-        let p = self.start.lerp(self.end, t);
-        let bump = self.up.normalize() * (self.height * 4.0 * t * (1.0 - t));
+    fn lerp(&mut self, mut target: Mut<'_, Transform>, ratio: f32) {
+        let p = self.start.lerp(self.end, ratio);
+        let bump = self.up.normalize() * (self.height * 4.0 * ratio * (1.0 - ratio));
         target.translation = p + bump;
     }
 }

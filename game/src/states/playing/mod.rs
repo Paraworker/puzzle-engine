@@ -13,7 +13,7 @@ use crate::{
         },
     },
 };
-use bevy::{prelude::*, render::view::RenderLayers};
+use bevy::{camera::visibility::RenderLayers, prelude::*};
 use bevy_egui::{EguiGlobalSettings, EguiPrimaryContextPass, PrimaryEguiContext};
 
 pub mod board;
@@ -29,10 +29,10 @@ pub struct PlayingPlugin;
 impl Plugin for PlayingPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(GamePhasePlugin)
-            .add_event::<TileEnter>()
-            .add_event::<TileOut>()
-            .add_event::<TileReleased>()
-            .add_event::<PiecePressed>()
+            .add_message::<TileEnter>()
+            .add_message::<TileOut>()
+            .add_message::<TileRelease>()
+            .add_message::<PiecePress>()
             .add_systems(OnEnter(AppState::Playing), on_enter)
             .add_systems(OnExit(AppState::Playing), on_exit)
             .add_systems(
@@ -42,17 +42,17 @@ impl Plugin for PlayingPlugin {
     }
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct TileEnter(pub Entity);
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct TileOut(pub Entity);
 
-#[derive(Event)]
-pub struct TileReleased(pub Entity, pub PointerButton);
+#[derive(Message)]
+pub struct TileRelease(pub Entity, pub PointerButton);
 
-#[derive(Event)]
-pub struct PiecePressed(pub Entity, pub PointerButton);
+#[derive(Message)]
+pub struct PiecePress(pub Entity, pub PointerButton);
 
 #[derive(Component)]
 struct PlayingMarker;

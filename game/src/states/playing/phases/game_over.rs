@@ -18,13 +18,13 @@ impl Plugin for GameOverPlugin {
 }
 
 fn on_enter(
-    mut drag: Option<ResMut<Events<Pointer<Drag>>>>,
-    mut wheel: Option<ResMut<Events<Pointer<MouseWheel>>>>,
+    mut drag: Option<ResMut<Messages<Pointer<Drag>>>>,
+    mut wheel: Option<ResMut<Messages<Pointer<MouseWheel>>>>,
     session: Res<GameSession>,
     mut top_panel_text: ResMut<TopPanelText>,
 ) {
-    // Clear events
-    // In case the old events are still in the queue
+    // Clear messages
+    // In case the old messages are still in the queue
     if let Some(drag) = &mut drag {
         drag.clear();
     }
@@ -42,7 +42,7 @@ fn on_exit() {
 
 /// A system that triggered on the mouse wheel event.
 fn on_mouse_wheel(
-    mut scroll_evr: EventReader<MouseWheel>,
+    mut scroll_msgs: MessageReader<MouseWheel>,
     mut egui: EguiContexts,
     mut query: Query<(&mut Transform, &mut PlayingCamera)>,
     next_phase: Res<NextState<GamePhase>>,
@@ -55,9 +55,9 @@ fn on_mouse_wheel(
         return;
     }
 
-    for ev in scroll_evr.read() {
+    for msg in scroll_msgs.read() {
         for (mut transform, mut camera) in &mut query {
-            camera.zoom(ev.y);
+            camera.zoom(msg.y);
 
             // Update transform
             *transform = camera.transform();
@@ -67,7 +67,7 @@ fn on_mouse_wheel(
 
 /// A system that triggered when the pointer is dragged.
 fn on_pointer_drag(
-    mut drag_events: EventReader<Pointer<Drag>>,
+    mut drag_msgs: MessageReader<Pointer<Drag>>,
     mut egui: EguiContexts,
     mut camera_query: Query<(&mut Transform, &mut PlayingCamera)>,
     next_phase: Res<NextState<GamePhase>>,
@@ -80,7 +80,7 @@ fn on_pointer_drag(
         return;
     }
 
-    for drag in drag_events.read() {
+    for drag in drag_msgs.read() {
         for (mut transform, mut cam) in camera_query.iter_mut() {
             cam.drag(drag.delta.x, drag.delta.y);
 

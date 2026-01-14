@@ -1,5 +1,5 @@
 use crate::assets::{materials::GameMaterials, meshes::GameMeshes};
-use bevy::{asset::Assets, ecs::resource::Resource, pbr::StandardMaterial, render::mesh::Mesh};
+use bevy::{asset::Assets, ecs::resource::Resource, mesh::Mesh, pbr::StandardMaterial};
 
 pub mod materials;
 pub mod meshes;
