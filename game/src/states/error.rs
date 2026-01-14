@@ -70,17 +70,17 @@ fn update(
         match *interaction {
             Interaction::Pressed => {
                 *color = PRESSED_BUTTON.into();
-                border_color.0 = Color::WHITE;
+                border_color.set_all(Color::WHITE);
 
                 next_state.set(AppState::Menu);
             }
             Interaction::Hovered => {
                 *color = HOVERED_BUTTON.into();
-                border_color.0 = Color::WHITE;
+                border_color.set_all(Color::WHITE);
             }
             Interaction::None => {
                 *color = NORMAL_BUTTON.into();
-                border_color.0 = Color::BLACK;
+                border_color.set_all(Color::BLACK);
             }
         }
     }
@@ -121,10 +121,10 @@ fn button() -> impl Bundle + 'static {
             border: UiRect::all(Val::Px(5.0)),
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
+            border_radius: BorderRadius::all(Val::Px(12.0)),
             ..default()
         },
-        BorderColor(Color::BLACK),
-        BorderRadius::all(Val::Px(12.0)),
+        BorderColor::all(Color::BLACK),
         BackgroundColor(NORMAL_BUTTON),
         children![(
             Text::new("Back to Menu"),

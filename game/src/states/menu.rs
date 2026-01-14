@@ -40,17 +40,17 @@ fn update(
         match *interaction {
             Interaction::Pressed => {
                 *color = BUTTON_PRESSED.into();
-                border_color.0 = BUTTON_BORDER_PRESSED;
+                border_color.set_all(BUTTON_BORDER_PRESSED);
 
                 next_state.set(AppState::GameSetup);
             }
             Interaction::Hovered => {
                 *color = BUTTON_HOVERED.into();
-                border_color.0 = BUTTON_BORDER_HOVERED;
+                border_color.set_all(BUTTON_BORDER_HOVERED);
             }
             Interaction::None => {
                 *color = BUTTON_NORMAL.into();
-                border_color.0 = BUTTON_BORDER_NORMAL;
+                border_color.set_all(BUTTON_BORDER_NORMAL);
             }
         }
     }
@@ -129,10 +129,10 @@ fn button(text: impl Into<String>) -> impl Bundle + 'static {
             border: UiRect::all(Val::Px(5.0)),
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
+            border_radius: BorderRadius::all(Val::Px(12.0)),
             ..default()
         },
-        BorderColor(BUTTON_BORDER_NORMAL),
-        BorderRadius::all(Val::Px(12.0)),
+        BorderColor::all(BUTTON_BORDER_NORMAL),
         BackgroundColor(BUTTON_NORMAL),
         children![(
             Text::new(text),

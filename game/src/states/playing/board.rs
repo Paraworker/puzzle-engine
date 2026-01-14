@@ -1,7 +1,7 @@
 use crate::{
     assets::GameAssets,
     states::playing::{
-        PlayingMarker, TileEnter, TileOut, TileReleased,
+        PlayingMarker, TileEnter, TileOut, TileRelease,
         session::TileIndex,
         tile::{Tile, TileEntities},
     },
@@ -16,16 +16,16 @@ pub fn spawn_board(
     assets: &GameAssets,
     rules: &CheckedGameRules,
 ) -> (Entity, TileIndex) {
-    fn on_tile_enter(trigger: Trigger<Pointer<Over>>, mut ev: EventWriter<TileEnter>) {
-        ev.write(TileEnter(trigger.target()));
+    fn on_tile_enter(on_over: On<Pointer<Over>>, mut msg: MessageWriter<TileEnter>) {
+        msg.write(TileEnter(on_over.event_target()));
     }
 
-    fn on_tile_out(trigger: Trigger<Pointer<Out>>, mut ev: EventWriter<TileOut>) {
-        ev.write(TileOut(trigger.target()));
+    fn on_tile_out(on_out: On<Pointer<Out>>, mut msg: MessageWriter<TileOut>) {
+        msg.write(TileOut(on_out.event_target()));
     }
 
-    fn on_tile_released(trigger: Trigger<Pointer<Released>>, mut ev: EventWriter<TileReleased>) {
-        ev.write(TileReleased(trigger.target(), trigger.button));
+    fn on_tile_release(on_release: On<Pointer<Release>>, mut msg: MessageWriter<TileRelease>) {
+        msg.write(TileRelease(on_release.event_target(), on_release.button));
     }
 
     let mut tiles = TileIndex::new();
@@ -89,7 +89,7 @@ pub fn spawn_board(
                 ))
                 .observe(on_tile_enter)
                 .observe(on_tile_out)
-                .observe(on_tile_released)
+                .observe(on_tile_release)
                 .id();
 
             let source_or_target = commands

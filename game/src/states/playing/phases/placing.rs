@@ -3,7 +3,7 @@ use crate::{
     states::{
         game_setup::LoadedRules,
         playing::{
-            TileEnter, TileOut, TileReleased,
+            TileEnter, TileOut, TileRelease,
             phases::GamePhase,
             piece::{PlacingPiece, capture_piece},
             place_new_piece,
@@ -34,7 +34,7 @@ impl Plugin for PlacingPlugin {
             .add_systems(
                 Update,
                 (
-                    on_tile_released,
+                    on_tile_release,
                     on_tile_enter,
                     on_tile_out,
                     on_secondary_cancel,
@@ -47,18 +47,18 @@ impl Plugin for PlacingPlugin {
 }
 
 fn on_enter(
-    mut tile_enter: Option<ResMut<Events<TileEnter>>>,
-    mut tile_out: Option<ResMut<Events<TileOut>>>,
-    mut tile_released: Option<ResMut<Events<TileReleased>>>,
-    mut pointer_pressed: Option<ResMut<Events<Pointer<Pressed>>>>,
+    mut tile_enter: Option<ResMut<Messages<TileEnter>>>,
+    mut tile_out: Option<ResMut<Messages<TileOut>>>,
+    mut tile_release: Option<ResMut<Messages<TileRelease>>>,
+    mut pointer_press: Option<ResMut<Messages<Pointer<Press>>>>,
     mut vis_query: Query<&mut Visibility>,
     tile_query: Query<&Tile>,
     rules: Res<LoadedRules>,
     session: Res<GameSession>,
     mut data: ResMut<PlacingPiece>,
 ) {
-    // Clear events
-    // In case the old events are still in the queue
+    // Clear messages
+    // In case the old messages are still in the queue
     if let Some(tile_enter) = &mut tile_enter {
         tile_enter.clear();
     }
@@ -67,12 +67,12 @@ fn on_enter(
         tile_out.clear();
     }
 
-    if let Some(tile_released) = &mut tile_released {
-        tile_released.clear();
+    if let Some(tile_release) = &mut tile_release {
+        tile_release.clear();
     }
 
-    if let Some(pointer_pressed) = &mut pointer_pressed {
-        pointer_pressed.clear();
+    if let Some(pointer_press) = &mut pointer_press {
+        pointer_press.clear();
     }
 
     let placement = rules.get_piece(data.model()).unwrap();
@@ -114,8 +114,8 @@ fn on_exit(
     commands.remove_resource::<PlacingPiece>();
 }
 
-fn on_tile_released(
-    mut pressed: EventReader<TileReleased>,
+fn on_tile_release(
+    mut press: MessageReader<TileRelease>,
     mut egui: EguiContexts,
     mut commands: Commands,
     child_query: Query<&ChildOf>,
@@ -134,17 +134,17 @@ fn on_tile_released(
         return;
     }
 
-    let Some(event) = pressed.read().last() else {
+    let Some(msg) = press.read().last() else {
         return;
     };
 
-    if event.1 != PointerButton::Primary {
+    if msg.1 != PointerButton::Primary {
         return;
     }
 
     let session = session.as_mut();
 
-    let child = child_query.get(event.0).unwrap();
+    let child = child_query.get(msg.0).unwrap();
     let tile = tile_query.get(child.parent()).unwrap();
 
     if data.can_place_at(tile.pos()) {
@@ -179,7 +179,7 @@ fn on_tile_released(
 }
 
 fn on_tile_enter(
-    mut enter: EventReader<TileEnter>,
+    mut enter: MessageReader<TileEnter>,
     child_query: Query<&ChildOf>,
     tile_query: Query<&Tile>,
     mut vis_query: Query<&mut Visibility>,
@@ -191,8 +191,8 @@ fn on_tile_enter(
         return;
     }
 
-    for event in enter.read() {
-        let child = child_query.get(event.0).unwrap();
+    for msg in enter.read() {
+        let child = child_query.get(msg.0).unwrap();
         let tile = tile_query.get(child.parent()).unwrap();
 
         if data.can_place_at(tile.pos()) {
@@ -212,7 +212,7 @@ fn on_tile_enter(
 }
 
 fn on_tile_out(
-    mut out: EventReader<TileOut>,
+    mut out: MessageReader<TileOut>,
     child_query: Query<&ChildOf>,
     tile_query: Query<&Tile>,
     mut vis_query: Query<&mut Visibility>,
@@ -224,8 +224,8 @@ fn on_tile_out(
         return;
     }
 
-    for event in out.read() {
-        let child = child_query.get(event.0).unwrap();
+    for msg in out.read() {
+        let child = child_query.get(msg.0).unwrap();
         let tile = tile_query.get(child.parent()).unwrap();
 
         if data.can_place_at(tile.pos()) {
@@ -245,7 +245,7 @@ fn on_tile_out(
 }
 
 fn on_secondary_cancel(
-    mut pressed: EventReader<Pointer<Pressed>>,
+    mut press: MessageReader<Pointer<Press>>,
     mut egui: EguiContexts,
     mut next_phase: ResMut<NextState<GamePhase>>,
 ) {
@@ -257,11 +257,11 @@ fn on_secondary_cancel(
         return;
     }
 
-    let Some(event) = pressed.read().last() else {
+    let Some(msg) = press.read().last() else {
         return;
     };
 
-    if event.button != PointerButton::Secondary {
+    if msg.button != PointerButton::Secondary {
         return;
     }
 

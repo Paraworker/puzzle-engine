@@ -1,5 +1,5 @@
 use crate::states::playing::{
-    PiecePressed, TopPanelText,
+    PiecePress, TopPanelText,
     camera::PlayingCamera,
     phases::{GamePhase, moving::start_move_piece},
     piece::PiecePos,
@@ -15,7 +15,7 @@ impl Plugin for SelectingPlugin {
         app.add_systems(OnEnter(GamePhase::Selecting), on_enter)
             .add_systems(
                 Update,
-                (on_mouse_wheel, on_pointer_drag, on_piece_pressed)
+                (on_mouse_wheel, on_pointer_drag, on_piece_press)
                     .run_if(in_state(GamePhase::Selecting)),
             )
             .add_systems(OnExit(GamePhase::Selecting), on_exit);
@@ -23,16 +23,16 @@ impl Plugin for SelectingPlugin {
 }
 
 fn on_enter(
-    mut piece_pressed: Option<ResMut<Events<PiecePressed>>>,
-    mut drag: Option<ResMut<Events<Pointer<Drag>>>>,
-    mut wheel: Option<ResMut<Events<Pointer<MouseWheel>>>>,
+    mut piece_press: Option<ResMut<Messages<PiecePress>>>,
+    mut drag: Option<ResMut<Messages<Pointer<Drag>>>>,
+    mut wheel: Option<ResMut<Messages<Pointer<MouseWheel>>>>,
     session: Res<GameSession>,
     mut top_panel_text: ResMut<TopPanelText>,
 ) {
-    // Clear events
-    // In case the old events are still in the queue
-    if let Some(piece_pressed) = &mut piece_pressed {
-        piece_pressed.clear();
+    // Clear messages
+    // In case the old messages are still in the queue
+    if let Some(piece_press) = &mut piece_press {
+        piece_press.clear();
     }
 
     if let Some(drag) = &mut drag {
@@ -50,9 +50,9 @@ fn on_exit() {
     // no-op
 }
 
-/// A system that triggered on the mouse wheel event.
+/// A system that triggered on the mouse wheel message.
 fn on_mouse_wheel(
-    mut scroll_evr: EventReader<MouseWheel>,
+    mut scroll_msgs: MessageReader<MouseWheel>,
     mut egui: EguiContexts,
     mut query: Query<(&mut Transform, &mut PlayingCamera)>,
     next_phase: Res<NextState<GamePhase>>,
@@ -65,9 +65,9 @@ fn on_mouse_wheel(
         return;
     }
 
-    for ev in scroll_evr.read() {
+    for msg in scroll_msgs.read() {
         for (mut transform, mut camera) in &mut query {
-            camera.zoom(ev.y);
+            camera.zoom(msg.y);
 
             // Update transform
             *transform = camera.transform();
@@ -77,7 +77,7 @@ fn on_mouse_wheel(
 
 /// A system that triggered when the pointer is dragged.
 fn on_pointer_drag(
-    mut drag_events: EventReader<Pointer<Drag>>,
+    mut drag_msgs: MessageReader<Pointer<Drag>>,
     mut egui: EguiContexts,
     mut camera_query: Query<(&mut Transform, &mut PlayingCamera)>,
     next_phase: Res<NextState<GamePhase>>,
@@ -90,7 +90,7 @@ fn on_pointer_drag(
         return;
     }
 
-    for drag in drag_events.read() {
+    for drag in drag_msgs.read() {
         for (mut transform, mut cam) in camera_query.iter_mut() {
             cam.drag(drag.delta.x, drag.delta.y);
 
@@ -100,8 +100,8 @@ fn on_pointer_drag(
     }
 }
 
-fn on_piece_pressed(
-    mut pressed: EventReader<PiecePressed>,
+fn on_piece_press(
+    mut press: MessageReader<PiecePress>,
     mut commands: Commands,
     child_query: Query<&ChildOf>,
     piece_query: Query<&PiecePos>,
@@ -112,18 +112,18 @@ fn on_piece_pressed(
         return;
     }
 
-    let Some(event) = pressed.read().last() else {
+    let Some(msg) = press.read().last() else {
         return;
     };
 
-    // Skip if the pointer event is not primary click
-    if event.1 != PointerButton::Primary {
+    // Skip if the pointer message is not primary click
+    if msg.1 != PointerButton::Primary {
         return;
     }
 
     let session = session.as_mut();
 
-    let child = child_query.get(event.0).unwrap();
+    let child = child_query.get(msg.0).unwrap();
     let pos = piece_query.get(child.parent()).unwrap();
 
     start_move_piece(

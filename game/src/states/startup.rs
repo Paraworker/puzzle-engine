@@ -3,8 +3,8 @@ use bevy::{
     app::{App, Plugin, Startup},
     asset::Assets,
     ecs::system::{Commands, ResMut},
+    mesh::Mesh,
     pbr::StandardMaterial,
-    render::mesh::Mesh,
     state::state::NextState,
 };
 

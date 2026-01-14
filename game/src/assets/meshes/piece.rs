@@ -1,8 +1,8 @@
 use bevy::{
     asset::{Assets, Handle},
     math::primitives::{Capsule3d, Cone, Cuboid, Cylinder, Sphere, Tetrahedron, Torus},
+    mesh::Mesh,
     prelude::*,
-    render::mesh::Mesh,
 };
 use rulery::{CheckedGameRules, piece::PieceModel};
 use std::collections::HashMap;

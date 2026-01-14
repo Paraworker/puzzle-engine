@@ -3,7 +3,7 @@ use crate::{
     assets::GameAssets,
     expr_contexts::{movement::MovementContext, placement::PlacementContext},
     states::playing::{
-        PiecePressed,
+        PiecePress,
         board::pos_translation,
         session::{GameSession, PlacedPieceIndex, player::Players},
         tile::Tile,
@@ -11,7 +11,7 @@ use crate::{
 };
 use bevy::prelude::*;
 use bevy_tweening::{
-    Animator, Sequence, Tracks, Tween,
+    AnimTarget, Sequence, Tween, TweenAnim,
     lens::{TransformPositionLens, TransformScaleLens},
 };
 use rulery::{
@@ -255,8 +255,8 @@ pub fn place_new_piece(
     color: PieceColor,
     pos: Pos,
 ) -> Result<(), GameError> {
-    fn on_piece_pressed(trigger: Trigger<Pointer<Pressed>>, mut ev: EventWriter<PiecePressed>) {
-        ev.write(PiecePressed(trigger.target(), trigger.button));
+    fn on_piece_pressed(on_press: On<Pointer<Press>>, mut msg: MessageWriter<PiecePress>) {
+        msg.write(PiecePress(on_press.event_target(), on_press.button));
     }
 
     let Entry::Vacant(entry) = placed_pieces.entry(pos) else {
@@ -273,66 +273,74 @@ pub fn place_new_piece(
     let (mesh, local_transform) = assets.meshes.piece.get(model);
 
     // Animation
-    let (transform, anim) = {
+    let (transform, movement_sequence, scale_sequence) = {
         let end = pos_translation(pos, rules);
-
         let mut start = end;
-        start.translation.y += CheckedGameRules::tile_height() * 10.0;
-        start.scale = Vec3::splat(0.8);
 
-        let impact = CheckedGameRules::tile_height() * 0.06;
+        let movement_sequence = {
+            start.translation.y += CheckedGameRules::tile_height() * 10.0;
+            start.scale = Vec3::splat(0.8);
 
-        let drop_in = Tween::new(
-            EaseFunction::CubicIn,
-            Duration::from_millis(140),
-            TransformPositionLens {
-                start: start.translation,
-                end: end.translation - Vec3::Y * impact,
-            },
-        );
+            let impact = CheckedGameRules::tile_height() * 0.06;
 
-        let rebound = Tween::new(
-            EaseFunction::BounceOut,
-            Duration::from_millis(80),
-            TransformPositionLens {
-                start: end.translation - Vec3::Y * impact,
-                end: end.translation,
-            },
-        );
+            let drop_in = Tween::new(
+                EaseFunction::CubicIn,
+                Duration::from_millis(140),
+                TransformPositionLens {
+                    start: start.translation,
+                    end: end.translation - Vec3::Y * impact,
+                },
+            );
 
-        let pos_track = Sequence::new([drop_in, rebound]);
+            let rebound = Tween::new(
+                EaseFunction::BounceOut,
+                Duration::from_millis(80),
+                TransformPositionLens {
+                    start: end.translation - Vec3::Y * impact,
+                    end: end.translation,
+                },
+            );
 
-        let squash = Tween::new(
-            EaseFunction::CubicOut,
-            Duration::from_millis(140),
-            TransformScaleLens {
-                start: start.scale,
-                end: Vec3::new(1.08, 0.90, 1.08),
-            },
-        );
+            Sequence::new([drop_in, rebound])
+        };
 
-        let settle = Tween::new(
-            EaseFunction::BackOut,
-            Duration::from_millis(110),
-            TransformScaleLens {
-                start: Vec3::new(1.08, 0.90, 1.08),
-                end: Vec3::ONE,
-            },
-        );
+        let scale_sequence = {
+            let squash = Tween::new(
+                EaseFunction::CubicOut,
+                Duration::from_millis(140),
+                TransformScaleLens {
+                    start: start.scale,
+                    end: Vec3::new(1.08, 0.90, 1.08),
+                },
+            );
 
-        let scale_track = Sequence::new([squash, settle]);
+            let settle = Tween::new(
+                EaseFunction::BackOut,
+                Duration::from_millis(110),
+                TransformScaleLens {
+                    start: Vec3::new(1.08, 0.90, 1.08),
+                    end: Vec3::ONE,
+                },
+            );
 
-        (start, Tracks::new([pos_track, scale_track]))
+            Sequence::new([squash, settle])
+        };
+
+        (start, movement_sequence, scale_sequence)
     };
 
     let piece_root = commands
-        .spawn((
-            transform,
-            GlobalTransform::default(),
-            PiecePos(pos),
-            Animator::new(anim),
-        ))
+        .spawn((transform, GlobalTransform::default(), PiecePos(pos)))
         .id();
+
+    commands.spawn((
+        TweenAnim::new(movement_sequence),
+        AnimTarget::component::<Transform>(piece_root),
+    ));
+    commands.spawn((
+        TweenAnim::new(scale_sequence),
+        AnimTarget::component::<Transform>(piece_root),
+    ));
 
     let base_mesh = commands
         .spawn((
