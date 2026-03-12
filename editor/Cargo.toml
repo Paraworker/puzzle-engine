@@ -7,12 +7,12 @@ readme = "README.md"
 description = "Editor for Rulery"
 
 [dependencies]
-rfd = "0.15"
+rfd = "0.17"
 rulery = { path = "../rulery" }
-slint = "1.12"
+slint = "1.15"
 
 [build-dependencies]
-slint-build = "1.12"
+slint-build = "1.15"
 
 [package.metadata.bundle]
 name = "Rulery Editor"
