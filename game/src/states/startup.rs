@@ -23,7 +23,9 @@ fn on_startup(
     mut next_state: ResMut<NextState<AppState>>,
 ) {
     // Load setting
-    commands.insert_resource(Settings::load("game/settings.ron").unwrap());
+    commands.insert_resource(
+        Settings::load("game/settings.ron").expect("Failed to load settings file!"),
+    );
 
     // Load assets
     commands.insert_resource(GameAssets::new(&mut materials, &mut meshes));
