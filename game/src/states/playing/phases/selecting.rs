@@ -1,12 +1,11 @@
 use crate::states::playing::{
-    PiecePress, TopPanelText,
+    PiecePress, TopPanelText, WorldDrag,
     camera::PlayingCamera,
     phases::{GamePhase, moving::start_move_piece},
     piece::PiecePos,
     session::GameSession,
 };
 use bevy::{input::mouse::MouseWheel, prelude::*};
-use bevy_egui::EguiContexts;
 
 pub struct SelectingPlugin;
 
@@ -24,8 +23,8 @@ impl Plugin for SelectingPlugin {
 
 fn on_enter(
     mut piece_press: Option<ResMut<Messages<PiecePress>>>,
-    mut drag: Option<ResMut<Messages<Pointer<Drag>>>>,
-    mut wheel: Option<ResMut<Messages<Pointer<MouseWheel>>>>,
+    mut drag: Option<ResMut<Messages<WorldDrag>>>,
+    mut wheel: Option<ResMut<Messages<MouseWheel>>>,
     session: Res<GameSession>,
     mut top_panel_text: ResMut<TopPanelText>,
 ) {
@@ -53,15 +52,10 @@ fn on_exit() {
 /// A system that triggered on the mouse wheel message.
 fn on_mouse_wheel(
     mut scroll_msgs: MessageReader<MouseWheel>,
-    mut egui: EguiContexts,
     mut query: Query<(&mut Transform, &mut PlayingCamera)>,
     next_phase: Res<NextState<GamePhase>>,
 ) {
     if let NextState::Pending(_) = *next_phase {
-        return;
-    }
-
-    if egui.ctx_mut().unwrap().wants_pointer_input() {
         return;
     }
 
@@ -75,10 +69,12 @@ fn on_mouse_wheel(
     }
 }
 
-/// A system that triggered when the pointer is dragged.
+/// A system that orbits the camera when the board surface is dragged.
+///
+/// Reads [`WorldDrag`], which is only produced by the tile observers, so drags
+/// over UI never reach here — no UI hit-test guard is needed.
 fn on_pointer_drag(
-    mut drag_msgs: MessageReader<Pointer<Drag>>,
-    mut egui: EguiContexts,
+    mut drag_msgs: MessageReader<WorldDrag>,
     mut camera_query: Query<(&mut Transform, &mut PlayingCamera)>,
     next_phase: Res<NextState<GamePhase>>,
 ) {
@@ -86,13 +82,9 @@ fn on_pointer_drag(
         return;
     }
 
-    if egui.ctx_mut().unwrap().wants_pointer_input() {
-        return;
-    }
-
     for drag in drag_msgs.read() {
         for (mut transform, mut cam) in camera_query.iter_mut() {
-            cam.drag(drag.delta.x, drag.delta.y);
+            cam.drag(drag.0.x, drag.0.y);
 
             // Update transform
             *transform = cam.transform();

@@ -3,7 +3,7 @@ use crate::{
     states::{
         game_setup::LoadedRules,
         playing::{
-            TileEnter, TileOut, TileRelease,
+            TileEnter, TileOut, TilePress, TileRelease,
             phases::GamePhase,
             piece::{PlacingPiece, capture_piece},
             place_new_piece,
@@ -13,7 +13,6 @@ use crate::{
     },
 };
 use bevy::prelude::*;
-use bevy_egui::EguiContexts;
 use rulery::piece::{PieceColor, PieceModel};
 
 pub fn start_place_piece(
@@ -50,7 +49,7 @@ fn on_enter(
     mut tile_enter: Option<ResMut<Messages<TileEnter>>>,
     mut tile_out: Option<ResMut<Messages<TileOut>>>,
     mut tile_release: Option<ResMut<Messages<TileRelease>>>,
-    mut pointer_press: Option<ResMut<Messages<Pointer<Press>>>>,
+    mut tile_press: Option<ResMut<Messages<TilePress>>>,
     mut vis_query: Query<&mut Visibility>,
     tile_query: Query<&Tile>,
     rules: Res<LoadedRules>,
@@ -71,8 +70,8 @@ fn on_enter(
         tile_release.clear();
     }
 
-    if let Some(pointer_press) = &mut pointer_press {
-        pointer_press.clear();
+    if let Some(tile_press) = &mut tile_press {
+        tile_press.clear();
     }
 
     let placement = rules.get_piece(data.model()).unwrap();
@@ -116,7 +115,6 @@ fn on_exit(
 
 fn on_tile_release(
     mut press: MessageReader<TileRelease>,
-    mut egui: EguiContexts,
     mut commands: Commands,
     child_query: Query<&ChildOf>,
     tile_query: Query<&Tile>,
@@ -127,10 +125,6 @@ fn on_tile_release(
     mut next_phase: ResMut<NextState<GamePhase>>,
 ) {
     if let NextState::Pending(_) = *next_phase {
-        return;
-    }
-
-    if egui.ctx_mut().unwrap().wants_pointer_input() {
         return;
     }
 
@@ -245,15 +239,10 @@ fn on_tile_out(
 }
 
 fn on_secondary_cancel(
-    mut press: MessageReader<Pointer<Press>>,
-    mut egui: EguiContexts,
+    mut press: MessageReader<TilePress>,
     mut next_phase: ResMut<NextState<GamePhase>>,
 ) {
     if let NextState::Pending(_) = *next_phase {
-        return;
-    }
-
-    if egui.ctx_mut().unwrap().wants_pointer_input() {
         return;
     }
 
@@ -261,7 +250,7 @@ fn on_secondary_cancel(
         return;
     };
 
-    if msg.button != PointerButton::Secondary {
+    if msg.0 != PointerButton::Secondary {
         return;
     }
 
@@ -270,14 +259,9 @@ fn on_secondary_cancel(
 
 fn on_escape_cancel(
     keys: Res<ButtonInput<KeyCode>>,
-    mut egui: EguiContexts,
     mut next_phase: ResMut<NextState<GamePhase>>,
 ) {
     if let NextState::Pending(_) = *next_phase {
-        return;
-    }
-
-    if egui.ctx_mut().unwrap().wants_keyboard_input() {
         return;
     }
 

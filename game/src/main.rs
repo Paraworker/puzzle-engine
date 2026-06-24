@@ -1,6 +1,5 @@
 use crate::states::AppStatePlugin;
 use bevy::prelude::*;
-use bevy_egui::EguiPlugin;
 use bevy_tweening::TweeningPlugin;
 use ron::de::SpannedError;
 use rulery::{RulesError, pos::Pos};
@@ -46,7 +45,6 @@ fn main() {
         .add_plugins(DefaultPlugins.set(new_window_plugin()))
         .add_plugins(MeshPickingPlugin)
         .add_plugins(TweeningPlugin)
-        .add_plugins(EguiPlugin::default())
         .add_plugins(AppStatePlugin)
         .run();
 }

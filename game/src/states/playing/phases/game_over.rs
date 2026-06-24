@@ -1,8 +1,7 @@
 use crate::states::playing::{
-    TopPanelText, camera::PlayingCamera, phases::GamePhase, session::GameSession,
+    TopPanelText, WorldDrag, camera::PlayingCamera, phases::GamePhase, session::GameSession,
 };
 use bevy::{input::mouse::MouseWheel, prelude::*};
-use bevy_egui::EguiContexts;
 
 pub struct GameOverPlugin;
 
@@ -18,8 +17,8 @@ impl Plugin for GameOverPlugin {
 }
 
 fn on_enter(
-    mut drag: Option<ResMut<Messages<Pointer<Drag>>>>,
-    mut wheel: Option<ResMut<Messages<Pointer<MouseWheel>>>>,
+    mut drag: Option<ResMut<Messages<WorldDrag>>>,
+    mut wheel: Option<ResMut<Messages<MouseWheel>>>,
     session: Res<GameSession>,
     mut top_panel_text: ResMut<TopPanelText>,
 ) {
@@ -43,15 +42,10 @@ fn on_exit() {
 /// A system that triggered on the mouse wheel event.
 fn on_mouse_wheel(
     mut scroll_msgs: MessageReader<MouseWheel>,
-    mut egui: EguiContexts,
     mut query: Query<(&mut Transform, &mut PlayingCamera)>,
     next_phase: Res<NextState<GamePhase>>,
 ) {
     if let NextState::Pending(_) = *next_phase {
-        return;
-    }
-
-    if egui.ctx_mut().unwrap().wants_pointer_input() {
         return;
     }
 
@@ -65,10 +59,9 @@ fn on_mouse_wheel(
     }
 }
 
-/// A system that triggered when the pointer is dragged.
+/// A system that orbits the camera when the board surface is dragged.
 fn on_pointer_drag(
-    mut drag_msgs: MessageReader<Pointer<Drag>>,
-    mut egui: EguiContexts,
+    mut drag_msgs: MessageReader<WorldDrag>,
     mut camera_query: Query<(&mut Transform, &mut PlayingCamera)>,
     next_phase: Res<NextState<GamePhase>>,
 ) {
@@ -76,13 +69,9 @@ fn on_pointer_drag(
         return;
     }
 
-    if egui.ctx_mut().unwrap().wants_pointer_input() {
-        return;
-    }
-
     for drag in drag_msgs.read() {
         for (mut transform, mut cam) in camera_query.iter_mut() {
-            cam.drag(drag.delta.x, drag.delta.y);
+            cam.drag(drag.0.x, drag.0.y);
 
             // Update transform
             *transform = cam.transform();

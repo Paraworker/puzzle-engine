@@ -9,12 +9,11 @@ use crate::{
             phases::GamePhasePlugin,
             piece::place_new_piece,
             session::{GameSession, PlacedPieceIndex, player::Players, turn::TurnController},
-            ui::{TopPanelText, bottom_panel, top_panel},
+            ui::{TopPanelText, handle_stock_button, setup_ui, update_buttons, update_top_panel},
         },
     },
 };
-use bevy::{camera::visibility::RenderLayers, prelude::*};
-use bevy_egui::{EguiGlobalSettings, EguiPrimaryContextPass, PrimaryEguiContext};
+use bevy::prelude::*;
 
 pub mod board;
 pub mod camera;
@@ -32,12 +31,15 @@ impl Plugin for PlayingPlugin {
             .add_message::<TileEnter>()
             .add_message::<TileOut>()
             .add_message::<TileRelease>()
+            .add_message::<TilePress>()
+            .add_message::<WorldDrag>()
             .add_message::<PiecePress>()
-            .add_systems(OnEnter(AppState::Playing), on_enter)
+            .add_systems(OnEnter(AppState::Playing), (on_enter, setup_ui))
             .add_systems(OnExit(AppState::Playing), on_exit)
             .add_systems(
-                EguiPrimaryContextPass,
-                (top_panel, bottom_panel).run_if(in_state(AppState::Playing)),
+                Update,
+                (update_top_panel, update_buttons, handle_stock_button)
+                    .run_if(in_state(AppState::Playing)),
             );
     }
 }
@@ -51,22 +53,28 @@ pub struct TileOut(pub Entity);
 #[derive(Message)]
 pub struct TileRelease(pub Entity, pub PointerButton);
 
+/// A press that landed on a board tile (not on UI), carrying the button used.
+#[derive(Message)]
+pub struct TilePress(pub PointerButton);
+
+/// A pointer drag that started on the board surface (not on UI).
+///
+/// Carries the per-frame drag delta; used to orbit the camera.
+#[derive(Message)]
+pub struct WorldDrag(pub Vec2);
+
 #[derive(Message)]
 pub struct PiecePress(pub Entity, pub PointerButton);
 
 #[derive(Component)]
-struct PlayingMarker;
+pub struct PlayingMarker;
 
 fn on_enter(
     mut commands: Commands,
-    mut egui_global_settings: ResMut<EguiGlobalSettings>,
     mut meshes: ResMut<Assets<Mesh>>,
     assets: Res<GameAssets>,
     rules: Res<LoadedRules>,
 ) {
-    // Disable the automatic creation of a primary context to set it up manually for the camera we need.
-    egui_global_settings.auto_create_primary_context = false;
-
     // Board
     let (board, tiles) = spawn_board(&mut commands, &mut meshes, &assets, &rules);
 
@@ -83,21 +91,9 @@ fn on_enter(
         PlayingMarker,
     ));
 
-    // World camera
+    // World camera (Bevy UI renders as a screen-space overlay on this camera)
     let cam = PlayingCamera::new();
     commands.spawn((Camera3d::default(), cam.transform(), cam, PlayingMarker));
-
-    // Egui camera
-    commands.spawn((
-        PrimaryEguiContext,
-        Camera2d,
-        RenderLayers::none(),
-        Camera {
-            order: 1,
-            ..default()
-        },
-        PlayingMarker,
-    ));
 
     let mut players = Players::new(&rules);
     let mut placed_pieces = PlacedPieceIndex::new();

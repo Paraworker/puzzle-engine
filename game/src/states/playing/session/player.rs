@@ -90,11 +90,6 @@ impl Player {
             .get_mut(&model)
             .expect("No such piece model found")
     }
-
-    /// Returns an iterator over the piece states.
-    pub fn pieces(&self) -> impl Iterator<Item = (PieceModel, &PieceState)> {
-        self.piece.iter().map(|(model, state)| (*model, state))
-    }
 }
 
 #[derive(Debug)]

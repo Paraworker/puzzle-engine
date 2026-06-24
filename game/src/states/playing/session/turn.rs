@@ -67,7 +67,7 @@ impl TurnController {
     /// Returns formatted string for the current turn message.
     pub fn turn_message(&self, players: &Players) -> String {
         format!(
-            "{}'s Turn — Turn {}, Round {}",
+            "{}'s Turn - Turn {}, Round {}",
             players.get_by_index(self.current_player).0,
             self.turn_number,
             self.round_number

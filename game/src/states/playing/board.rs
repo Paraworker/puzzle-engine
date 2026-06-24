@@ -1,7 +1,7 @@
 use crate::{
     assets::GameAssets,
     states::playing::{
-        PlayingMarker, TileEnter, TileOut, TileRelease,
+        PlayingMarker, TileEnter, TileOut, TilePress, TileRelease, WorldDrag,
         session::TileIndex,
         tile::{Tile, TileEntities},
     },
@@ -26,6 +26,18 @@ pub fn spawn_board(
 
     fn on_tile_release(on_release: On<Pointer<Release>>, mut msg: MessageWriter<TileRelease>) {
         msg.write(TileRelease(on_release.event_target(), on_release.button));
+    }
+
+    // A press that lands on a tile (rather than on a UI node, which would
+    // intercept the pointer). Used to cancel a move/placement with right-click.
+    fn on_tile_press(on_press: On<Pointer<Press>>, mut msg: MessageWriter<TilePress>) {
+        msg.write(TilePress(on_press.button));
+    }
+
+    // A drag that starts on the board surface. Used to orbit the camera; drags
+    // that start on a UI node target the node instead, so they never reach here.
+    fn on_tile_drag(on_drag: On<Pointer<Drag>>, mut msg: MessageWriter<WorldDrag>) {
+        msg.write(WorldDrag(on_drag.delta));
     }
 
     let mut tiles = TileIndex::new();
@@ -90,6 +102,8 @@ pub fn spawn_board(
                 .observe(on_tile_enter)
                 .observe(on_tile_out)
                 .observe(on_tile_release)
+                .observe(on_tile_press)
+                .observe(on_tile_drag)
                 .id();
 
             let source_or_target = commands
