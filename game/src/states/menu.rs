@@ -137,7 +137,7 @@ fn button(text: impl Into<String>) -> impl Bundle + 'static {
         children![(
             Text::new(text),
             TextFont {
-                font_size: 28.0,
+                font_size: FontSize::Px(28.0),
                 ..default()
             },
             TextColor(Color::srgb(0.9, 0.9, 0.9)),

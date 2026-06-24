@@ -161,7 +161,7 @@ fn on_tile_release(
         return;
     }
 
-    if egui.ctx_mut().unwrap().wants_pointer_input() {
+    if egui.ctx_mut().unwrap().egui_wants_pointer_input() {
         return;
     }
 
@@ -315,7 +315,7 @@ fn on_secondary_cancel(
         return;
     }
 
-    if egui.ctx_mut().unwrap().wants_pointer_input() {
+    if egui.ctx_mut().unwrap().egui_wants_pointer_input() {
         return;
     }
 
@@ -341,7 +341,7 @@ fn on_escape_cancel(
         return;
     }
 
-    if egui.ctx_mut().unwrap().wants_keyboard_input() {
+    if egui.ctx_mut().unwrap().egui_wants_keyboard_input() {
         return;
     }
 

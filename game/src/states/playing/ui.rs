@@ -15,7 +15,7 @@ use bevy_egui::{
 pub struct TopPanelText(pub String);
 
 pub fn top_panel(mut egui: EguiContexts, text: Res<TopPanelText>) {
-    egui::TopBottomPanel::top("top_panel")
+    egui::Panel::top("top_panel")
         .frame(
             egui::Frame::NONE
                 .fill(egui::Color32::from_rgba_premultiplied(30, 30, 30, 192))
@@ -44,7 +44,7 @@ pub fn bottom_panel(
 
     let session = session.as_mut();
 
-    egui::TopBottomPanel::bottom("bottom_panel")
+    egui::Panel::bottom("bottom_panel")
         .frame(
             egui::Frame::NONE
                 .fill(egui::Color32::from_rgb(30, 30, 30))

@@ -61,7 +61,7 @@ fn on_mouse_wheel(
         return;
     }
 
-    if egui.ctx_mut().unwrap().wants_pointer_input() {
+    if egui.ctx_mut().unwrap().egui_wants_pointer_input() {
         return;
     }
 
@@ -86,7 +86,7 @@ fn on_pointer_drag(
         return;
     }
 
-    if egui.ctx_mut().unwrap().wants_pointer_input() {
+    if egui.ctx_mut().unwrap().egui_wants_pointer_input() {
         return;
     }
 

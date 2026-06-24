@@ -97,7 +97,7 @@ fn label(err_msg: impl Into<String>) -> impl Bundle + 'static {
         children![(
             Text::new(err_msg),
             TextFont {
-                font_size: 18.0,
+                font_size: FontSize::Px(18.0),
                 ..default()
             },
             TextColor(Color::srgb(0.9, 0.9, 0.9)),
@@ -129,7 +129,7 @@ fn button() -> impl Bundle + 'static {
         children![(
             Text::new("Back to Menu"),
             TextFont {
-                font_size: 28.0,
+                font_size: FontSize::Px(28.0),
                 ..default()
             },
             TextColor(Color::srgb(0.9, 0.9, 0.9)),

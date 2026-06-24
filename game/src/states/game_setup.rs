@@ -120,7 +120,7 @@ fn label(text: impl Into<String>, font_size: f32) -> impl Bundle + 'static {
         Node::default(),
         Text::new(text),
         TextFont {
-            font_size,
+            font_size: FontSize::Px(font_size),
             ..default()
         },
         TextColor(Color::srgb(0.9, 0.9, 0.9)),
@@ -151,7 +151,7 @@ fn button(text: impl Into<String>) -> impl Bundle + 'static {
         children![(
             Text::new(text),
             TextFont {
-                font_size: 28.0,
+                font_size: FontSize::Px(28.0),
                 ..default()
             },
             TextColor(Color::srgb(0.9, 0.9, 0.9)),
